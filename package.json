@@ -1,0 +1,33 @@
+{
+  "name": "@fob/cli",
+  "version": "0.1.0",
+  "description": "Developer CLI for FinOpsBricks process engine workers",
+  "type": "module",
+  "bin": {
+    "fob": "./bin/fob.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:finopsbricks/cli.git"
+  },
+  "keywords": [
+    "cli",
+    "finopsbricks",
+    "process-engine",
+    "worker"
+  ],
+  "author": "FinOpsBricks",
+  "license": "PRIVATE",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1"
+  }
+}
