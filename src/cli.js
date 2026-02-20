@@ -12,7 +12,7 @@ import 'dotenv/config';
 import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
 import readline from 'readline';
 import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
-import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from './utils/output.js';
+import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename, loadAllStepOutputs } from './utils/output.js';
 import { resolveTemplates } from './utils/templates.js';
 import { listProcesses, getProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
 
@@ -377,6 +377,12 @@ async function listStepsHandler() {
 
 /**
  * Run step command handler
+ *
+ * Constructs a task matching the orchestrator's Task typedef:
+ * - step_queue_id: string
+ * - step: { slug, config }
+ * - work_record: { id, item_snapshot, step_outputs }
+ * - org_id: string
  */
 async function runStepHandler(argv) {
   const { slug } = argv;
@@ -399,26 +405,38 @@ async function runStepHandler(argv) {
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
   console.log(`Temp: ${path.relative(process.cwd(), config.tempDir)}`);
 
-  const task = { work_record_id: 'manual-test' };
+  // Load all step outputs from temp directory
+  const step_outputs = loadAllStepOutputs(config.tempDir);
+  const step_output_slugs = Object.keys(step_outputs);
 
-  // Load previous step output
-  const previousSlug = findPreviousStep(steps, slug);
-  if (previousSlug) {
-    const previousOutput = loadStepOutput(config.tempDir, previousSlug);
-    if (previousOutput) {
-      console.log(`\n   Loading previous_output from: ${slugToFilename(previousSlug)}`);
-      task.previous_output = previousOutput;
-    } else {
-      console.log(`\n   No previous output found for: ${previousSlug}`);
-    }
+  if (step_output_slugs.length > 0) {
+    console.log(`\n   Loaded step_outputs: ${step_output_slugs.join(', ')}`);
+  } else {
+    console.log(`\n   No previous step outputs found in temp/`);
   }
 
-  // Load and resolve config
+  // Load and resolve step config
   const rawConfig = loadStepConfig(config.tempDir, slug);
+  const stepConfig = rawConfig ? resolveTemplates(rawConfig, config.tempDir) : {};
+
   if (rawConfig) {
-    task.config = resolveTemplates(rawConfig, config.tempDir);
     console.log(`   Loaded config from: ${slug.replace(/\//g, '__')}.config.json`);
   }
+
+  // Construct task matching orchestrator structure
+  const task = {
+    step_queue_id: `local-${Date.now()}`,
+    step: {
+      slug: slug,
+      config: stepConfig,
+    },
+    work_record: {
+      id: `local-wr-${Date.now()}`,
+      item_snapshot: null,
+      step_outputs: step_outputs,
+    },
+    org_id: process.env.WORKER_ORG || 'local',
+  };
 
   console.log('\n' + '-'.repeat(60));
   console.log('Running step...');

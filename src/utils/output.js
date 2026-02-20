@@ -74,3 +74,43 @@ export function loadStepConfig(tempDir, slug) {
 
   return JSON.parse(fs.readFileSync(filepath, 'utf8'));
 }
+
+/**
+ * Convert filename back to step slug
+ * alex__fetch_account_freshness.json -> alex/fetch_account_freshness
+ * @param {string} filename
+ * @returns {string}
+ */
+export function filenameToSlug(filename) {
+  return filename.replace('.json', '').replace(/__/g, '/');
+}
+
+/**
+ * Load all step outputs from temp directory as a map
+ * Returns: { 'alex/fetch_data': {...}, 'alex/generate_email': {...} }
+ * @param {string} tempDir - Temp directory path
+ * @returns {Object<string, object>} Map of slug -> output
+ */
+export function loadAllStepOutputs(tempDir) {
+  if (!fs.existsSync(tempDir)) {
+    return {};
+  }
+
+  const outputs = {};
+  const files = fs.readdirSync(tempDir).filter(f =>
+    f.endsWith('.json') && !f.endsWith('.config.json')
+  );
+
+  for (const file of files) {
+    const slug = filenameToSlug(file);
+    const filepath = path.join(tempDir, file);
+    try {
+      outputs[slug] = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    } catch (e) {
+      // Skip invalid JSON files
+      console.warn(`Warning: Could not parse ${file}`);
+    }
+  }
+
+  return outputs;
+}
