@@ -1,25 +1,21 @@
 /**
- * fob steps command
+ * fob steps list
  *
  * List available steps in current worker.
  */
 
 import path from 'path';
 
-import { loadConfig } from '../utils/config.js';
-import { loadSteps } from '../utils/steps-loader.js';
+import { loadConfig } from '../../utils/config.js';
+import { loadSteps } from '../../utils/steps-loader.js';
 
 /**
  * List available steps
  * @param {string[]} args - Command arguments (unused)
  */
 export async function listSteps(args) {
-  // Load configuration
   const config = loadConfig();
-
-  // Load steps registry
   const steps = await loadSteps(config.stepsPath);
-
   const slugs = Object.keys(steps);
 
   console.log(`Steps from: ${path.relative(process.cwd(), config.stepsPath)}`);

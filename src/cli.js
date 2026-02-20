@@ -1,13 +1,13 @@
 /**
  * CLI entry point and command router
+ *
+ * Pattern: fob <resource> <action> [target] [options]
  */
 
-import { runStep } from './commands/step.js';
-import { listSteps } from './commands/steps.js';
+import { stepsResource } from './commands/steps/index.js';
 
-const COMMANDS = {
-  step: runStep,
-  steps: listSteps,
+const RESOURCES = {
+  steps: stepsResource,
 };
 
 function showHelp() {
@@ -15,35 +15,32 @@ function showHelp() {
 fob - FinOpsBricks Developer CLI
 
 Usage:
-  fob <command> [arguments]
+  fob <resource> <action> [target] [options]
 
-Commands:
-  step <slug>    Run a step locally (e.g., fob step alex/fetch_account_freshness)
-  steps          List available steps in current worker
-  help           Show this help message
+Resources:
+  steps          Work with step handlers
 
-Configuration:
-  Place .fob.json in your worker directory to customize paths:
-  {
-    "stepsPath": "./src/steps/index.js",
-    "tempDir": "./temp"
-  }
+Examples:
+  fob steps list                              List available steps
+  fob steps run alex/fetch_account_freshness  Run a step locally
+
+Run "fob <resource>" to see available actions for that resource.
 `);
 }
 
 export async function run(args) {
-  const command = args[0];
+  const resource = args[0];
 
-  if (!command || command === 'help' || command === '--help' || command === '-h') {
+  if (!resource || resource === 'help' || resource === '--help' || resource === '-h') {
     showHelp();
     process.exit(0);
   }
 
-  const handler = COMMANDS[command];
+  const handler = RESOURCES[resource];
 
   if (!handler) {
-    console.error(`Unknown command: ${command}`);
-    console.error('Run "fob help" for available commands');
+    console.error(`Unknown resource: ${resource}`);
+    console.error('Run "fob help" for available resources');
     process.exit(1);
   }
 

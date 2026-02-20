@@ -8,27 +8,35 @@ Guidance for Claude Code when working with this package.
 
 ## Commands
 
+Pattern: `fob <resource> <action> [target] [options]`
+
 ```bash
-fob step <slug>    # Run a step locally
-fob steps          # List available steps
-fob help           # Show help
+fob steps list                              # List available steps
+fob steps run alex/fetch_account_freshness  # Run a step locally
+fob help                                    # Show help
 ```
+
+See `docs/cli-pattern.md` for design rationale.
 
 ## Package Structure
 
 ```
 bin/
-  fob.js              # CLI entry point
+  fob.js                  # CLI entry point
 src/
-  cli.js              # Command router
+  cli.js                  # Command router (resource level)
   commands/
-    step.js           # fob step <slug>
-    steps.js          # fob steps
+    steps/
+      index.js            # Steps resource router (action level)
+      list.js             # fob steps list
+      run.js              # fob steps run <slug>
   utils/
-    config.js         # Load .fob.json + defaults
-    steps-loader.js   # Dynamic import of steps registry
-    output.js         # Save/load step outputs
-    templates.js      # Template resolution
+    config.js             # Load .fob.json + defaults
+    steps-loader.js       # Dynamic import of steps registry
+    output.js             # Save/load step outputs
+    templates.js          # Template resolution
+docs/
+  cli-pattern.md          # CLI design rationale
 ```
 
 ## Configuration

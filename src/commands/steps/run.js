@@ -1,5 +1,5 @@
 /**
- * fob step <slug> command
+ * fob steps run <slug>
  *
  * Run a step locally for debugging.
  */
@@ -7,10 +7,10 @@
 import path from 'path';
 import 'dotenv/config';
 
-import { loadConfig, ensureTempDir } from '../utils/config.js';
-import { loadSteps, getHandler, findPreviousStep } from '../utils/steps-loader.js';
-import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from '../utils/output.js';
-import { resolveTemplates } from '../utils/templates.js';
+import { loadConfig, ensureTempDir } from '../../utils/config.js';
+import { loadSteps, getHandler, findPreviousStep } from '../../utils/steps-loader.js';
+import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from '../../utils/output.js';
+import { resolveTemplates } from '../../utils/templates.js';
 
 /**
  * Run a step by slug
@@ -20,27 +20,24 @@ export async function runStep(args) {
   const slug = args[0];
 
   if (!slug) {
-    console.error('Usage: fob step <slug>');
-    console.error('Run "fob steps" to see available steps');
+    console.error('Usage: fob steps run <slug>');
+    console.error('Run "fob steps list" to see available steps');
     process.exit(1);
   }
 
-  // Load configuration
   const config = loadConfig();
   ensureTempDir(config.tempDir);
 
-  // Load steps registry
   const steps = await loadSteps(config.stepsPath);
-
-  // Get handler for the slug
   const handler = getHandler(steps, slug);
+
   if (!handler) {
     console.error(`Unknown step: ${slug}`);
-    console.error('Run "fob steps" to see available steps');
+    console.error('Run "fob steps list" to see available steps');
     process.exit(1);
   }
 
-  console.log('fob step');
+  console.log('fob steps run');
   console.log('='.repeat(60));
   console.log(`Step: ${slug}`);
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
