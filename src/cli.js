@@ -9,10 +9,120 @@ import { hideBin } from 'yargs/helpers';
 import path from 'path';
 import 'dotenv/config';
 
-import { loadConfig, ensureTempDir } from './utils/config.js';
+import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
+import readline from 'readline';
 import { loadSteps, getHandler, findPreviousStep } from './utils/steps-loader.js';
 import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from './utils/output.js';
 import { resolveTemplates } from './utils/templates.js';
+
+/**
+ * Show config command handler
+ */
+function showConfigHandler() {
+  const rawConfig = loadRawConfig();
+  const mergedConfig = loadConfig();
+  const envVars = getRelevantEnvVars();
+
+  console.log('fob config show');
+  console.log('='.repeat(60));
+
+  // .fob.json
+  console.log('\n.fob.json:');
+  if (rawConfig) {
+    console.log(JSON.stringify(rawConfig, null, 2));
+  } else {
+    console.log('  (not found - using defaults)');
+  }
+
+  // Defaults
+  console.log('\nDefaults:');
+  console.log('  stepsPath: ./src/steps/index.js');
+  console.log('  tempDir: ./temp');
+  console.log('  orchestrator.url: http://localhost:3000');
+
+  // Environment variables
+  console.log('\nEnvironment:');
+  for (const [key, value] of Object.entries(envVars)) {
+    if (value !== undefined) {
+      console.log(`  ${key}: ${value}`);
+    }
+  }
+  const hasEnv = Object.values(envVars).some(v => v !== undefined);
+  if (!hasEnv) {
+    console.log('  (no relevant env vars set)');
+  }
+
+  // Merged result
+  console.log('\nResolved config:');
+  console.log(`  stepsPath: ${path.relative(process.cwd(), mergedConfig.stepsPath)}`);
+  console.log(`  tempDir: ${path.relative(process.cwd(), mergedConfig.tempDir)}`);
+  console.log(`  orchestrator.url: ${mergedConfig.orchestrator.url}`);
+  console.log(`  orchestrator.org: ${mergedConfig.orchestrator.org || '(not set)'}`);
+
+  console.log('\n' + '='.repeat(60));
+}
+
+/**
+ * Prompt for input
+ */
+function prompt(question, defaultValue) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    const q = defaultValue ? `${question} [${defaultValue}]: ` : `${question}: `;
+    rl.question(q, (answer) => {
+      rl.close();
+      resolve(answer || defaultValue);
+    });
+  });
+}
+
+/**
+ * Init config command handler
+ */
+async function initConfigHandler() {
+  console.log('fob config init');
+  console.log('='.repeat(60));
+
+  if (configFileExists()) {
+    console.log('\n.fob.json already exists.');
+    const overwrite = await prompt('Overwrite? (y/N)', 'n');
+    if (overwrite.toLowerCase() !== 'y') {
+      console.log('Cancelled.');
+      return;
+    }
+  }
+
+  console.log('\nEnter configuration values (press Enter for defaults):\n');
+
+  const stepsPath = await prompt('stepsPath', './src/steps/index.js');
+  const tempDir = await prompt('tempDir', './temp');
+  const orchestratorUrl = await prompt('orchestrator.url', process.env.ORCHESTRATOR_URL || 'http://localhost:3000');
+  const orchestratorOrg = await prompt('orchestrator.org', process.env.WORKER_ORG || '');
+
+  const config = {
+    stepsPath,
+    tempDir,
+  };
+
+  // Only add orchestrator if non-default values
+  if (orchestratorUrl !== 'http://localhost:3000' || orchestratorOrg) {
+    config.orchestrator = {};
+    if (orchestratorUrl !== 'http://localhost:3000') {
+      config.orchestrator.url = orchestratorUrl;
+    }
+    if (orchestratorOrg) {
+      config.orchestrator.org = orchestratorOrg;
+    }
+  }
+
+  const configPath = writeConfig(config);
+  console.log(`\nCreated: ${path.relative(process.cwd(), configPath)}`);
+  console.log(JSON.stringify(config, null, 2));
+}
 
 /**
  * Get step slugs for completion
@@ -159,13 +269,28 @@ export function run(args) {
         )
         .demandCommand(1, 'Specify an action: list, run');
     })
+    .command('config', 'Manage CLI configuration', (yargs) => {
+      return yargs
+        .usage('$0 config <action>')
+        .command('show', 'Show current configuration', {}, showConfigHandler)
+        .command('init', 'Create .fob.json interactively', {}, initConfigHandler)
+        .demandCommand(1, 'Specify an action: show, init');
+    })
     .completion('completion', 'Generate shell completion script', function (current, argv) {
       // argv._ includes the script name 'fob' as first element
       const args = argv._.slice(1).filter(a => a !== '');
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['steps'];
+        return ['steps', 'config'];
+      }
+
+      // Config action level completions (fob config <tab>)
+      if (args[0] === 'config') {
+        if (args.length === 1) {
+          return ['show', 'init'];
+        }
+        return [];
       }
 
       // Steps action level completions (fob steps <tab>)
@@ -187,7 +312,7 @@ export function run(args) {
 
       return [];
     })
-    .demandCommand(1, 'Specify a resource: steps')
+    .demandCommand(1, 'Specify a resource: steps, config')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')
