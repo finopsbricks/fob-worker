@@ -14,6 +14,7 @@ import readline from 'readline';
 import { loadSteps, getHandler, findPreviousStep } from './utils/steps-loader.js';
 import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from './utils/output.js';
 import { resolveTemplates } from './utils/templates.js';
+import { listProcesses, getProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
 
 /**
  * Show config command handler
@@ -26,40 +27,43 @@ function showConfigHandler() {
   console.log('fob config show');
   console.log('='.repeat(60));
 
-  // .fob.json
-  console.log('\n.fob.json:');
-  if (rawConfig) {
-    console.log(JSON.stringify(rawConfig, null, 2));
-  } else {
-    console.log('  (not found - using defaults)');
+  // Resolved config table
+  console.log('\nResolved Configuration:');
+  const configRows = [
+    ['stepsPath', path.relative(process.cwd(), mergedConfig.stepsPath)],
+    ['tempDir', path.relative(process.cwd(), mergedConfig.tempDir)],
+    ['orchestrator.url', mergedConfig.orchestrator.url],
+    ['orchestrator.org', mergedConfig.orchestrator.org || '(not set)'],
+  ];
+
+  const keyWidth = Math.max(...configRows.map(r => r[0].length));
+  console.log(`${'KEY'.padEnd(keyWidth)}  VALUE`);
+  console.log('-'.repeat(60));
+  for (const [key, value] of configRows) {
+    console.log(`${key.padEnd(keyWidth)}  ${value}`);
   }
 
-  // Defaults
-  console.log('\nDefaults:');
-  console.log('  stepsPath: ./src/steps/index.js');
-  console.log('  tempDir: ./temp');
-  console.log('  orchestrator.url: http://localhost:3000');
-
-  // Environment variables
-  console.log('\nEnvironment:');
-  for (const [key, value] of Object.entries(envVars)) {
-    if (value !== undefined) {
-      console.log(`  ${key}: ${value}`);
+  // Environment variables table
+  const envEntries = Object.entries(envVars).filter(([, v]) => v !== undefined);
+  if (envEntries.length > 0) {
+    console.log('\nEnvironment Variables:');
+    const envKeyWidth = Math.max(...envEntries.map(([k]) => k.length));
+    console.log(`${'VAR'.padEnd(envKeyWidth)}  VALUE`);
+    console.log('-'.repeat(60));
+    for (const [key, value] of envEntries) {
+      console.log(`${key.padEnd(envKeyWidth)}  ${value}`);
     }
   }
-  const hasEnv = Object.values(envVars).some(v => v !== undefined);
-  if (!hasEnv) {
-    console.log('  (no relevant env vars set)');
+
+  // Config file status
+  console.log('\nConfig File:');
+  if (rawConfig) {
+    console.log('.fob.json found');
+  } else {
+    console.log('.fob.json not found (using defaults)');
   }
 
-  // Merged result
-  console.log('\nResolved config:');
-  console.log(`  stepsPath: ${path.relative(process.cwd(), mergedConfig.stepsPath)}`);
-  console.log(`  tempDir: ${path.relative(process.cwd(), mergedConfig.tempDir)}`);
-  console.log(`  orchestrator.url: ${mergedConfig.orchestrator.url}`);
-  console.log(`  orchestrator.org: ${mergedConfig.orchestrator.org || '(not set)'}`);
-
-  console.log('\n' + '='.repeat(60));
+  console.log('');
 }
 
 /**
@@ -125,6 +129,196 @@ async function initConfigHandler() {
 }
 
 /**
+ * List processes command handler
+ */
+async function listProcessesHandler() {
+  console.log('fob processes list');
+  console.log('='.repeat(60));
+
+  const orchestratorConfig = getOrchestratorConfig();
+  console.log(`Orchestrator: ${orchestratorConfig.url}`);
+  console.log(`Org: ${orchestratorConfig.org || '(not set)'}`);
+  console.log(`API Key: ${orchestratorConfig.hasApiKey ? '***' : '(not set)'}`);
+  console.log('');
+
+  try {
+    const response = await listProcesses();
+    const processes = response.data || [];
+
+    if (processes.length === 0) {
+      console.log('No processes found');
+      return;
+    }
+
+    // Calculate column widths
+    const idWidth = Math.max(4, ...processes.map(p => p.id.length));
+    const nameWidth = Math.max(4, ...processes.map(p => (p.name || '').length));
+
+    // Header
+    const header = `${'ID'.padEnd(idWidth)}  ${'NAME'.padEnd(nameWidth)}  STEPS`;
+    console.log(header);
+    console.log('-'.repeat(header.length));
+
+    // Rows
+    for (const proc of processes) {
+      const id = proc.id.padEnd(idWidth);
+      const name = (proc.name || '-').padEnd(nameWidth);
+      const steps = proc.steps ? proc.steps.length : 0;
+      console.log(`${id}  ${name}  ${steps}`);
+    }
+
+    console.log('');
+    console.log(`Total: ${processes.length} processes`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Show process command handler
+ */
+async function showProcessHandler(argv) {
+  const { id } = argv;
+
+  console.log('fob processes show');
+  console.log('='.repeat(60));
+  console.log(`Process: ${id}`);
+  console.log('');
+
+  try {
+    const response = await getProcess(id);
+    const proc = response.data;
+
+    console.log(JSON.stringify(proc, null, 2));
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * List work records command handler
+ */
+async function listWorkRecordsHandler(argv) {
+  const { limit, status, process: processId } = argv;
+
+  console.log('fob work-records list');
+  console.log('='.repeat(60));
+
+  const orchestratorConfig = getOrchestratorConfig();
+  console.log(`Orchestrator: ${orchestratorConfig.url}`);
+  console.log(`Org: ${orchestratorConfig.org || '(not set)'}`);
+  console.log(`API Key: ${orchestratorConfig.hasApiKey ? '***' : '(not set)'}`);
+
+  const filters = [];
+  if (limit) filters.push(`limit=${limit}`);
+  if (status) filters.push(`status=${status}`);
+  if (processId) filters.push(`process=${processId}`);
+  if (filters.length > 0) {
+    console.log(`Filters: ${filters.join(', ')}`);
+  }
+  console.log('');
+
+  try {
+    const response = await listWorkRecords({ limit, status, process: processId });
+    const records = response.data || [];
+
+    if (records.length === 0) {
+      console.log('No work records found');
+      return;
+    }
+
+    // Calculate column widths
+    const idWidth = Math.max(2, ...records.map(r => r.id.length));
+    const statusWidth = Math.max(6, ...records.map(r => (r.status || '').length));
+
+    // Format date helper
+    const formatDate = (iso) => {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return d.toISOString().replace('T', ' ').slice(0, 19);
+    };
+
+    // Header
+    const header = `${'ID'.padEnd(idWidth)}  ${'STATUS'.padEnd(statusWidth)}  CREATED`;
+    console.log(header);
+    console.log('-'.repeat(header.length + 10));
+
+    // Rows
+    for (const record of records) {
+      const id = record.id.padEnd(idWidth);
+      const recStatus = (record.status || '-').padEnd(statusWidth);
+      const created = formatDate(record.created_at);
+      console.log(`${id}  ${recStatus}  ${created}`);
+    }
+
+    console.log('');
+    console.log(`Total: ${records.length} records`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Show work record command handler
+ */
+async function showWorkRecordHandler(argv) {
+  const { id } = argv;
+
+  console.log('fob work-records show');
+  console.log('='.repeat(60));
+  console.log(`Work Record: ${id}`);
+  console.log('');
+
+  try {
+    const response = await getWorkRecord(id);
+    const record = response.data;
+
+    console.log(JSON.stringify(record, null, 2));
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Worker status command handler
+ */
+async function workerStatusHandler() {
+  console.log('fob worker status');
+  console.log('='.repeat(60));
+
+  const orchestratorConfig = getOrchestratorConfig();
+  console.log(`Orchestrator: ${orchestratorConfig.url}`);
+  console.log(`Org: ${orchestratorConfig.org || '(not set)'}`);
+  console.log(`Worker Secret: ${orchestratorConfig.hasSecret ? '***' : '(not set)'}`);
+  console.log(`API Key: ${orchestratorConfig.hasApiKey ? '***' : '(not set)'}`);
+  console.log('');
+
+  console.log('Checking connection...');
+
+  const result = await checkConnection();
+
+  console.log('');
+  if (result.connected) {
+    console.log('Status: Connected');
+    console.log(`HTTP: ${result.status}`);
+  } else {
+    console.log('Status: Not connected');
+    if (result.error) {
+      console.log(`Error: ${result.error}`);
+    } else if (result.status) {
+      console.log(`HTTP: ${result.status}`);
+    }
+  }
+
+  console.log('');
+  console.log('='.repeat(60));
+}
+
+/**
  * Get step slugs for completion
  */
 async function getStepSlugs() {
@@ -145,29 +339,31 @@ async function listStepsHandler() {
   const steps = await loadSteps(config.stepsPath);
   const slugs = Object.keys(steps);
 
-  console.log(`Steps from: ${path.relative(process.cwd(), config.stepsPath)}\n`);
+  console.log('fob steps list');
+  console.log('='.repeat(60));
+  console.log(`Source: ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log('');
 
   if (slugs.length === 0) {
     console.log('No steps found');
     return;
   }
 
-  // Group by org prefix
-  const grouped = {};
-  for (const slug of slugs) {
+  // Calculate column width
+  const slugWidth = Math.max(4, ...slugs.map(s => s.length));
+
+  // Header
+  const header = `${'SLUG'.padEnd(slugWidth)}  ORG`;
+  console.log(header);
+  console.log('-'.repeat(header.length + 10));
+
+  // Rows (sorted)
+  for (const slug of slugs.sort()) {
     const [org] = slug.split('/');
-    if (!grouped[org]) grouped[org] = [];
-    grouped[org].push(slug);
+    console.log(`${slug.padEnd(slugWidth)}  ${org}`);
   }
 
-  for (const [org, orgSlugs] of Object.entries(grouped)) {
-    console.log(`${org}/`);
-    for (const slug of orgSlugs) {
-      console.log(`  ${slug.split('/').slice(1).join('/')}`);
-    }
-    console.log('');
-  }
-
+  console.log('');
   console.log(`Total: ${slugs.length} steps`);
 }
 
@@ -276,13 +472,91 @@ export function run(args) {
         .command('init', 'Create .fob.json interactively', {}, initConfigHandler)
         .demandCommand(1, 'Specify an action: show, init');
     })
+    .command('processes', 'Work with orchestrator processes', (yargs) => {
+      return yargs
+        .usage('$0 processes <action> [options]')
+        .command('list', 'List processes from orchestrator', {}, listProcessesHandler)
+        .command(
+          'show [id]',
+          'Show process definition',
+          (yargs) => {
+            return yargs.positional('id', {
+              describe: 'Process ID',
+              type: 'string',
+            });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob processes show <id>');
+              console.error('Run "fob processes list" to see available processes');
+              process.exit(1);
+            }
+            return showProcessHandler(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, show');
+    })
+    .command('work-records', 'Work with orchestrator work records', (yargs) => {
+      return yargs
+        .usage('$0 work-records <action> [options]')
+        .command(
+          'list',
+          'List recent work records',
+          (yargs) => {
+            return yargs
+              .option('limit', {
+                alias: 'l',
+                describe: 'Maximum number of records',
+                type: 'number',
+              })
+              .option('status', {
+                alias: 's',
+                describe: 'Filter by status',
+                type: 'string',
+              })
+              .option('process', {
+                alias: 'p',
+                describe: 'Filter by process ID',
+                type: 'string',
+              });
+          },
+          listWorkRecordsHandler
+        )
+        .command(
+          'show [id]',
+          'Show work record details',
+          (yargs) => {
+            return yargs.positional('id', {
+              describe: 'Work record ID',
+              type: 'string',
+            });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob work-records show <id>');
+              console.error('Run "fob work-records list" to see recent records');
+              process.exit(1);
+            }
+            return showWorkRecordHandler(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, show');
+    })
+    .command('worker', 'Worker management', (yargs) => {
+      return yargs
+        .usage('$0 worker <action>')
+        .command('status', 'Check connection to orchestrator', {}, workerStatusHandler)
+        .demandCommand(1, 'Specify an action: status');
+    })
     .completion('completion', 'Generate shell completion script', function (current, argv) {
       // argv._ includes the script name 'fob' as first element
       const args = argv._.slice(1).filter(a => a !== '');
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['steps', 'config'];
+        return ['steps', 'config', 'processes', 'work-records', 'worker'];
       }
 
       // Config action level completions (fob config <tab>)
@@ -310,9 +584,33 @@ export function run(args) {
         }
       }
 
+      // Processes action level completions (fob processes <tab>)
+      if (args[0] === 'processes') {
+        if (args.length === 1) {
+          return ['list', 'show'];
+        }
+        return [];
+      }
+
+      // Work-records action level completions (fob work-records <tab>)
+      if (args[0] === 'work-records') {
+        if (args.length === 1) {
+          return ['list', 'show'];
+        }
+        return [];
+      }
+
+      // Worker action level completions (fob worker <tab>)
+      if (args[0] === 'worker') {
+        if (args.length === 1) {
+          return ['status'];
+        }
+        return [];
+      }
+
       return [];
     })
-    .demandCommand(1, 'Specify a resource: steps, config')
+    .demandCommand(1, 'Specify a resource: steps, config, processes, work-records, worker')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')

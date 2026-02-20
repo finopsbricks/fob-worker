@@ -33,6 +33,8 @@ export function getRelevantEnvVars() {
     ORCHESTRATOR_URL: process.env.ORCHESTRATOR_URL,
     WORKER_ORG: process.env.WORKER_ORG,
     WORKER_SECRET: process.env.WORKER_SECRET ? '***' : undefined,
+    ORCHESTRATOR_API_KEY: process.env.ORCHESTRATOR_API_KEY ? '***' : undefined,
+    ORCHESTRATOR_API_SECRET: process.env.ORCHESTRATOR_API_SECRET ? '***' : undefined,
     FOB_TXN_API_URL: process.env.FOB_TXN_API_URL,
     TXN_ORG_ID: process.env.TXN_ORG_ID,
   };
