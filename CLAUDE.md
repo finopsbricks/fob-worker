@@ -6,6 +6,8 @@ Guidance for Claude Code when working with this package.
 
 `@fob/cli` is a developer CLI for FinOpsBricks process engine workers. It provides commands for local step debugging without duplicating code across worker repos.
 
+Built with **yargs** for command parsing and shell completion.
+
 ## Commands
 
 Pattern: `fob <resource> <action> [target] [options]`
@@ -13,10 +15,26 @@ Pattern: `fob <resource> <action> [target] [options]`
 ```bash
 fob steps list                              # List available steps
 fob steps run alex/fetch_account_freshness  # Run a step locally
-fob help                                    # Show help
+fob completion                              # Output shell completion script
+fob --help                                  # Show help
 ```
 
 See `docs/cli-pattern.md` for design rationale.
+
+## Shell Completion
+
+```bash
+# Bash (add to ~/.bashrc)
+source <(fob completion)
+
+# Zsh (add to ~/.zshrc)
+source <(fob completion)
+```
+
+Tab completion works for:
+- `fob <tab>` → resources (steps)
+- `fob steps <tab>` → actions (list, run)
+- `fob steps run <tab>` → step slugs
 
 ## Package Structure
 
@@ -24,12 +42,7 @@ See `docs/cli-pattern.md` for design rationale.
 bin/
   fob.js                  # CLI entry point
 src/
-  cli.js                  # Command router (resource level)
-  commands/
-    steps/
-      index.js            # Steps resource router (action level)
-      list.js             # fob steps list
-      run.js              # fob steps run <slug>
+  cli.js                  # yargs command definitions
   utils/
     config.js             # Load .fob.json + defaults
     steps-loader.js       # Dynamic import of steps registry
@@ -75,3 +88,4 @@ Config files (`temp/<slug>.config.json`) support:
 - ES modules throughout (`"type": "module"`)
 - snake_case for config keys
 - camelCase for functions
+- yargs for command parsing
