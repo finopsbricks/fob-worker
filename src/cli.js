@@ -11,7 +11,7 @@ import 'dotenv/config';
 
 import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
 import readline from 'readline';
-import { loadSteps, getHandler, findPreviousStep } from './utils/steps-loader.js';
+import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
 import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename } from './utils/output.js';
 import { resolveTemplates } from './utils/templates.js';
 import { listProcesses, getProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
@@ -336,7 +336,7 @@ async function getStepSlugs() {
  */
 async function listStepsHandler() {
   const config = loadConfig();
-  const steps = await loadSteps(config.stepsPath);
+  const { steps, files } = await loadStepsWithFiles(config.stepsPath);
   const slugs = Object.keys(steps);
 
   console.log('fob steps list');
@@ -349,18 +349,26 @@ async function listStepsHandler() {
     return;
   }
 
-  // Calculate column width
-  const slugWidth = Math.max(4, ...slugs.map(s => s.length));
+  // Parse folder and file from paths
+  const parsed = slugs.map(slug => {
+    const filePath = files[slug] || '';
+    const parts = filePath.replace(/^\.\//, '').split('/');
+    const file = parts.pop() || '-';
+    const folder = parts.join('/') || '-';
+    return { slug, folder, file };
+  });
+
+  // Calculate column widths
+  const slugWidth = Math.max(4, ...parsed.map(p => p.slug.length));
+  const folderWidth = Math.max(6, ...parsed.map(p => p.folder.length));
 
   // Header
-  const header = `${'SLUG'.padEnd(slugWidth)}  ORG`;
-  console.log(header);
-  console.log('-'.repeat(header.length + 10));
+  console.log(`${'SLUG'.padEnd(slugWidth)}  ${'FOLDER'.padEnd(folderWidth)}  FILE`);
+  console.log('-'.repeat(slugWidth + folderWidth + 30));
 
   // Rows (sorted)
-  for (const slug of slugs.sort()) {
-    const [org] = slug.split('/');
-    console.log(`${slug.padEnd(slugWidth)}  ${org}`);
+  for (const { slug, folder, file } of parsed.sort((a, b) => a.slug.localeCompare(b.slug))) {
+    console.log(`${slug.padEnd(slugWidth)}  ${folder.padEnd(folderWidth)}  ${file}`);
   }
 
   console.log('');

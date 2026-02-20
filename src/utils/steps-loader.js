@@ -5,12 +5,44 @@
  */
 
 import fs from 'fs';
+import path from 'path';
 import { pathToFileURL } from 'url';
+
+/**
+ * Parse index file to extract slug -> file path mappings
+ * @param {string} stepsPath - Absolute path to steps index file
+ * @returns {object} Map of slug to relative file path
+ */
+function parseStepFileMappings(stepsPath) {
+  const content = fs.readFileSync(stepsPath, 'utf8');
+  const stepsDir = path.dirname(stepsPath);
+
+  // Extract imports: import name from './path.js'
+  const importRegex = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g;
+  const imports = {};
+  let match;
+  while ((match = importRegex.exec(content)) !== null) {
+    imports[match[1]] = match[2];
+  }
+
+  // Extract step mappings: 'org/step_name': importName
+  const mappingRegex = /['"]([^'"]+\/[^'"]+)['"]\s*:\s*(\w+)/g;
+  const mappings = {};
+  while ((match = mappingRegex.exec(content)) !== null) {
+    const slug = match[1];
+    const importName = match[2];
+    if (imports[importName]) {
+      mappings[slug] = imports[importName];
+    }
+  }
+
+  return mappings;
+}
 
 /**
  * Load steps registry from the configured path
  * @param {string} stepsPath - Absolute path to steps index file
- * @returns {Promise<object>} Steps registry object
+ * @returns {Promise<object>} Steps registry object with handlers and file mappings
  */
 export async function loadSteps(stepsPath) {
   if (!fs.existsSync(stepsPath)) {
@@ -27,6 +59,17 @@ export async function loadSteps(stepsPath) {
   }
 
   return module.steps;
+}
+
+/**
+ * Load steps with file path mappings
+ * @param {string} stepsPath - Absolute path to steps index file
+ * @returns {Promise<{steps: object, files: object}>}
+ */
+export async function loadStepsWithFiles(stepsPath) {
+  const steps = await loadSteps(stepsPath);
+  const files = parseStepFileMappings(stepsPath);
+  return { steps, files };
 }
 
 /**
