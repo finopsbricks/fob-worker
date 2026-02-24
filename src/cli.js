@@ -10,6 +10,7 @@ import path from 'path';
 import 'dotenv/config';
 
 import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
+import { initTemplates } from '@fob/lib-worker';
 import readline from 'readline';
 import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
 import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename, loadAllStepOutputs } from './utils/output.js';
@@ -389,6 +390,11 @@ async function runStepHandler(argv) {
 
   const config = loadConfig();
   ensureTempDir(config.tempDir);
+
+  // Initialize templates relative to the worker's src directory
+  const workerSrcDir = path.dirname(config.stepsPath);
+  const workerEntryUrl = 'file://' + path.resolve(workerSrcDir, 'index.js');
+  initTemplates(workerEntryUrl);
 
   const steps = await loadSteps(config.stepsPath);
   const handler = getHandler(steps, slug);

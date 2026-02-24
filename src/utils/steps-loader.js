@@ -73,13 +73,88 @@ export async function loadStepsWithFiles(stepsPath) {
 }
 
 /**
- * Get handler for a step slug
+ * Check if a value is a StepDefinition (created with defineStep())
+ * @param {any} value
+ * @returns {boolean}
+ */
+function isStepDefinition(value) {
+  return value && value.__isStepDefinition === true && typeof value.execute === 'function';
+}
+
+/**
+ * Create a task handler from a StepDefinition.
+ * Wraps execute() with input/output validation.
+ * @param {object} definition - StepDefinition object
+ * @returns {Function} Handler function
+ */
+function createHandler(definition) {
+  const { slug, inputSchema, outputSchema, execute } = definition;
+
+  return async function handler(task) {
+    const { step, work_record, step_queue_id, org_id } = task;
+    const raw_config = step.config || {};
+
+    // --- Input validation ---
+    let config = raw_config;
+    if (inputSchema) {
+      const result = inputSchema.safeParse(raw_config);
+      if (!result.success) {
+        const errors = result.error.issues
+          .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+          .join('\n');
+        throw new Error(`[${slug}] Invalid input config:\n${errors}`);
+      }
+      config = result.data;
+    }
+
+    // --- Build context ---
+    const context = {
+      work_record,
+      step_queue_id,
+      org_id,
+      step,
+    };
+
+    // --- Execute ---
+    const output = await execute(config, context);
+
+    // --- Output validation ---
+    if (outputSchema) {
+      const result = outputSchema.safeParse(output);
+      if (!result.success) {
+        const errors = result.error.issues
+          .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+          .join('\n');
+        throw new Error(`[${slug}] Invalid output:\n${errors}`);
+      }
+      return result.data;
+    }
+
+    return output;
+  };
+}
+
+/**
+ * Get handler for a step slug.
  * @param {object} steps - Steps registry
  * @param {string} slug - Step slug (e.g., 'alex/fetch_account_freshness')
  * @returns {Function|null} Step handler function
  */
 export function getHandler(steps, slug) {
-  return steps[slug] || null;
+  const step = steps[slug];
+
+  if (!step) {
+    return null;
+  }
+
+  if (!isStepDefinition(step)) {
+    throw new Error(
+      `Step "${slug}" must be a StepDefinition created with defineStep(). ` +
+        `Plain function handlers are no longer supported.`
+    );
+  }
+
+  return createHandler(step);
 }
 
 /**

@@ -6,6 +6,16 @@ Guidance for Claude Code when working with this package.
 
 `@fob/cli` is a developer CLI for FinOpsBricks process engine workers. It provides commands for local step debugging without duplicating code across worker repos.
 
+### Related Repositories
+
+This package is part of the **FinOpsBricks** monorepo (`/Users/alex/ec2code/finopsbricks/`):
+
+- **`workers/*`** — Customer-specific workers. This CLI is used inside worker repos to debug steps locally.
+- **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this; CLI loads step handlers from it.
+- **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
+- **`apps/txn.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
+- **`accounting-process-standards/`** — Documentation for step design patterns.
+
 Built with **yargs** for command parsing and shell completion.
 
 ## Commands
