@@ -10,11 +10,12 @@ import path from 'path';
 import 'dotenv/config';
 
 import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
-import { initTemplates } from '@fob/lib-worker';
+import { initTemplates, resolveConfig } from '@fob/lib-worker';
 import readline from 'readline';
 import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
 import { loadStepOutput, saveStepOutput, slugToFilename, loadAllStepOutputs } from './utils/output.js';
-import { resolveTemplates } from './utils/templates.js';
+// Note: resolveTemplates in ./utils/templates.js is deprecated
+// Using resolveConfig from @fob/lib-worker instead
 import { listProcesses, getProcess, updateProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
 import { saveProcess, loadProcess, listLocalProcesses, getStepConfigFromProcess, getProcessesDir, findProcessesWithStep, listScenarios, loadScenario } from './utils/process-files.js';
 
@@ -727,7 +728,7 @@ async function runStepHandler(argv) {
       process.exit(1);
     }
 
-    stepConfig = resolveTemplates(procStepConfig, config.tempDir);
+    stepConfig = resolveConfig(procStepConfig, step_outputs);
     configSource = `process: ${proc.name} (${processId})`;
   } else if (scenarioName) {
     // Explicit scenario
@@ -738,7 +739,7 @@ async function runStepHandler(argv) {
       process.exit(1);
     }
 
-    stepConfig = resolveTemplates(scenarioConfig, config.tempDir);
+    stepConfig = resolveConfig(scenarioConfig, step_outputs);
     configSource = `scenario: ${scenarioName}`;
   } else {
     // Interactive: build options and let user pick
@@ -783,11 +784,11 @@ async function runStepHandler(argv) {
     if (selected.type === 'process') {
       const proc = loadProcess(selected.value);
       const procStepConfig = getStepConfigFromProcess(proc, slug);
-      stepConfig = resolveTemplates(procStepConfig || {}, config.tempDir);
+      stepConfig = resolveConfig(procStepConfig || {}, step_outputs);
       configSource = `process: ${proc.name} (${selected.value})`;
     } else if (selected.type === 'scenario') {
       const scenarioConfig = loadScenario(slug, selected.value);
-      stepConfig = resolveTemplates(scenarioConfig, config.tempDir);
+      stepConfig = resolveConfig(scenarioConfig, step_outputs);
       configSource = `scenario: ${selected.value}`;
     } else {
       stepConfig = {};
