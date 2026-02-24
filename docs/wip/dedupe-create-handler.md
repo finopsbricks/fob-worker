@@ -1,8 +1,8 @@
-# Dedupe createHandler — CLI and lib-worker
+# Dedupe createHandler — CLI and lib-worker — COMPLETE
 
-The `createHandler()` function is duplicated between the CLI and lib-worker, creating maintenance risk.
+The `createHandler()` function was duplicated between the CLI and lib-worker, creating maintenance risk.
 
-**Status:** Pending
+**Status:** Complete
 
 ---
 
@@ -34,48 +34,33 @@ Someone copy-pasted the functions to avoid wiring up the monorepo dependency.
 
 ---
 
-## The Fix
+## The Fix (Completed)
 
-1. Add lib-worker as a workspace dependency:
+1. Added lib-worker as a GitHub dependency:
 
 ```json
 // cli/package.json
 "dependencies": {
-  "@fob/lib-worker": "workspace:*",
-  "dotenv": "^16.6.1",
-  "yargs": "^17.7.2"
+  "@fob/lib-worker": "github:finopsbricks/lib-worker",
+  ...
 }
 ```
 
-2. Update `steps-loader.js` to import from lib-worker:
+2. Updated `steps-loader.js` to import from lib-worker:
 
 ```javascript
-import { createHandler, isStepDefinition } from '@fob/lib-worker';
+import { isStepDefinition, getStepHandler } from '@fob/lib-worker';
 ```
 
-3. Delete the duplicated functions from `steps-loader.js` (lines 80-135)
+3. Deleted the duplicated `isStepDefinition()` and `createHandler()` functions
 
-4. Run `npm install` in cli to wire up the workspace link
+4. Kept local `getHandler()` wrapper that enforces StepDefinition requirement (stricter than lib-worker's `getStepHandler`)
 
-5. Test with `fob steps run` to verify behavior is unchanged
+5. Used `npm link @fob/lib-worker` for local development
 
 ---
 
-## Files to Change
+## Files Changed
 
-- `cli/package.json` — add dependency
-- `cli/src/utils/steps-loader.js` — import instead of define
-
----
-
-## Verification
-
-```bash
-# After changes
-cd cli
-npm install
-fob steps run alex/fetch_account_freshness
-fob steps run alex/generate_freshness_email
-```
-
-Both should work identically to before.
+- `cli/package.json` — added `@fob/lib-worker` dependency
+- `cli/src/utils/steps-loader.js` — import from lib-worker, removed 55 lines of duplicated code
