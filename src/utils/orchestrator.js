@@ -118,6 +118,18 @@ export async function getProcess(id) {
 }
 
 /**
+ * Update process by ID
+ * @param {string} id - Process ID
+ * @param {object} data - Process fields to update
+ */
+export async function updateProcess(id, data) {
+  return apiRequest(`/api/v1/processes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * List work records
  */
 export async function listWorkRecords(options = {}) {

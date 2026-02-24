@@ -13,9 +13,106 @@ import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFil
 import { initTemplates } from '@fob/lib-worker';
 import readline from 'readline';
 import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
-import { loadStepOutput, saveStepOutput, loadStepConfig, slugToFilename, loadAllStepOutputs } from './utils/output.js';
+import { loadStepOutput, saveStepOutput, slugToFilename, loadAllStepOutputs } from './utils/output.js';
 import { resolveTemplates } from './utils/templates.js';
-import { listProcesses, getProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
+import { listProcesses, getProcess, updateProcess, listWorkRecords, getWorkRecord, checkConnection, getOrchestratorConfig } from './utils/orchestrator.js';
+import { saveProcess, loadProcess, listLocalProcesses, getStepConfigFromProcess, getProcessesDir, findProcessesWithStep, listScenarios, loadScenario } from './utils/process-files.js';
+
+// ============================================================================
+// Interactive Picker
+// ============================================================================
+
+/**
+ * @typedef {Object} PickerOption
+ * @property {string} label - Display label
+ * @property {string} value - Value to return
+ * @property {string} [type] - Type for grouping (process, scenario, temp, empty)
+ */
+
+/**
+ * Interactive picker using arrow keys
+ * @param {string} prompt - Prompt message
+ * @param {PickerOption[]} options - Options to choose from
+ * @returns {Promise<PickerOption|null>} Selected option or null if cancelled
+ */
+async function interactivePicker(prompt, options) {
+  if (options.length === 0) {
+    return null;
+  }
+
+  // If only one option, return it directly
+  if (options.length === 1) {
+    console.log(`${prompt}`);
+    console.log(`   Using: ${options[0].label}`);
+    return options[0];
+  }
+
+  return new Promise((resolve) => {
+    let selectedIndex = 0;
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    // Enable raw mode for keypress detection
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    readline.emitKeypressEvents(process.stdin, rl);
+
+    const render = () => {
+      // Clear previous output and rerender
+      console.clear();
+      console.log(prompt);
+      console.log('');
+
+      let lastType = null;
+      options.forEach((opt, i) => {
+        // Add separator between types
+        if (opt.type && opt.type !== lastType && lastType !== null) {
+          console.log('   ─────────────────────────────');
+        }
+        lastType = opt.type;
+
+        const prefix = i === selectedIndex ? ' ❯ ' : '   ';
+        const highlight = i === selectedIndex ? '\x1b[36m' : '\x1b[0m'; // cyan
+        const reset = '\x1b[0m';
+        console.log(`${prefix}${highlight}${opt.label}${reset}`);
+      });
+
+      console.log('');
+      console.log('   ↑/↓ to navigate, Enter to select, Esc to cancel');
+    };
+
+    render();
+
+    const cleanup = () => {
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
+      rl.close();
+    };
+
+    process.stdin.on('keypress', (str, key) => {
+      if (key.name === 'up') {
+        selectedIndex = (selectedIndex - 1 + options.length) % options.length;
+        render();
+      } else if (key.name === 'down') {
+        selectedIndex = (selectedIndex + 1) % options.length;
+        render();
+      } else if (key.name === 'return') {
+        cleanup();
+        console.clear();
+        resolve(options[selectedIndex]);
+      } else if (key.name === 'escape' || (key.ctrl && key.name === 'c')) {
+        cleanup();
+        console.clear();
+        resolve(null);
+      }
+    });
+  });
+}
 
 /**
  * Show config command handler
@@ -192,6 +289,204 @@ async function showProcessHandler(argv) {
     const proc = response.data;
 
     console.log(JSON.stringify(proc, null, 2));
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Pull processes command handler
+ * Fetches processes from orchestrator and saves to .orchestrator/processes/
+ */
+async function pullProcessesHandler(argv) {
+  const { id, all } = argv;
+
+  // Require explicit id or --all
+  if (!id && !all) {
+    console.error('Usage: fob processes pull <id>');
+    console.error('       fob processes pull --all');
+    console.error('');
+    console.error('Run "fob processes list" to see available processes');
+    process.exit(1);
+  }
+
+  console.log('fob processes pull');
+  console.log('='.repeat(60));
+
+  const orchestratorConfig = getOrchestratorConfig();
+  console.log(`Orchestrator: ${orchestratorConfig.url}`);
+  console.log(`Saving to: ${getProcessesDir()}/`);
+  console.log('');
+
+  try {
+    if (id) {
+      // Pull single process
+      const response = await getProcess(id);
+      const proc = response.data;
+      const filepath = saveProcess(proc);
+      console.log(`Saved: ${filepath}`);
+    } else {
+      // Pull all processes
+      const response = await listProcesses();
+      const processes = response.data || [];
+
+      if (processes.length === 0) {
+        console.log('No processes found');
+        return;
+      }
+
+      for (const proc of processes) {
+        // Fetch full process details (list may not include all fields)
+        const fullResponse = await getProcess(proc.id);
+        const fullProc = fullResponse.data;
+        const filepath = saveProcess(fullProc);
+        console.log(`Saved: ${filepath}`);
+      }
+
+      console.log('');
+      console.log(`Total: ${processes.length} processes pulled`);
+    }
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Push processes command handler
+ * Pushes local process files to orchestrator
+ */
+async function pushProcessesHandler(argv) {
+  const { id, all } = argv;
+
+  // Require explicit id or --all
+  if (!id && !all) {
+    console.error('Usage: fob processes push <id>');
+    console.error('       fob processes push --all');
+    console.error('');
+    console.error('Run "fob processes list" to see available processes');
+    process.exit(1);
+  }
+
+  console.log('fob processes push');
+  console.log('='.repeat(60));
+
+  const orchestratorConfig = getOrchestratorConfig();
+  console.log(`Orchestrator: ${orchestratorConfig.url}`);
+  console.log(`Reading from: ${getProcessesDir()}/`);
+  console.log('');
+
+  try {
+    if (id) {
+      // Push single process
+      const proc = loadProcess(id);
+      if (!proc) {
+        console.error(`Process not found locally: ${id}`);
+        console.error(`Run "fob processes pull ${id}" first`);
+        process.exit(1);
+      }
+
+      // Remove fields that shouldn't be sent in update
+      const { id: processId, created_at, org, ...updateData } = proc;
+
+      await updateProcess(processId, updateData);
+      console.log(`Pushed: ${processId}`);
+    } else {
+      // Push all local processes
+      const localIds = listLocalProcesses();
+
+      if (localIds.length === 0) {
+        console.log('No local processes found');
+        console.log('Run "fob processes pull --all" first');
+        return;
+      }
+
+      for (const processId of localIds) {
+        const proc = loadProcess(processId);
+        const { id: _, created_at, org, ...updateData } = proc;
+
+        await updateProcess(processId, updateData);
+        console.log(`Pushed: ${processId}`);
+      }
+
+      console.log('');
+      console.log(`Total: ${localIds.length} processes pushed`);
+    }
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Update step metadata in local process files from step definitions
+ * One-way: code (defineStep) → process JSON files
+ */
+async function updateStepMetadataHandler() {
+  console.log('fob processes update-step-metadata');
+  console.log('='.repeat(60));
+
+  const config = loadConfig();
+
+  console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`Processes: ${getProcessesDir()}/`);
+  console.log('');
+
+  try {
+    // Load step definitions
+    const steps = await loadSteps(config.stepsPath);
+    const stepMetadata = {};
+
+    for (const [slug, step] of Object.entries(steps)) {
+      if (step && step.name) {
+        stepMetadata[slug] = {
+          name: step.name,
+          description: step.description || '',
+        };
+      }
+    }
+
+    console.log(`Loaded ${Object.keys(stepMetadata).length} step definitions`);
+    console.log('');
+
+    // Update each local process
+    const localIds = listLocalProcesses();
+
+    if (localIds.length === 0) {
+      console.log('No local processes found');
+      console.log('Run "fob processes pull" first');
+      return;
+    }
+
+    let totalUpdated = 0;
+
+    for (const processId of localIds) {
+      const proc = loadProcess(processId);
+      let updated = false;
+
+      if (proc.steps && Array.isArray(proc.steps)) {
+        for (const step of proc.steps) {
+          const meta = stepMetadata[step.slug];
+          if (meta) {
+            if (step.name !== meta.name || step.description !== meta.description) {
+              step.name = meta.name;
+              step.description = meta.description;
+              updated = true;
+            }
+          }
+        }
+      }
+
+      if (updated) {
+        saveProcess(proc);
+        console.log(`Updated: ${proc.name} (${processId})`);
+        totalUpdated++;
+      }
+    }
+
+    console.log('');
+    console.log(`Updated ${totalUpdated} of ${localIds.length} processes`);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
@@ -386,7 +681,7 @@ async function listStepsHandler() {
  * - org_id: string
  */
 async function runStepHandler(argv) {
-  const { slug } = argv;
+  const { slug, process: processId, scenario: scenarioName, empty: useEmpty } = argv;
 
   const config = loadConfig();
   ensureTempDir(config.tempDir);
@@ -405,28 +700,114 @@ async function runStepHandler(argv) {
     process.exit(1);
   }
 
+  // Load all step outputs from temp directory
+  const step_outputs = loadAllStepOutputs(config.tempDir);
+
+  // Determine config source
+  let stepConfig = {};
+  let configSource = null;
+
+  if (useEmpty) {
+    // Explicit empty config
+    stepConfig = {};
+    configSource = 'empty (--empty flag)';
+  } else if (processId) {
+    // Explicit process
+    const proc = loadProcess(processId);
+    if (!proc) {
+      console.error(`Process not found locally: ${processId}`);
+      console.error(`Run "fob processes pull ${processId}" first`);
+      process.exit(1);
+    }
+
+    const procStepConfig = getStepConfigFromProcess(proc, slug);
+    if (procStepConfig === null) {
+      console.error(`Step "${slug}" not found in process "${processId}"`);
+      console.error(`Available steps: ${proc.steps?.map(s => s.slug).join(', ') || '(none)'}`);
+      process.exit(1);
+    }
+
+    stepConfig = resolveTemplates(procStepConfig, config.tempDir);
+    configSource = `process: ${proc.name} (${processId})`;
+  } else if (scenarioName) {
+    // Explicit scenario
+    const scenarioConfig = loadScenario(slug, scenarioName);
+    if (!scenarioConfig) {
+      console.error(`Scenario not found: ${scenarioName}`);
+      console.error(`Available scenarios: ${listScenarios(slug).join(', ') || '(none)'}`);
+      process.exit(1);
+    }
+
+    stepConfig = resolveTemplates(scenarioConfig, config.tempDir);
+    configSource = `scenario: ${scenarioName}`;
+  } else {
+    // Interactive: build options and let user pick
+    const pickerOptions = [];
+
+    // Add processes that contain this step
+    const processesWithStep = findProcessesWithStep(slug);
+    for (const proc of processesWithStep) {
+      pickerOptions.push({
+        label: `Process: ${proc.name} (${proc.id})`,
+        value: proc.id,
+        type: 'process',
+      });
+    }
+
+    // Add scenarios for this step
+    const scenarios = listScenarios(slug);
+    for (const scenario of scenarios) {
+      pickerOptions.push({
+        label: `Scenario: ${scenario}`,
+        value: scenario,
+        type: 'scenario',
+      });
+    }
+
+    // Always add empty config option
+    pickerOptions.push({
+      label: 'No config (empty)',
+      value: 'empty',
+      type: 'empty',
+    });
+
+    // Show picker if multiple options, otherwise use the only one
+    const selected = await interactivePicker(`Select config for ${slug}:`, pickerOptions);
+
+    if (!selected) {
+      console.log('Cancelled');
+      process.exit(0);
+    }
+
+    // Load the selected config
+    if (selected.type === 'process') {
+      const proc = loadProcess(selected.value);
+      const procStepConfig = getStepConfigFromProcess(proc, slug);
+      stepConfig = resolveTemplates(procStepConfig || {}, config.tempDir);
+      configSource = `process: ${proc.name} (${selected.value})`;
+    } else if (selected.type === 'scenario') {
+      const scenarioConfig = loadScenario(slug, selected.value);
+      stepConfig = resolveTemplates(scenarioConfig, config.tempDir);
+      configSource = `scenario: ${selected.value}`;
+    } else {
+      stepConfig = {};
+      configSource = 'empty';
+    }
+  }
+
+  // Display run info
   console.log('fob steps run');
   console.log('='.repeat(60));
   console.log(`Step: ${slug}`);
+  console.log(`Config: ${configSource}`);
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
   console.log(`Temp: ${path.relative(process.cwd(), config.tempDir)}`);
 
-  // Load all step outputs from temp directory
-  const step_outputs = loadAllStepOutputs(config.tempDir);
   const step_output_slugs = Object.keys(step_outputs);
-
   if (step_output_slugs.length > 0) {
     console.log(`\n   Loaded step_outputs: ${step_output_slugs.join(', ')}`);
   } else {
     console.log(`\n   No previous step outputs found in temp/`);
-  }
-
-  // Load and resolve step config
-  const rawConfig = loadStepConfig(config.tempDir, slug);
-  const stepConfig = rawConfig ? resolveTemplates(rawConfig, config.tempDir) : {};
-
-  if (rawConfig) {
-    console.log(`   Loaded config from: ${slug.replace(/\//g, '__')}.config.json`);
   }
 
   // Construct task matching orchestrator structure
@@ -478,10 +859,26 @@ export function run(args) {
           'run [slug]',
           'Run a step locally',
           (yargs) => {
-            return yargs.positional('slug', {
-              describe: 'Step slug (e.g., alex/fetch_account_freshness)',
-              type: 'string',
-            });
+            return yargs
+              .positional('slug', {
+                describe: 'Step slug (e.g., alex/fetch_account_freshness)',
+                type: 'string',
+              })
+              .option('process', {
+                alias: 'p',
+                describe: 'Use config from this process',
+                type: 'string',
+              })
+              .option('scenario', {
+                alias: 's',
+                describe: 'Use config from this scenario',
+                type: 'string',
+              })
+              .option('empty', {
+                alias: 'e',
+                describe: 'Use empty config (no picker)',
+                type: 'boolean',
+              });
           },
           (argv) => {
             // Skip if in completion mode
@@ -527,7 +924,47 @@ export function run(args) {
             return showProcessHandler(argv);
           }
         )
-        .demandCommand(1, 'Specify an action: list, show');
+        .command(
+          'pull [id]',
+          'Pull process(es) from orchestrator to local files',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID',
+                type: 'string',
+              })
+              .option('all', {
+                alias: 'a',
+                describe: 'Pull all processes',
+                type: 'boolean',
+              });
+          },
+          pullProcessesHandler
+        )
+        .command(
+          'push [id]',
+          'Push local process(es) to orchestrator',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID',
+                type: 'string',
+              })
+              .option('all', {
+                alias: 'a',
+                describe: 'Push all local processes',
+                type: 'boolean',
+              });
+          },
+          pushProcessesHandler
+        )
+        .command(
+          'update-step-metadata',
+          'Update step name/description in local processes from code',
+          {},
+          updateStepMetadataHandler
+        )
+        .demandCommand(1, 'Specify an action: list, show, pull, push, update-step-metadata');
     })
     .command('work-records', 'Work with orchestrator work records', (yargs) => {
       return yargs
@@ -619,7 +1056,7 @@ export function run(args) {
       // Processes action level completions (fob processes <tab>)
       if (args[0] === 'processes') {
         if (args.length === 1) {
-          return ['list', 'show'];
+          return ['list', 'show', 'pull', 'push', 'update-step-metadata'];
         }
         return [];
       }
