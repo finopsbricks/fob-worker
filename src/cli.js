@@ -9,7 +9,7 @@ import { hideBin } from 'yargs/helpers';
 import path from 'path';
 import 'dotenv/config';
 
-import { loadConfig, ensureTempDir, loadRawConfig, getRelevantEnvVars, configFileExists, writeConfig } from './utils/config.js';
+import { loadConfig, ensureTempDir, getRelevantEnvVars } from './utils/config.js';
 import { initTemplates, resolveConfig } from '@fob/lib-worker';
 import readline from 'readline';
 import { loadSteps, loadStepsWithFiles, getHandler, findPreviousStep } from './utils/steps-loader.js';
@@ -119,99 +119,26 @@ async function interactivePicker(prompt, options) {
  * Show config command handler
  */
 function showConfigHandler() {
-  const rawConfig = loadRawConfig();
-  const mergedConfig = loadConfig();
+  const config = loadConfig();
   const envVars = getRelevantEnvVars();
 
   console.log('fob config show');
   console.log('='.repeat(60));
 
-  // Resolved config table
-  console.log('\nResolved Configuration:');
-  const configRows = [
-    ['stepsPath', path.relative(process.cwd(), mergedConfig.stepsPath)],
-    ['tempDir', path.relative(process.cwd(), mergedConfig.tempDir)],
-    ['orchestrator.url', mergedConfig.orchestrator.url],
-    ['orchestrator.org', mergedConfig.orchestrator.org || '(not set)'],
-  ];
+  console.log('\nPaths:');
+  console.log(`stepsPath  ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`tempDir    ${path.relative(process.cwd(), config.tempDir)}`);
 
-  const keyWidth = Math.max(...configRows.map(r => r[0].length));
-  console.log(`${'KEY'.padEnd(keyWidth)}  VALUE`);
-  console.log('-'.repeat(60));
-  for (const [key, value] of configRows) {
-    console.log(`${key.padEnd(keyWidth)}  ${value}`);
-  }
-
-  // Environment variables table
   const envEntries = Object.entries(envVars).filter(([, v]) => v !== undefined);
   if (envEntries.length > 0) {
     console.log('\nEnvironment Variables:');
-    const envKeyWidth = Math.max(...envEntries.map(([k]) => k.length));
-    console.log(`${'VAR'.padEnd(envKeyWidth)}  VALUE`);
-    console.log('-'.repeat(60));
+    const keyWidth = Math.max(...envEntries.map(([k]) => k.length));
     for (const [key, value] of envEntries) {
-      console.log(`${key.padEnd(envKeyWidth)}  ${value}`);
+      console.log(`${key.padEnd(keyWidth)}  ${value}`);
     }
-  }
-
-  // Config file status
-  console.log('\nConfig File:');
-  if (rawConfig) {
-    console.log('.fob.json found');
-  } else {
-    console.log('.fob.json not found (using defaults)');
   }
 
   console.log('');
-}
-
-/**
- * Prompt for input
- */
-function prompt(question, defaultValue) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    const q = defaultValue ? `${question} [${defaultValue}]: ` : `${question}: `;
-    rl.question(q, (answer) => {
-      rl.close();
-      resolve(answer || defaultValue);
-    });
-  });
-}
-
-/**
- * Init config command handler
- */
-async function initConfigHandler() {
-  console.log('fob config init');
-  console.log('='.repeat(60));
-
-  if (configFileExists()) {
-    console.log('\n.fob.json already exists.');
-    const overwrite = await prompt('Overwrite? (y/N)', 'n');
-    if (overwrite.toLowerCase() !== 'y') {
-      console.log('Cancelled.');
-      return;
-    }
-  }
-
-  console.log('\nEnter configuration values (press Enter for defaults):\n');
-
-  const stepsPath = await prompt('stepsPath', './src/steps/index.js');
-  const tempDir = await prompt('tempDir', './temp');
-
-  const config = {
-    stepsPath,
-    tempDir,
-  };
-
-  const configPath = writeConfig(config);
-  console.log(`\nCreated: ${path.relative(process.cwd(), configPath)}`);
-  console.log(JSON.stringify(config, null, 2));
 }
 
 /**
@@ -884,12 +811,11 @@ export function run(args) {
         )
         .demandCommand(1, 'Specify an action: list, run');
     })
-    .command('config', 'Manage CLI configuration', (yargs) => {
+    .command('config', 'Show CLI configuration', (yargs) => {
       return yargs
         .usage('$0 config <action>')
-        .command('show', 'Show current configuration', {}, showConfigHandler)
-        .command('init', 'Create .fob.json interactively', {}, initConfigHandler)
-        .demandCommand(1, 'Specify an action: show, init');
+        .command('show', 'Show resolved paths and environment variables', {}, showConfigHandler)
+        .demandCommand(1, 'Specify an action: show');
     })
     .command('processes', 'Work with orchestrator processes', (yargs) => {
       return yargs
@@ -1021,7 +947,7 @@ export function run(args) {
       // Config action level completions (fob config <tab>)
       if (args[0] === 'config') {
         if (args.length === 1) {
-          return ['show', 'init'];
+          return ['show'];
         }
         return [];
       }
