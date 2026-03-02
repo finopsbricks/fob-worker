@@ -4,9 +4,6 @@ import { loadSteps } from '../../utils/steps-loader.js';
 import { listLocalProcesses, loadProcess, saveProcess, getProcessesDir } from '../../utils/process-files.js';
 
 export async function updateStepMetadataHandler() {
-  console.log('fob processes update-step-metadata');
-  console.log('='.repeat(60));
-
   const config = loadConfig();
 
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);

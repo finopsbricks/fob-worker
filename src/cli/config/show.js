@@ -5,9 +5,6 @@ export function showConfigHandler() {
   const config = loadConfig();
   const envVars = getRelevantEnvVars();
 
-  console.log('fob config show');
-  console.log('='.repeat(60));
-
   console.log('\nPaths:');
   console.log(`stepsPath  ${path.relative(process.cwd(), config.stepsPath)}`);
   console.log(`tempDir    ${path.relative(process.cwd(), config.tempDir)}`);

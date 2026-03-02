@@ -30,6 +30,13 @@ export function ensureTempDir(tempDir) {
   }
 }
 
+function maskSecret(value) {
+  if (!value) return undefined;
+  if (value.length <= 15) return '***';
+  const masked = value.length - 10 - 5;
+  return `${value.slice(0, 10)}${'*'.repeat(masked)}${value.slice(-5)}`;
+}
+
 /**
  * Get relevant environment variables for display
  */
@@ -37,7 +44,7 @@ export function getRelevantEnvVars() {
   return {
     ORCHESTRATOR_URL: process.env.ORCHESTRATOR_URL,
     STEP_PREFIX: process.env.STEP_PREFIX,
-    ORCHESTRATOR_API_KEY: process.env.ORCHESTRATOR_API_KEY ? '***' : undefined,
-    ORCHESTRATOR_API_SECRET: process.env.ORCHESTRATOR_API_SECRET ? '***' : undefined,
+    ORCHESTRATOR_API_KEY: maskSecret(process.env.ORCHESTRATOR_API_KEY),
+    ORCHESTRATOR_API_SECRET: maskSecret(process.env.ORCHESTRATOR_API_SECRET),
   };
 }

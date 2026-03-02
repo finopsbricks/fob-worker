@@ -1,9 +1,6 @@
 import { checkConnection } from '../../utils/orchestrator.js';
 
 export async function workerStatusHandler() {
-  console.log('fob worker status');
-  console.log('='.repeat(60));
-
   console.log('Checking connection...');
 
   const result = await checkConnection();
@@ -21,6 +18,5 @@ export async function workerStatusHandler() {
     }
   }
 
-  console.log('');
-  console.log('='.repeat(60));
 }
+

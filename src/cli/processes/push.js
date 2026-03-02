@@ -13,9 +13,6 @@ export async function pushProcessesHandler(argv) {
     process.exit(1);
   }
 
-  console.log('fob processes push');
-  console.log('='.repeat(60));
-
   console.log(`Reading from: ${getProcessesDir()}/`);
 
 

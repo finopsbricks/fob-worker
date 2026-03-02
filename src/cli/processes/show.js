@@ -3,8 +3,6 @@ import { getProcess } from '../../utils/orchestrator.js';
 export async function showProcessHandler(argv) {
   const { id } = argv;
 
-  console.log('fob processes show');
-  console.log('='.repeat(60));
   console.log(`Process: ${id}`);
   console.log('');
 

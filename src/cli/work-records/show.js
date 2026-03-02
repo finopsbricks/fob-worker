@@ -3,8 +3,6 @@ import { getWorkRecord } from '../../utils/orchestrator.js';
 export async function showWorkRecordHandler(argv) {
   const { id } = argv;
 
-  console.log('fob work-records show');
-  console.log('='.repeat(60));
   console.log(`Work Record: ${id}`);
   console.log('');
 

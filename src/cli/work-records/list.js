@@ -3,9 +3,6 @@ import { listWorkRecords } from '../../utils/orchestrator.js';
 export async function listWorkRecordsHandler(argv) {
   const { limit, status, process: processId } = argv;
 
-  console.log('fob work-records list');
-  console.log('='.repeat(60));
-
   const filters = [];
   if (limit) filters.push(`limit=${limit}`);
   if (status) filters.push(`status=${status}`);

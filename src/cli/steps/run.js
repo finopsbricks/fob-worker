@@ -122,8 +122,6 @@ export async function runStepHandler(argv) {
   }
 
   // Display run info
-  console.log('fob steps run');
-  console.log('='.repeat(60));
   console.log(`Step: ${slug}`);
   console.log(`Config: ${configSource}`);
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
@@ -165,7 +163,5 @@ export async function runStepHandler(argv) {
   const savedPath = saveStepOutput(config.tempDir, slug, output);
   console.log(`\n   Output saved: ${path.relative(process.cwd(), savedPath)}`);
 
-  console.log('\n' + '='.repeat(60));
   console.log('Step completed successfully');
-  console.log('='.repeat(60));
 }

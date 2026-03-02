@@ -1,10 +1,6 @@
 import { listProcesses } from '../../utils/orchestrator.js';
 
 export async function listProcessesHandler() {
-  console.log('fob processes list');
-  console.log('='.repeat(60));
-
-
   try {
     const response = await listProcesses();
     const processes = response.data || [];

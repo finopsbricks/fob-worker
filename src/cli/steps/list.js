@@ -7,8 +7,6 @@ export async function listStepsHandler() {
   const { steps, files } = await loadStepsWithFiles(config.stepsPath);
   const slugs = Object.keys(steps);
 
-  console.log('fob steps list');
-  console.log('='.repeat(60));
   console.log(`Source: ${path.relative(process.cwd(), config.stepsPath)}`);
   console.log('');
 

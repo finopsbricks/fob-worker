@@ -20,6 +20,17 @@ import { listStepsHandler } from './steps/list.js';
 import { runStepHandler } from './steps/run.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
+function withSeparator(handler) {
+  return async (argv) => {
+    // console.log('='.repeat(60));
+    // console.log('test');
+    // console.log(process.env.ORCHESTRATOR_URL);
+    console.log('='.repeat(60));
+    await handler(argv);
+    console.log('='.repeat(60));
+  };
+}
+
 /**
  * Build and run CLI
  */
@@ -30,7 +41,7 @@ export function run(args) {
     .command('steps', 'Work with step handlers', (yargs) => {
       return yargs
         .usage('$0 steps <action> [options]')
-        .command('list', 'List available steps', {}, listStepsHandler)
+        .command('list', 'List available steps', {}, withSeparator(listStepsHandler))
         .command(
           'run [slug]',
           'Run a step locally',
@@ -65,7 +76,7 @@ export function run(args) {
               console.error('Run "fob steps list" to see available steps');
               process.exit(1);
             }
-            return runStepHandler(argv);
+            return withSeparator(runStepHandler)(argv);
           }
         )
         .demandCommand(1, 'Specify an action: list, run');
@@ -73,13 +84,13 @@ export function run(args) {
     .command('config', 'Show CLI configuration', (yargs) => {
       return yargs
         .usage('$0 config <action>')
-        .command('show', 'Show resolved paths and environment variables', {}, showConfigHandler)
+        .command('show', 'Show resolved paths and environment variables', {}, withSeparator(showConfigHandler))
         .demandCommand(1, 'Specify an action: show');
     })
     .command('processes', 'Work with orchestrator processes', (yargs) => {
       return yargs
         .usage('$0 processes <action> [options]')
-        .command('list', 'List processes from orchestrator', {}, listProcessesHandler)
+        .command('list', 'List processes from orchestrator', {}, withSeparator(listProcessesHandler))
         .command(
           'show [id]',
           'Show process definition',
@@ -96,7 +107,7 @@ export function run(args) {
               console.error('Run "fob processes list" to see available processes');
               process.exit(1);
             }
-            return showProcessHandler(argv);
+            return withSeparator(showProcessHandler)(argv);
           }
         )
         .command(
@@ -114,7 +125,7 @@ export function run(args) {
                 type: 'boolean',
               });
           },
-          pullProcessesHandler
+          withSeparator(pullProcessesHandler)
         )
         .command(
           'push [id]',
@@ -131,13 +142,13 @@ export function run(args) {
                 type: 'boolean',
               });
           },
-          pushProcessesHandler
+          withSeparator(pushProcessesHandler)
         )
         .command(
           'update-step-metadata',
           'Update step name/description in local processes from code',
           {},
-          updateStepMetadataHandler
+          withSeparator(updateStepMetadataHandler)
         )
         .demandCommand(1, 'Specify an action: list, show, pull, push, update-step-metadata');
     })
@@ -165,7 +176,7 @@ export function run(args) {
                 type: 'string',
               });
           },
-          listWorkRecordsHandler
+          withSeparator(listWorkRecordsHandler)
         )
         .command(
           'show [id]',
@@ -183,7 +194,7 @@ export function run(args) {
               console.error('Run "fob work-records list" to see recent records');
               process.exit(1);
             }
-            return showWorkRecordHandler(argv);
+            return withSeparator(showWorkRecordHandler)(argv);
           }
         )
         .demandCommand(1, 'Specify an action: list, show');
@@ -191,7 +202,7 @@ export function run(args) {
     .command('worker', 'Worker management', (yargs) => {
       return yargs
         .usage('$0 worker <action>')
-        .command('status', 'Check connection to orchestrator', {}, workerStatusHandler)
+        .command('status', 'Check connection to orchestrator', {}, withSeparator(workerStatusHandler))
         .demandCommand(1, 'Specify an action: status');
     })
     .completion('completion', 'Generate shell completion script', function (current, argv) {

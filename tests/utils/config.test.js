@@ -120,9 +120,20 @@ describe('getRelevantEnvVars()', () => {
     expect(result.STEP_PREFIX).toBe('alex');
   });
 
-  it('should mask ORCHESTRATOR_API_KEY with *** when set', () => {
+  it('should show first 10 and last 5 chars of ORCHESTRATOR_API_KEY when long enough', () => {
     // Arrange
-    process.env.ORCHESTRATOR_API_KEY = 'super-secret-key';
+    process.env.ORCHESTRATOR_API_KEY = 'abcdefghij12345678901234567890';
+
+    // Act
+    const result = getRelevantEnvVars();
+
+    // Assert
+    expect(result.ORCHESTRATOR_API_KEY).toBe('abcdefghij***************67890');
+  });
+
+  it('should mask ORCHESTRATOR_API_KEY with *** when too short to partially reveal', () => {
+    // Arrange
+    process.env.ORCHESTRATOR_API_KEY = 'short-key';
 
     // Act
     const result = getRelevantEnvVars();
@@ -131,7 +142,7 @@ describe('getRelevantEnvVars()', () => {
     expect(result.ORCHESTRATOR_API_KEY).toBe('***');
   });
 
-  it('should mask ORCHESTRATOR_API_SECRET with *** when set', () => {
+  it('should mask ORCHESTRATOR_API_SECRET with *** when too short to partially reveal', () => {
     // Arrange
     process.env.ORCHESTRATOR_API_SECRET = 'super-secret';
 

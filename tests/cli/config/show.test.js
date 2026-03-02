@@ -41,7 +41,6 @@ describe('showConfigHandler()', () => {
     showConfigHandler();
 
     // Assert
-    expect(out.stdout).toContain('fob config show');
     expect(out.stdout).toContain('stepsPath');
     expect(out.stdout).toContain('src/steps/index.js');
     expect(out.stdout).toContain('tempDir');

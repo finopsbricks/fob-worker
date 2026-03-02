@@ -13,9 +13,6 @@ export async function pullProcessesHandler(argv) {
     process.exit(1);
   }
 
-  console.log('fob processes pull');
-  console.log('='.repeat(60));
-
   console.log(`Saving to: ${getProcessesDir()}/`);
 
 
