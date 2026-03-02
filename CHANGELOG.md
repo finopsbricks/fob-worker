@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.2.1] - 2026-02-24
+
+### Changed
+- Replaced local `resolveTemplates` with `resolveConfig` from `@fob/lib-worker` for template resolution
+- Template resolution now uses `step_outputs` context instead of `tempDir` for better orchestrator compatibility
+- Updated README documentation
+
 ## [0.2.0] - 2026-02-24
 
 ### Added
