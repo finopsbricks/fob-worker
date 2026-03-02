@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.5.0] - 2026-03-02
+
+### Added
+- Comprehensive test suite — unit tests for all `src/utils/` modules (47 tests) with AAA pattern, 80% coverage thresholds, and GitHub Actions CI
+- gh-style handler tests for all 11 CLI command handlers (44 tests) — dependencies mocked at module boundary, `captureOutput` helper captures stdout/stderr, `ExitError` halts execution on `process.exit` for assertable exit codes
+- `src/utils/picker.js` — `interactivePicker` extracted as a standalone utility
+- `getStepSlugs()` exported from `src/utils/steps-loader.js`
+
+### Changed
+- Refactored `src/cli.js` (~1000 lines) into `src/cli/` folder structure that mirrors the CLI command tree — each handler in its own file (e.g. `fob processes pull` → `src/cli/processes/pull.js`)
+- Simplified CLI environment variable configuration
+- Auth and worker status connection handling improvements
+
 ## [0.4.0] - 2026-03-02
 
 ### Changed

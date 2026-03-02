@@ -1,6 +1,6 @@
 {
   "name": "@fob/cli",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Developer CLI for FinOpsBricks process engine workers",
   "type": "module",
   "bin": {
