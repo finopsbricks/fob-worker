@@ -103,3 +103,9 @@ Options use double-dash convention:
 - `--help`, `-h` — Show help
 - `--verbose`, `-v` — Verbose output (future)
 - `--dry-run` — Preview without execution (future)
+
+## Related Notes
+
+- [Module Structure](/docs/architecture/module-structure.md)
+- [Running Steps Locally](/docs/usage/running-steps.md)
+- [Process Sync](/docs/usage/process-sync.md)
