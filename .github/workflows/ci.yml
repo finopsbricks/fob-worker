@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run-all-tests:
+        description: 'Force run all tests (ignore conditionals)'
+        required: false
+        type: boolean
+        default: false
+
+# Required for dorny/test-reporter to create check runs on all trigger types
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  # ============================================
+  # SETUP
+  # ============================================
+  setup-changes:
+    name: "Setup - Detect Changes"
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'src/**'
+              - 'bin/**'
+              - 'tests/**'
+              - 'package.json'
+              - 'jest.config.js'
+
+  # ============================================
+  # TESTS
+  # ============================================
+  test-unit:
+    name: "Test - Unit"
+    needs: setup-changes
+    if: |
+      github.event.inputs.run-all-tests == 'true' ||
+      needs.setup-changes.outputs.src == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: "Results - Unit"
+          path: junit.xml
+          reporter: jest-junit

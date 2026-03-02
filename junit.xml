@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="47" failures="0" errors="0" time="0.344">
+  <testsuite name="slugToFilename()" errors="0" failures="0" skipped="0" timestamp="2026-03-02T12:41:22" time="0.12" tests="14">
+    <testcase classname="slugToFilename() should convert a slug with one slash to double-underscore filename" name="slugToFilename() should convert a slug with one slash to double-underscore filename" time="0.001">
+    </testcase>
+    <testcase classname="slugToFilename() should append .json extension" name="slugToFilename() should append .json extension" time="0">
+    </testcase>
+    <testcase classname="slugToConfigFilename() should convert a slug to a .config.json filename" name="slugToConfigFilename() should convert a slug to a .config.json filename" time="0.001">
+    </testcase>
+    <testcase classname="slugToConfigFilename() should produce a different filename than slugToFilename" name="slugToConfigFilename() should produce a different filename than slugToFilename" time="0">
+    </testcase>
+    <testcase classname="filenameToSlug() should reverse a slugToFilename result" name="filenameToSlug() should reverse a slugToFilename result" time="0">
+    </testcase>
+    <testcase classname="filenameToSlug() should replace double-underscores with a slash" name="filenameToSlug() should replace double-underscores with a slash" time="0">
+    </testcase>
+    <testcase classname="filenameToSlug() should strip the .json extension" name="filenameToSlug() should strip the .json extension" time="0">
+    </testcase>
+    <testcase classname="saveStepOutput() + loadStepOutput() should save and reload step output as JSON" name="saveStepOutput() + loadStepOutput() should save and reload step output as JSON" time="0.002">
+    </testcase>
+    <testcase classname="saveStepOutput() + loadStepOutput() should return null when output file does not exist" name="saveStepOutput() + loadStepOutput() should return null when output file does not exist" time="0.001">
+    </testcase>
+    <testcase classname="saveStepOutput() + loadStepOutput() should return the saved filepath" name="saveStepOutput() + loadStepOutput() should return the saved filepath" time="0.002">
+    </testcase>
+    <testcase classname="loadAllStepOutputs() should return an empty object when the directory does not exist" name="loadAllStepOutputs() should return an empty object when the directory does not exist" time="0.001">
+    </testcase>
+    <testcase classname="loadAllStepOutputs() should load all step output files as a slug-keyed map" name="loadAllStepOutputs() should load all step output files as a slug-keyed map" time="0.002">
+    </testcase>
+    <testcase classname="loadAllStepOutputs() should exclude .config.json files" name="loadAllStepOutputs() should exclude .config.json files" time="0.001">
+    </testcase>
+    <testcase classname="loadAllStepOutputs() should skip files with invalid JSON and log a warning" name="loadAllStepOutputs() should skip files with invalid JSON and log a warning" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="getProcessesDir()" errors="0" failures="0" skipped="0" timestamp="2026-03-02T12:41:22" time="0.066" tests="17">
+    <testcase classname="getProcessesDir() should return the processes directory path" name="getProcessesDir() should return the processes directory path" time="0.001">
+    </testcase>
+    <testcase classname="getScenariosDir() should return the scenarios directory path" name="getScenariosDir() should return the scenarios directory path" time="0">
+    </testcase>
+    <testcase classname="getStepConfigFromProcess() should return the config for a matching step slug" name="getStepConfigFromProcess() should return the config for a matching step slug" time="0.001">
+    </testcase>
+    <testcase classname="getStepConfigFromProcess() should return null when the step slug is not found" name="getStepConfigFromProcess() should return null when the step slug is not found" time="0">
+    </testcase>
+    <testcase classname="getStepConfigFromProcess() should return null when the process has no steps" name="getStepConfigFromProcess() should return null when the process has no steps" time="0.001">
+    </testcase>
+    <testcase classname="getStepConfigFromProcess() should return null when steps is undefined" name="getStepConfigFromProcess() should return null when steps is undefined" time="0">
+    </testcase>
+    <testcase classname="saveProcess() + loadProcess() + listLocalProcesses() should save and reload a process by id" name="saveProcess() + loadProcess() + listLocalProcesses() should save and reload a process by id" time="0.002">
+    </testcase>
+    <testcase classname="saveProcess() + loadProcess() + listLocalProcesses() should return null for a process that was never saved" name="saveProcess() + loadProcess() + listLocalProcesses() should return null for a process that was never saved" time="0">
+    </testcase>
+    <testcase classname="saveProcess() + loadProcess() + listLocalProcesses() should list saved process ids" name="saveProcess() + loadProcess() + listLocalProcesses() should list saved process ids" time="0.002">
+    </testcase>
+    <testcase classname="saveProcess() + loadProcess() + listLocalProcesses() should return empty array when no processes saved" name="saveProcess() + loadProcess() + listLocalProcesses() should return empty array when no processes saved" time="0">
+    </testcase>
+    <testcase classname="saveProcess() + loadProcess() + listLocalProcesses() should replace old file when process name changes" name="saveProcess() + loadProcess() + listLocalProcesses() should replace old file when process name changes" time="0.003">
+    </testcase>
+    <testcase classname="findProcessesWithStep() should return processes that contain the step slug" name="findProcessesWithStep() should return processes that contain the step slug" time="0.003">
+    </testcase>
+    <testcase classname="findProcessesWithStep() should return empty array when no process contains the step" name="findProcessesWithStep() should return empty array when no process contains the step" time="0.001">
+    </testcase>
+    <testcase classname="saveScenario() + loadScenario() + listScenarios() should save and reload a scenario" name="saveScenario() + loadScenario() + listScenarios() should save and reload a scenario" time="0.002">
+    </testcase>
+    <testcase classname="saveScenario() + loadScenario() + listScenarios() should return null for a missing scenario" name="saveScenario() + loadScenario() + listScenarios() should return null for a missing scenario" time="0">
+    </testcase>
+    <testcase classname="saveScenario() + loadScenario() + listScenarios() should list saved scenario names without extension" name="saveScenario() + loadScenario() + listScenarios() should list saved scenario names without extension" time="0.001">
+    </testcase>
+    <testcase classname="saveScenario() + loadScenario() + listScenarios() should return empty array when no scenarios exist" name="saveScenario() + loadScenario() + listScenarios() should return empty array when no scenarios exist" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="findPreviousStep()" errors="0" failures="0" skipped="0" timestamp="2026-03-02T12:41:22" time="0.058" tests="6">
+    <testcase classname="findPreviousStep() should return null when the slug is the first entry" name="findPreviousStep() should return null when the slug is the first entry" time="0.001">
+    </testcase>
+    <testcase classname="findPreviousStep() should return the immediately preceding step with the same org prefix" name="findPreviousStep() should return the immediately preceding step with the same org prefix" time="0">
+    </testcase>
+    <testcase classname="findPreviousStep() should return null when no prior step shares the org prefix" name="findPreviousStep() should return null when no prior step shares the org prefix" time="0.001">
+    </testcase>
+    <testcase classname="findPreviousStep() should return null when the slug is not in the registry" name="findPreviousStep() should return null when the slug is not in the registry" time="0">
+    </testcase>
+    <testcase classname="getHandler() should return null when the slug is not in the registry" name="getHandler() should return null when the slug is not in the registry" time="0">
+    </testcase>
+    <testcase classname="getHandler() should throw when the step is a plain function (not a StepDefinition)" name="getHandler() should throw when the step is a plain function (not a StepDefinition)" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="loadConfig()" errors="0" failures="0" skipped="0" timestamp="2026-03-02T12:41:22" time="0.05" tests="10">
+    <testcase classname="loadConfig() should return stepsPath relative to cwd" name="loadConfig() should return stepsPath relative to cwd" time="0.001">
+    </testcase>
+    <testcase classname="loadConfig() should return tempDir relative to cwd" name="loadConfig() should return tempDir relative to cwd" time="0">
+    </testcase>
+    <testcase classname="loadConfig() should return an object with exactly stepsPath and tempDir" name="loadConfig() should return an object with exactly stepsPath and tempDir" time="0.001">
+    </testcase>
+    <testcase classname="ensureTempDir() should create the directory if it does not exist" name="ensureTempDir() should create the directory if it does not exist" time="0.001">
+    </testcase>
+    <testcase classname="ensureTempDir() should not throw if the directory already exists" name="ensureTempDir() should not throw if the directory already exists" time="0">
+    </testcase>
+    <testcase classname="getRelevantEnvVars() should return ORCHESTRATOR_URL as-is when set" name="getRelevantEnvVars() should return ORCHESTRATOR_URL as-is when set" time="0.001">
+    </testcase>
+    <testcase classname="getRelevantEnvVars() should return STEP_PREFIX as-is when set" name="getRelevantEnvVars() should return STEP_PREFIX as-is when set" time="0">
+    </testcase>
+    <testcase classname="getRelevantEnvVars() should mask ORCHESTRATOR_API_KEY with *** when set" name="getRelevantEnvVars() should mask ORCHESTRATOR_API_KEY with *** when set" time="0">
+    </testcase>
+    <testcase classname="getRelevantEnvVars() should mask ORCHESTRATOR_API_SECRET with *** when set" name="getRelevantEnvVars() should mask ORCHESTRATOR_API_SECRET with *** when set" time="0">
+    </testcase>
+    <testcase classname="getRelevantEnvVars() should return undefined for unset vars" name="getRelevantEnvVars() should return undefined for unset vars" time="0.002">
+    </testcase>
+  </testsuite>
+</testsuites>
