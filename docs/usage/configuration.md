@@ -1,25 +1,17 @@
 # Configuration Reference
 
-All configuration options for the CLI.
+How the CLI is configured — convention-based paths and environment variables.
 
-## .fob.json
+## Paths (Convention-Based)
 
-Optional file in the worker directory. Create interactively with `fob config init`.
+The CLI always uses these paths relative to the current working directory. They are not configurable:
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `stepsPath` | `./src/steps/index.js` | Path to the worker's steps registry |
-| `tempDir` | `./temp` | Directory for step output files |
+| Path | Value |
+|------|-------|
+| Steps registry | `./src/steps/index.js` |
+| Temp directory | `./temp` |
 
-Example:
-```json
-{
-  "stepsPath": "./src/steps/index.js",
-  "tempDir": "./temp"
-}
-```
-
-Paths are resolved relative to the current working directory.
+All worker repos follow this structure. Run `fob config show` to see the resolved absolute paths.
 
 ## Environment Variables
 
@@ -42,10 +34,10 @@ Variables are also accessible inside step templates as `{{env.VAR_NAME}}`.
 fob config show
 ```
 
-Displays the merged config values and which environment variables are set (secrets shown as `***`).
+Displays resolved paths and which environment variables are set (secrets shown as `***`).
 
 ## Related Notes
 
 - [Installation](/docs/usage/installation.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
-- [Template Resolution](/docs/architecture/template-resolution.md)
+- [Auth Design](/docs/architecture/auth.md)

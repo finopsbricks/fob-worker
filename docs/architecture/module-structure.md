@@ -29,7 +29,7 @@ Single file containing:
 
 | Module | Responsibility |
 |--------|---------------|
-| `config.js` | Load and merge `.fob.json` with defaults |
+| `config.js` | Resolve convention-based paths (stepsPath, tempDir) |
 | `steps-loader.js` | Dynamically import worker's step registry |
 | `output.js` | Read/write step outputs in `temp/` |
 | `orchestrator.js` | HTTP calls to the orchestrator API |
@@ -59,7 +59,6 @@ Single file containing:
 | `fob work-records show` | `showWorkRecordHandler()` |
 | `fob worker status` | `workerStatusHandler()` |
 | `fob config show` | `showConfigHandler()` |
-| `fob config init` | `initConfigHandler()` |
 
 ## Related Notes
 

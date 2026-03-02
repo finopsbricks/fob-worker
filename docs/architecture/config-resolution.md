@@ -1,52 +1,39 @@
 # Config Resolution
 
-How configuration is loaded and merged from multiple sources.
+How the CLI resolves its runtime configuration.
 
-## Resolution Chain
+## Convention-Based Paths
 
-```
-Built-in defaults
-    ↓ deep merge
-.fob.json (from cwd)
-    ↓ result used for stepsPath / tempDir
-Env vars (for orchestrator settings — read directly, not merged)
-```
+The CLI uses fixed conventions for the two paths it needs. No config file — all worker repos follow the same structure:
 
-## Built-in Defaults
+| Path | Convention |
+|------|-----------|
+| `stepsPath` | `./src/steps/index.js` (resolved to absolute path from cwd) |
+| `tempDir` | `./temp` (resolved to absolute path from cwd) |
 
-```javascript
-{
-  stepsPath: './src/steps/index.js',
-  tempDir:   './temp',
-}
-```
-
-## .fob.json
-
-Optional file in the worker's current working directory. Deep merged over defaults.
-
-Paths (`stepsPath`, `tempDir`) are resolved to absolute paths relative to cwd after merging.
+`loadConfig()` in `src/utils/config.js` is a one-liner — it just resolves these paths relative to `process.cwd()`.
 
 ## Orchestrator Settings
 
-Orchestrator URL, org, and credentials are **not** read from `.fob.json`. They come from environment variables only (loaded from `.env` via dotenv):
+Read directly from environment variables (loaded from `.env` via dotenv at startup):
 
 | Env Var | Purpose |
 |---------|---------|
 | `ORCHESTRATOR_URL` | API base URL |
-| `WORKER_ORG` | Organization ID |
-| `WORKER_SECRET` | Worker auth secret |
-| `ORCHESTRATOR_API_KEY` | API key |
-| `ORCHESTRATOR_API_SECRET` | API secret |
+| `ORCHESTRATOR_API_KEY` | Org API key |
+| `ORCHESTRATOR_API_SECRET` | Org API secret |
+| `STEP_PREFIX` | Step slug prefix for this org |
+
+These are the same variables required by the production worker process. The `.env` in the worker repo is the single source for both.
 
 ## Inspecting Resolved Config
 
 ```bash
-fob config show    # Displays resolved values and which env vars are set
+fob config show    # Displays resolved paths and which env vars are set
 ```
 
 ## Related Notes
 
 - [Module Structure](/docs/architecture/module-structure.md)
-- [Task Construction](/docs/architecture/task-construction.md)
+- [Auth Design](/docs/architecture/auth.md)
 - [Configuration Reference](/docs/usage/configuration.md)

@@ -42,9 +42,10 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (steps)
+- `fob <tab>` → resources (steps, config, processes, work-records, worker)
 - `fob steps <tab>` → actions (list, run)
 - `fob steps run <tab>` → step slugs
+- `fob processes <tab>` → actions (list, show, pull, push, update-step-metadata)
 
 ## Package Structure
 
@@ -52,46 +53,39 @@ Tab completion works for:
 bin/
   fob.js                  # CLI entry point
 src/
-  cli.js                  # yargs command definitions
+  cli.js                  # yargs command definitions and handlers
   utils/
-    config.js             # Load .fob.json + defaults
+    config.js             # Convention-based path resolution
     steps-loader.js       # Dynamic import of steps registry
     output.js             # Save/load step outputs
-    templates.js          # Template resolution
+    orchestrator.js       # HTTP calls to orchestrator API
+    process-files.js      # Read/write .orchestrator/ directory
 docs/
-  cli-pattern.md          # CLI design rationale
+  architecture/           # Internal design notes (for maintainers)
+  usage/                  # How-to guides (for CLI consumers)
+  cli-pattern.md          # CLI command structure design rationale
 ```
 
 ## Configuration
 
-The CLI uses conventions by default:
+The CLI uses convention-based paths — no config file:
 - Steps registry: `./src/steps/index.js`
 - Temp directory: `./temp/`
-- Environment: `./.env`
+- Environment: `./.env` (same as the production worker process)
 
-Workers can override via `.fob.json`:
-```json
-{
-  "stepsPath": "./src/steps/index.js",
-  "tempDir": "./temp"
-}
-```
-
-## Installation
-
-```bash
-# Global install
-npm install -g @fob/cli
-
-# Development (link from repo)
-npm link
-```
+Required env vars (in worker's `.env`):
+- `ORCHESTRATOR_URL`
+- `ORCHESTRATOR_API_KEY`
+- `ORCHESTRATOR_API_SECRET`
+- `STEP_PREFIX`
 
 ## Template Resolution
 
-Config files (`temp/<slug>.config.json`) support:
-- `{{env.VAR_NAME}}` - environment variable
-- `{{org/step_name.field}}` - field from another step's output
+Step configs support:
+- `{{env.VAR_NAME}}` — environment variable
+- `{{org/step_name.field}}` — field from another step's output
+
+Resolution is handled by `resolveConfig()` from `@fob/lib-worker`.
 
 ## Standards
 

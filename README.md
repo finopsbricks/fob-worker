@@ -88,7 +88,7 @@ fob processes push --all                    # Push all local processes
 fob processes update-step-metadata          # Sync step names from code to process files
 ```
 
-Processes are stored in `.orchestrator/processes/<id>.json`.
+Processes are stored in `.orchestrator/processes/`.
 
 ### Work Records
 
@@ -112,36 +112,29 @@ fob worker status                           # Check connection to orchestrator
 
 ### Config
 
-Manage CLI configuration.
-
 ```bash
-fob config show                             # Show resolved configuration
-fob config init                             # Create .fob.json interactively
+fob config show                             # Show resolved paths and environment variables
 ```
 
 ## Configuration
 
-The CLI uses sensible defaults. Override with `.fob.json` in your worker directory:
+The CLI uses convention-based paths — no config file needed:
 
-```json
-{
-  "stepsPath": "./src/steps/index.js",
-  "tempDir": "./temp",
-  "orchestrator": {
-    "url": "https://orchestrator.finopsbricks.com",
-    "org": "your-org"
-  }
-}
-```
+| Path | Convention |
+|------|-----------|
+| Steps registry | `./src/steps/index.js` |
+| Temp directory | `./temp` |
 
 ### Environment Variables
+
+Set in `.env` in the worker directory (same variables as the production worker process):
 
 | Variable | Description |
 |----------|-------------|
 | `ORCHESTRATOR_URL` | Orchestrator API URL |
-| `ORCHESTRATOR_API_KEY` | API key for orchestrator |
-| `WORKER_SECRET` | Worker authentication secret |
-| `WORKER_ORG` | Organization ID |
+| `ORCHESTRATOR_API_KEY` | Org API key |
+| `ORCHESTRATOR_API_SECRET` | Org API secret |
+| `STEP_PREFIX` | Step slug prefix for this org (e.g. `alex`) |
 
 ## Example Workflow
 
@@ -162,7 +155,7 @@ fob processes push proc_123
 
 ## Scenarios
 
-For repeatable test configs, create scenario files in `./scenarios/<step-slug>/<name>.json`:
+For repeatable test configs, create scenario files in `.orchestrator/scenarios/<org>__<step_name>/<name>.json`:
 
 ```json
 {
