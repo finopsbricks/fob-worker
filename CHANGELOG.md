@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.5.1] - 2026-03-02
+
+### Changed
+- Separator lines (`====`) are now printed centrally via a `withSeparator` wrapper in `index.js` rather than inside each handler
+- Removed orchestrator config dump (URL, org, API key) from the top of `processes list`, `work-records list`, and `worker status` output
+- Internal cleanup of `orchestrator.js` and `config.js`
+
 ## [0.5.0] - 2026-03-02
 
 ### Added
