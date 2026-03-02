@@ -2,7 +2,6 @@ import { listProcesses, getOrchestratorConfig } from '../../utils/orchestrator.j
 
 export async function listProcessesHandler() {
   console.log('fob processes list');
-  console.log('hello saar');
   console.log('='.repeat(60));
 
   const orchestratorConfig = getOrchestratorConfig();
