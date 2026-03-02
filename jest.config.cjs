@@ -1,5 +1,7 @@
-export default {
+/** @type {import('jest').Config} */
+module.exports = {
   testEnvironment: 'node',
+  transform: {},
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/index.js',
