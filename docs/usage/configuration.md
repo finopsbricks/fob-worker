@@ -28,10 +28,11 @@ Set in `.env` in the worker directory (loaded automatically by dotenv).
 | Variable | Required For | Description |
 |----------|-------------|-------------|
 | `ORCHESTRATOR_URL` | `processes`, `work-records`, `worker status` | Orchestrator API base URL |
-| `WORKER_ORG` | `processes`, `worker status` | Organization ID |
-| `ORCHESTRATOR_API_KEY` | `processes`, `work-records` | API key for orchestrator |
-| `WORKER_SECRET` | `worker status` | Worker authentication secret |
-| `ORCHESTRATOR_API_SECRET` | Optional | API secret (alternative auth) |
+| `ORCHESTRATOR_API_KEY` | `processes`, `work-records`, `worker status` | Org API key |
+| `ORCHESTRATOR_API_SECRET` | `processes`, `work-records`, `worker status` | Org API secret |
+| `STEP_PREFIX` | `steps run` (org_id fallback) | Step slug prefix for this org (e.g. `alex`) |
+
+These are the same variables required by the production worker process. No separate CLI credentials are needed.
 
 Variables are also accessible inside step templates as `{{env.VAR_NAME}}`.
 
