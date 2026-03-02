@@ -1,4 +1,4 @@
-import { listProcesses, getProcess, getOrchestratorConfig } from '../../utils/orchestrator.js';
+import { listProcesses, getProcess } from '../../utils/orchestrator.js';
 import { saveProcess, getProcessesDir } from '../../utils/process-files.js';
 
 export async function pullProcessesHandler(argv) {
@@ -16,10 +16,8 @@ export async function pullProcessesHandler(argv) {
   console.log('fob processes pull');
   console.log('='.repeat(60));
 
-  const orchestratorConfig = getOrchestratorConfig();
-  console.log(`Orchestrator: ${orchestratorConfig.url}`);
   console.log(`Saving to: ${getProcessesDir()}/`);
-  console.log('');
+
 
   try {
     if (id) {

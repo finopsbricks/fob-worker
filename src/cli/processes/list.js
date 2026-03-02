@@ -1,14 +1,9 @@
-import { listProcesses, getOrchestratorConfig } from '../../utils/orchestrator.js';
+import { listProcesses } from '../../utils/orchestrator.js';
 
 export async function listProcessesHandler() {
   console.log('fob processes list');
   console.log('='.repeat(60));
 
-  const orchestratorConfig = getOrchestratorConfig();
-  console.log(`Orchestrator: ${orchestratorConfig.url}`);
-  console.log(`Org: ${orchestratorConfig.org || '(not set)'}`);
-  console.log(`API Key: ${orchestratorConfig.hasApiKey ? '***' : '(not set)'}`);
-  console.log('');
 
   try {
     const response = await listProcesses();

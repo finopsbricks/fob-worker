@@ -1,15 +1,10 @@
-import { listWorkRecords, getOrchestratorConfig } from '../../utils/orchestrator.js';
+import { listWorkRecords } from '../../utils/orchestrator.js';
 
 export async function listWorkRecordsHandler(argv) {
   const { limit, status, process: processId } = argv;
 
   console.log('fob work-records list');
   console.log('='.repeat(60));
-
-  const orchestratorConfig = getOrchestratorConfig();
-  console.log(`Orchestrator: ${orchestratorConfig.url}`);
-  console.log(`Org: ${orchestratorConfig.org || '(not set)'}`);
-  console.log(`API Key: ${orchestratorConfig.hasApiKey ? '***' : '(not set)'}`);
 
   const filters = [];
   if (limit) filters.push(`limit=${limit}`);

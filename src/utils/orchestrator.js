@@ -79,7 +79,6 @@ async function apiRequest(endpoint, options = {}) {
  */
 export async function checkConnection() {
   const { url, headers } = getWorkerConfig();
-  console.log(headers);
 
   try {
     const response = await fetch(`${url}/api/worker/poll`, {
@@ -93,8 +92,6 @@ export async function checkConnection() {
       url,
     };
   } catch (error) {
-    console.log("\n\n\nerror");
-    console.log(error);
     return {
       connected: false,
       error: error.message,
@@ -149,13 +146,3 @@ export async function getWorkRecord(id) {
   return apiRequest(`/api/v1/work-records/${id}`);
 }
 
-/**
- * Get orchestrator config for display
- */
-export function getOrchestratorConfig() {
-  return {
-    url: process.env.ORCHESTRATOR_URL,
-    step_prefix: process.env.STEP_PREFIX,
-    hasApiKey: !!process.env.ORCHESTRATOR_API_KEY && !!process.env.ORCHESTRATOR_API_SECRET,
-  };
-}

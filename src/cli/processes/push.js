@@ -1,4 +1,4 @@
-import { updateProcess, getOrchestratorConfig } from '../../utils/orchestrator.js';
+import { updateProcess } from '../../utils/orchestrator.js';
 import { loadProcess, listLocalProcesses, getProcessesDir } from '../../utils/process-files.js';
 
 export async function pushProcessesHandler(argv) {
@@ -16,10 +16,8 @@ export async function pushProcessesHandler(argv) {
   console.log('fob processes push');
   console.log('='.repeat(60));
 
-  const orchestratorConfig = getOrchestratorConfig();
-  console.log(`Orchestrator: ${orchestratorConfig.url}`);
   console.log(`Reading from: ${getProcessesDir()}/`);
-  console.log('');
+
 
   try {
     if (id) {
