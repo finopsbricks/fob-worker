@@ -79,6 +79,7 @@ async function apiRequest(endpoint, options = {}) {
  */
 export async function checkConnection() {
   const { url, headers } = getWorkerConfig();
+  console.log(headers);
 
   try {
     const response = await fetch(`${url}/api/worker/poll`, {
