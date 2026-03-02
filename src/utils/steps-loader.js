@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { isStepDefinition, getStepHandler } from '@fob/lib-worker';
+import { loadConfig } from './config.js';
 
 /**
  * Parse index file to extract slug -> file path mappings
@@ -95,6 +96,20 @@ export function getHandler(steps, slug) {
   }
 
   return getStepHandler(steps, slug);
+}
+
+/**
+ * Get step slugs for shell completion
+ * @returns {Promise<string[]>} Array of step slugs
+ */
+export async function getStepSlugs() {
+  try {
+    const config = loadConfig();
+    const steps = await loadSteps(config.stepsPath);
+    return Object.keys(steps);
+  } catch {
+    return [];
+  }
 }
 
 /**

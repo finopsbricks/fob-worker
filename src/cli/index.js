@@ -1,0 +1,275 @@
+/**
+ * CLI entry point using yargs
+ *
+ * Pattern: fob <resource> <action> [target] [options]
+ */
+
+import yargs from 'yargs';
+import 'dotenv/config';
+
+import { showConfigHandler } from './config/show.js';
+import { listProcessesHandler } from './processes/list.js';
+import { showProcessHandler } from './processes/show.js';
+import { pullProcessesHandler } from './processes/pull.js';
+import { pushProcessesHandler } from './processes/push.js';
+import { updateStepMetadataHandler } from './processes/update-step-metadata.js';
+import { listWorkRecordsHandler } from './work-records/list.js';
+import { showWorkRecordHandler } from './work-records/show.js';
+import { workerStatusHandler } from './worker/status.js';
+import { listStepsHandler } from './steps/list.js';
+import { runStepHandler } from './steps/run.js';
+import { getStepSlugs } from '../utils/steps-loader.js';
+
+/**
+ * Build and run CLI
+ */
+export function run(args) {
+  const cli = yargs(args)
+    .scriptName('fob')
+    .usage('$0 <resource> <action> [options]')
+    .command('steps', 'Work with step handlers', (yargs) => {
+      return yargs
+        .usage('$0 steps <action> [options]')
+        .command('list', 'List available steps', {}, listStepsHandler)
+        .command(
+          'run [slug]',
+          'Run a step locally',
+          (yargs) => {
+            return yargs
+              .positional('slug', {
+                describe: 'Step slug (e.g., alex/fetch_account_freshness)',
+                type: 'string',
+              })
+              .option('process', {
+                alias: 'p',
+                describe: 'Use config from this process',
+                type: 'string',
+              })
+              .option('scenario', {
+                alias: 's',
+                describe: 'Use config from this scenario',
+                type: 'string',
+              })
+              .option('empty', {
+                alias: 'e',
+                describe: 'Use empty config (no picker)',
+                type: 'boolean',
+              });
+          },
+          (argv) => {
+            // Skip if in completion mode
+            if (argv.getYargsCompletions) return;
+
+            if (!argv.slug) {
+              console.error('Usage: fob steps run <slug>');
+              console.error('Run "fob steps list" to see available steps');
+              process.exit(1);
+            }
+            return runStepHandler(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, run');
+    })
+    .command('config', 'Show CLI configuration', (yargs) => {
+      return yargs
+        .usage('$0 config <action>')
+        .command('show', 'Show resolved paths and environment variables', {}, showConfigHandler)
+        .demandCommand(1, 'Specify an action: show');
+    })
+    .command('processes', 'Work with orchestrator processes', (yargs) => {
+      return yargs
+        .usage('$0 processes <action> [options]')
+        .command('list', 'List processes from orchestrator', {}, listProcessesHandler)
+        .command(
+          'show [id]',
+          'Show process definition',
+          (yargs) => {
+            return yargs.positional('id', {
+              describe: 'Process ID',
+              type: 'string',
+            });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob processes show <id>');
+              console.error('Run "fob processes list" to see available processes');
+              process.exit(1);
+            }
+            return showProcessHandler(argv);
+          }
+        )
+        .command(
+          'pull [id]',
+          'Pull process(es) from orchestrator to local files',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID',
+                type: 'string',
+              })
+              .option('all', {
+                alias: 'a',
+                describe: 'Pull all processes',
+                type: 'boolean',
+              });
+          },
+          pullProcessesHandler
+        )
+        .command(
+          'push [id]',
+          'Push local process(es) to orchestrator',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID',
+                type: 'string',
+              })
+              .option('all', {
+                alias: 'a',
+                describe: 'Push all local processes',
+                type: 'boolean',
+              });
+          },
+          pushProcessesHandler
+        )
+        .command(
+          'update-step-metadata',
+          'Update step name/description in local processes from code',
+          {},
+          updateStepMetadataHandler
+        )
+        .demandCommand(1, 'Specify an action: list, show, pull, push, update-step-metadata');
+    })
+    .command('work-records', 'Work with orchestrator work records', (yargs) => {
+      return yargs
+        .usage('$0 work-records <action> [options]')
+        .command(
+          'list',
+          'List recent work records',
+          (yargs) => {
+            return yargs
+              .option('limit', {
+                alias: 'l',
+                describe: 'Maximum number of records',
+                type: 'number',
+              })
+              .option('status', {
+                alias: 's',
+                describe: 'Filter by status',
+                type: 'string',
+              })
+              .option('process', {
+                alias: 'p',
+                describe: 'Filter by process ID',
+                type: 'string',
+              });
+          },
+          listWorkRecordsHandler
+        )
+        .command(
+          'show [id]',
+          'Show work record details',
+          (yargs) => {
+            return yargs.positional('id', {
+              describe: 'Work record ID',
+              type: 'string',
+            });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob work-records show <id>');
+              console.error('Run "fob work-records list" to see recent records');
+              process.exit(1);
+            }
+            return showWorkRecordHandler(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, show');
+    })
+    .command('worker', 'Worker management', (yargs) => {
+      return yargs
+        .usage('$0 worker <action>')
+        .command('status', 'Check connection to orchestrator', {}, workerStatusHandler)
+        .demandCommand(1, 'Specify an action: status');
+    })
+    .completion('completion', 'Generate shell completion script', function (current, argv) {
+      // argv._ includes the script name 'fob' as first element
+      const args = argv._.slice(1).filter(a => a !== '');
+
+      // Resource level completions (fob <tab>)
+      if (args.length === 0) {
+        return ['steps', 'config', 'processes', 'work-records', 'worker'];
+      }
+
+      // Config action level completions (fob config <tab>)
+      if (args[0] === 'config') {
+        if (args.length === 1) {
+          return ['show'];
+        }
+        return [];
+      }
+
+      // Steps action level completions (fob steps <tab>)
+      if (args[0] === 'steps') {
+        if (args.length === 1) {
+          return ['list', 'run'];
+        }
+
+        // Step slug completions (fob steps run <tab>)
+        if (args[1] === 'run') {
+          return getStepSlugs().then(slugs => {
+            if (args.length === 2) {
+              return slugs;
+            }
+            return slugs.filter(s => s.startsWith(current));
+          });
+        }
+      }
+
+      // Processes action level completions (fob processes <tab>)
+      if (args[0] === 'processes') {
+        if (args.length === 1) {
+          return ['list', 'show', 'pull', 'push', 'update-step-metadata'];
+        }
+        return [];
+      }
+
+      // Work-records action level completions (fob work-records <tab>)
+      if (args[0] === 'work-records') {
+        if (args.length === 1) {
+          return ['list', 'show'];
+        }
+        return [];
+      }
+
+      // Worker action level completions (fob worker <tab>)
+      if (args[0] === 'worker') {
+        if (args.length === 1) {
+          return ['status'];
+        }
+        return [];
+      }
+
+      return [];
+    })
+    .demandCommand(1, 'Specify a resource: steps, config, processes, work-records, worker')
+    .help()
+    .alias('h', 'help')
+    .alias('v', 'version')
+    .wrap(null)
+    .fail((msg, err, yargs) => {
+      if (err) {
+        console.error(`Error: ${err.message}`);
+        if (process.env.DEBUG) console.error(err.stack);
+      } else {
+        console.error(msg);
+        console.error('');
+        yargs.showHelp();
+      }
+      process.exit(1);
+    });
+
+  cli.parse();
+}
