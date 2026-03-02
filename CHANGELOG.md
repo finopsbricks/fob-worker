@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.4.0] - 2026-03-02
+
+### Changed
+- Worker endpoints now authenticate with `ORCHESTRATOR_API_KEY` and `ORCHESTRATOR_API_SECRET` instead of `WORKER_SECRET`
+- Replaced `WORKER_ORG` env var with `STEP_PREFIX` for step namespace identification
+- Upgraded `@fob/lib-worker` to v0.6.0
+
+### Removed
+- `WORKER_SECRET` environment variable support
+- `WORKER_ORG` environment variable support
+- `orchestrator.url` and `orchestrator.org` keys from `.fob.json` config (orchestrator URL now read directly from `ORCHESTRATOR_URL` env var only)
+- `FOB_TXN_API_URL` and `TXN_ORG_ID` from relevant env vars display
+
 ## [0.3.0] - 2026-03-02
 
 ### Added
