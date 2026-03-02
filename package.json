@@ -1,6 +1,6 @@
 {
   "name": "@fob/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Developer CLI for FinOpsBricks process engine workers",
   "type": "module",
   "bin": {
@@ -28,7 +28,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@fob/lib-worker": "github:finopsbricks/lib-worker#v0.6.0",    
+    "@fob/lib-worker": "github:finopsbricks/lib-worker#v0.6.0",
     "dotenv": "^16.6.1",
     "yargs": "^17.7.2"
   }
