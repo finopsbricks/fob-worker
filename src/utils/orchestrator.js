@@ -93,6 +93,8 @@ export async function checkConnection() {
       url,
     };
   } catch (error) {
+    console.log("\n\n\nerror");
+    console.log(error);
     return {
       connected: false,
       error: error.message,
