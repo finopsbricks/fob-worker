@@ -586,6 +586,8 @@ async function workerStatusHandler() {
   const result = await checkConnection();
 
   console.log('');
+  // console.log('hello mister parera');
+  console.log(result);
   if (result.connected) {
     console.log('Status: Connected');
     console.log(`HTTP: ${result.status}`);
