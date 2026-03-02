@@ -11,18 +11,6 @@ import path from 'path';
 const DEFAULTS = {
   stepsPath: './src/steps/index.js',
   tempDir: './temp',
-  orchestrator: {
-    url: 'http://localhost:3000',
-    org: null,
-  },
-};
-
-/**
- * Environment variable mappings
- */
-const ENV_MAPPINGS = {
-  ORCHESTRATOR_URL: 'orchestrator.url',
-  WORKER_ORG: 'orchestrator.org',
 };
 
 /**
@@ -31,26 +19,10 @@ const ENV_MAPPINGS = {
 export function getRelevantEnvVars() {
   return {
     ORCHESTRATOR_URL: process.env.ORCHESTRATOR_URL,
-    WORKER_ORG: process.env.WORKER_ORG,
-    WORKER_SECRET: process.env.WORKER_SECRET ? '***' : undefined,
+    STEP_PREFIX: process.env.STEP_PREFIX,
     ORCHESTRATOR_API_KEY: process.env.ORCHESTRATOR_API_KEY ? '***' : undefined,
     ORCHESTRATOR_API_SECRET: process.env.ORCHESTRATOR_API_SECRET ? '***' : undefined,
-    FOB_TXN_API_URL: process.env.FOB_TXN_API_URL,
-    TXN_ORG_ID: process.env.TXN_ORG_ID,
   };
-}
-
-/**
- * Set nested property by dot path
- */
-function setByPath(obj, path, value) {
-  const parts = path.split('.');
-  let current = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!current[parts[i]]) current[parts[i]] = {};
-    current = current[parts[i]];
-  }
-  current[parts[parts.length - 1]] = value;
 }
 
 /**
@@ -125,13 +97,6 @@ export function loadConfig() {
 
   // Start with defaults, merge user config
   let config = deepMerge(DEFAULTS, userConfig);
-
-  // Apply environment variable overrides
-  for (const [envVar, configPath] of Object.entries(ENV_MAPPINGS)) {
-    if (process.env[envVar]) {
-      setByPath(config, configPath, process.env[envVar]);
-    }
-  }
 
   // Resolve paths relative to cwd
   config.stepsPath = path.resolve(cwd, config.stepsPath);

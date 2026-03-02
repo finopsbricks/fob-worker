@@ -203,24 +203,11 @@ async function initConfigHandler() {
 
   const stepsPath = await prompt('stepsPath', './src/steps/index.js');
   const tempDir = await prompt('tempDir', './temp');
-  const orchestratorUrl = await prompt('orchestrator.url', process.env.ORCHESTRATOR_URL || 'http://localhost:3000');
-  const orchestratorOrg = await prompt('orchestrator.org', process.env.WORKER_ORG || '');
 
   const config = {
     stepsPath,
     tempDir,
   };
-
-  // Only add orchestrator if non-default values
-  if (orchestratorUrl !== 'http://localhost:3000' || orchestratorOrg) {
-    config.orchestrator = {};
-    if (orchestratorUrl !== 'http://localhost:3000') {
-      config.orchestrator.url = orchestratorUrl;
-    }
-    if (orchestratorOrg) {
-      config.orchestrator.org = orchestratorOrg;
-    }
-  }
 
   const configPath = writeConfig(config);
   console.log(`\nCreated: ${path.relative(process.cwd(), configPath)}`);
@@ -823,7 +810,7 @@ async function runStepHandler(argv) {
       item_snapshot: null,
       step_outputs: step_outputs,
     },
-    org_id: process.env.WORKER_ORG || 'local',
+    org_id: process.env.STEP_PREFIX || 'local',
   };
 
   console.log('\n' + '-'.repeat(60));

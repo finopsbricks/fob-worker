@@ -2,30 +2,29 @@
  * Orchestrator API client
  *
  * Provides access to orchestrator endpoints for processes and work records.
- * Uses ORCHESTRATOR_API_KEY/SECRET for v1 API, WORKER_SECRET for worker endpoints.
+ * Uses ORCHESTRATOR_API_KEY/SECRET for both v1 API and worker endpoints.
  */
-
-import { loadConfig } from './config.js';
 
 /**
  * Get orchestrator URL and worker auth headers (for /api/worker/* endpoints)
  */
 function getWorkerConfig() {
-  const config = loadConfig();
+  const url = process.env.ORCHESTRATOR_URL;
+  const apiKey = process.env.ORCHESTRATOR_API_KEY;
+  const apiSecret = process.env.ORCHESTRATOR_API_SECRET;
+  const stepPrefix = process.env.STEP_PREFIX;
 
-  const url = config.orchestrator.url;
-  const org = config.orchestrator.org;
-  const secret = process.env.WORKER_SECRET;
-
-  if (!secret) {
-    throw new Error('WORKER_SECRET environment variable is required');
+  if (!apiKey || !apiSecret) {
+    throw new Error('ORCHESTRATOR_API_KEY and ORCHESTRATOR_API_SECRET environment variables are required');
   }
 
   return {
     url,
     headers: {
-      Authorization: `Bearer ${secret}`,
-      'X-Worker-Org': org,
+      'api-key': apiKey,
+      'api-secret': apiSecret,
+      'X-Worker-Type': process.env.WORKER_TYPE || 'customer',
+      'X-Step-Prefix': stepPrefix,
       'Content-Type': 'application/json',
     },
   };
@@ -35,9 +34,7 @@ function getWorkerConfig() {
  * Get orchestrator URL and API key auth headers (for /api/v1/* endpoints)
  */
 function getApiConfig() {
-  const config = loadConfig();
-
-  const url = config.orchestrator.url;
+  const url = process.env.ORCHESTRATOR_URL;
   const apiKey = process.env.ORCHESTRATOR_API_KEY;
   const apiSecret = process.env.ORCHESTRATOR_API_SECRET;
 
@@ -153,11 +150,9 @@ export async function getWorkRecord(id) {
  * Get orchestrator config for display
  */
 export function getOrchestratorConfig() {
-  const config = loadConfig();
   return {
-    url: config.orchestrator.url,
-    org: config.orchestrator.org,
-    hasSecret: !!process.env.WORKER_SECRET,
+    url: process.env.ORCHESTRATOR_URL,
+    step_prefix: process.env.STEP_PREFIX,
     hasApiKey: !!process.env.ORCHESTRATOR_API_KEY && !!process.env.ORCHESTRATOR_API_SECRET,
   };
 }
