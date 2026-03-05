@@ -38,6 +38,7 @@ Displays resolved paths and which environment variables are set (secrets shown a
 
 ## Related Notes
 
+- [Command Reference](/docs/usage/commands.md)
 - [Installation](/docs/usage/installation.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
 - [Auth Design](/docs/architecture/auth.md)

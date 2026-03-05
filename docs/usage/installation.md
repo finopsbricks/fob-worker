@@ -7,7 +7,8 @@ How to install and set up the `fob` CLI.
 Clone and link from the monorepo:
 
 ```bash
-cd /path/to/finopsbricks/cli
+git clone git@github.com:finopsbricks/cli.git
+cd cli
 npm install
 npm link
 ```
@@ -17,22 +18,16 @@ Verify:
 fob --help
 ```
 
-## Global Install
-
-```bash
-npm install -g @fob/cli
-```
-
 ## Shell Completion
 
 Tab completion is enabled per-shell. Add to your shell config and restart.
 
-**Bash** (`~/.bashrc`):
+**Bash** (`~/.bashrc`): for linux
 ```bash
 source <(fob completion)
 ```
 
-**Zsh** (`~/.zshrc`):
+**Zsh** (`~/.zshrc`): for mac
 ```bash
 source <(fob completion)
 ```
@@ -48,7 +43,7 @@ fob processes <tab>        # → list, show, pull, push, update-step-metadata
 ## Running from a Worker Repo
 
 The CLI is designed to run from inside a worker directory. It looks for:
-- `./src/steps/index.js` — step registry (configurable via `.fob.json`)
+- `./src/steps/index.js` — step registry (convention-based)
 - `./.env` — environment variables (loaded automatically)
 - `./temp/` — step outputs (created automatically)
 
@@ -59,5 +54,6 @@ fob steps list
 
 ## Related Notes
 
+- [Command Reference](/docs/usage/commands.md)
 - [Configuration Reference](/docs/usage/configuration.md)
 - [Running Steps Locally](/docs/usage/running-steps.md)

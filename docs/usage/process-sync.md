@@ -4,19 +4,7 @@ Workflow for pulling process definitions from the orchestrator, editing locally,
 
 ## Prerequisites
 
-Orchestrator credentials must be set in `.env`:
-
-```bash
-ORCHESTRATOR_URL=https://orchestrator.finopsbricks.com
-WORKER_ORG=your-org
-ORCHESTRATOR_API_KEY=your-key
-```
-
-Check connectivity first:
-
-```bash
-fob worker status
-```
+Orchestrator credentials must be set in `.env`. Check connectivity first with `fob worker status`.
 
 ## Typical Workflow
 
@@ -38,15 +26,7 @@ fob processes push fvVNrEH6kFW1
 fob processes push --all
 ```
 
-## Inspect a Process
-
-```bash
-fob processes show fvVNrEH6kFW1
-```
-
-Prints full process definition JSON.
-
-## Sync Step Metadata from Code
+## Syncing Step Metadata from Code
 
 After adding or renaming steps in code, sync `name` and `description` into local process files:
 
@@ -62,7 +42,7 @@ Processes are saved to `.orchestrator/processes/` inside the worker directory. T
 
 ## Related Notes
 
-- [Installation](/docs/usage/installation.md)
+- [Command Reference](/docs/usage/commands.md)
 - [Running Steps Locally](/docs/usage/running-steps.md)
 - [Scenarios](/docs/usage/scenarios.md)
 - [Process Files Layout](/docs/architecture/process-files-layout.md)

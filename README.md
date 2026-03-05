@@ -2,170 +2,32 @@
 
 Developer CLI for FinOpsBricks process engine workers.
 
-## Installation
+Command pattern: `fob <resource> <action> [target] [options]`
 
-```bash
-# Clone and link (recommended for development)
-git clone git@github.com:finopsbricks/cli.git
-cd cli
-npm install
-npm link
-```
+## Installation Docs
 
-### Shell Completion
+- [Installation](docs/usage/installation.md) — install, link, shell completion
+- [Configuration](docs/usage/configuration.md) — paths, environment variables
 
-Enable tab completion by adding to your shell config:
+## Usage Docs
 
-```bash
-# Bash (~/.bashrc)
-source <(fob completion)
+Guides for CLI users:
 
-# Zsh (~/.zshrc)
-source <(fob completion)
-```
+- [Command Reference](docs/usage/commands.md) — all commands grouped by resource
+- [Running Steps](docs/usage/running-steps.md) — local step debugging workflow
+- [Process Sync](docs/usage/process-sync.md) — pull/edit/push workflow
+- [Scenarios](docs/usage/scenarios.md) — reusable test configs for steps
 
-Then restart your shell or run `source ~/.zshrc`.
 
-**Tab completion works for:**
-- `fob <tab>` → resources (steps, config, processes, work-records, worker)
-- `fob steps <tab>` → actions (list, run)
-- `fob steps run <tab>` → step slugs from current worker
-- `fob processes <tab>` → actions (list, show, pull, push, update-step-metadata)
+## Architecture Docs
 
-## Quick Start
+Internal docs for CLI maintainers:
 
-Run commands from a worker directory (e.g., `workers/worker-alex`):
-
-```bash
-# Check connection to orchestrator
-fob worker status
-
-# List and run steps locally
-fob steps list
-fob steps run alex/fetch_account_freshness
-
-# Work with processes
-fob processes list
-fob processes pull --all
-
-# Show help
-fob --help
-```
-
-## Commands
-
-Pattern: `fob <resource> <action> [target] [options]`
-
-### Steps
-
-Debug step handlers locally without the full orchestrator.
-
-```bash
-fob steps list                              # List available steps
-fob steps run <slug>                        # Run with interactive config picker
-fob steps run <slug> --process <id>         # Use config from a process
-fob steps run <slug> --scenario <name>      # Use config from a scenario file
-fob steps run <slug> --empty                # Run with empty config
-```
-
-When running a step, the CLI:
-1. Loads step definitions from `./src/steps/index.js`
-2. Loads previous step outputs from `./temp/`
-3. Resolves `{{env.VAR}}` and `{{org/step.field}}` templates in config
-4. Saves output to `./temp/<slug>.json`
-
-### Processes
-
-Sync process definitions between orchestrator and local files.
-
-```bash
-fob processes list                          # List processes from orchestrator
-fob processes show <id>                     # Show process definition
-fob processes pull <id>                     # Pull single process to local
-fob processes pull --all                    # Pull all processes
-fob processes push <id>                     # Push single process to orchestrator
-fob processes push --all                    # Push all local processes
-fob processes update-step-metadata          # Sync step names from code to process files
-```
-
-Processes are stored in `.orchestrator/processes/`.
-
-### Work Records
-
-View work records from the orchestrator.
-
-```bash
-fob work-records list                       # List recent work records
-fob work-records list --limit 10            # Limit results
-fob work-records list --status running      # Filter by status
-fob work-records list --process <id>        # Filter by process
-fob work-records show <id>                  # Show work record details
-```
-
-### Worker
-
-Check worker connectivity and configuration.
-
-```bash
-fob worker status                           # Check connection to orchestrator
-```
-
-### Config
-
-```bash
-fob config show                             # Show resolved paths and environment variables
-```
-
-## Configuration
-
-The CLI uses convention-based paths — no config file needed:
-
-| Path | Convention |
-|------|-----------|
-| Steps registry | `./src/steps/index.js` |
-| Temp directory | `./temp` |
-
-### Environment Variables
-
-Set in `.env` in the worker directory (same variables as the production worker process):
-
-| Variable | Description |
-|----------|-------------|
-| `ORCHESTRATOR_URL` | Orchestrator API URL |
-| `ORCHESTRATOR_API_KEY` | Org API key |
-| `ORCHESTRATOR_API_SECRET` | Org API secret |
-| `STEP_PREFIX` | Step slug prefix for this org (e.g. `alex`) |
-
-## Example Workflow
-
-```bash
-# 1. Pull process definitions from orchestrator
-fob processes pull --all
-
-# 2. Run steps locally with process config
-fob steps run alex/fetch_account_freshness --process proc_123
-
-# 3. Chain steps (outputs auto-loaded from temp/)
-fob steps run alex/generate_freshness_email --process proc_123
-fob steps run alex/send_email --process proc_123
-
-# 4. After editing process locally, push changes
-fob processes push proc_123
-```
-
-## Scenarios
-
-For repeatable test configs, create scenario files in `.orchestrator/scenarios/<org>__<step_name>/<name>.json`:
-
-```json
-{
-  "to": "test@example.com",
-  "subject": "Test email"
-}
-```
-
-Then run with: `fob steps run org/send_email --scenario test-email`
-
-## Command Pattern
-
-See [docs/cli-pattern.md](docs/cli-pattern.md) for design rationale.
+- [Module Structure](docs/architecture/module-structure.md)
+- [Config Resolution](docs/architecture/config-resolution.md)
+- [Steps Loading](docs/architecture/steps-loading.md)
+- [Task Construction](docs/architecture/task-construction.md)
+- [Template Resolution](docs/architecture/template-resolution.md)
+- [Process Files Layout](docs/architecture/process-files-layout.md)
+- [Auth](docs/architecture/auth.md)
+- [CLI Pattern](docs/cli-pattern.md) — command structure design rationale
