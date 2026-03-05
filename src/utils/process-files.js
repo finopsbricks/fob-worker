@@ -107,7 +107,7 @@ export function loadProcess(id) {
 }
 
 /**
- * List all locally saved process IDs
+ * List all locally saved process IDs (existing processes with ID prefix)
  * @returns {string[]} Array of process IDs
  */
 export function listLocalProcesses() {
@@ -116,8 +116,59 @@ export function listLocalProcesses() {
   }
 
   return fs.readdirSync(PROCESSES_DIR)
-    .filter(f => f.endsWith('.json'))
+    .filter(f => f.endsWith('.json') && f.includes('__'))
     .map(extractIdFromFilename);
+}
+
+/**
+ * List new process files (no ID prefix — filename has no __)
+ * @returns {string[]} Array of filenames (e.g. ['nowapps_discover_pending_msas.json'])
+ */
+export function listNewProcessFiles() {
+  if (!fs.existsSync(PROCESSES_DIR)) {
+    return [];
+  }
+
+  return fs.readdirSync(PROCESSES_DIR)
+    .filter(f => f.endsWith('.json') && !f.includes('__'));
+}
+
+/**
+ * Load a process from a filename (not by ID)
+ * @param {string} filename - Filename within the processes directory
+ * @returns {object|null} Process definition or null if not found
+ */
+export function loadProcessByFilename(filename) {
+  const filepath = path.join(PROCESSES_DIR, filename);
+
+  if (!fs.existsSync(filepath)) {
+    return null;
+  }
+
+  return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+}
+
+/**
+ * Write the server-assigned ID back into a new process file and rename it
+ * to the standard {id}__name.json format.
+ * @param {string} originalFilename - Original filename (e.g. 'nowapps_discover_pending_msas.json')
+ * @param {object} process - Process with id and name (as returned by server)
+ * @returns {string} New filepath
+ */
+export function finalizeNewProcessFile(originalFilename, process) {
+  ensureProcessesDir();
+
+  // Remove the original file
+  const originalPath = path.join(PROCESSES_DIR, originalFilename);
+  if (fs.existsSync(originalPath)) {
+    fs.unlinkSync(originalPath);
+  }
+
+  // Write with standard naming
+  const newFilename = buildFilename(process);
+  const newPath = path.join(PROCESSES_DIR, newFilename);
+  fs.writeFileSync(newPath, JSON.stringify(process, null, 2));
+  return newPath;
 }
 
 /**

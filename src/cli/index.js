@@ -129,16 +129,16 @@ export function run(args) {
         )
         .command(
           'push [id]',
-          'Push local process(es) to orchestrator',
+          'Push local process(es) to orchestrator (creates new or updates existing)',
           (yargs) => {
             return yargs
               .positional('id', {
-                describe: 'Process ID',
+                describe: 'Process ID (existing) or filename (new)',
                 type: 'string',
               })
               .option('all', {
                 alias: 'a',
-                describe: 'Push all local processes',
+                describe: 'Push all local processes (creates new + updates existing)',
                 type: 'boolean',
               });
           },

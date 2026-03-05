@@ -115,6 +115,18 @@ export async function getProcess(id) {
 }
 
 /**
+ * Create a new process
+ * @param {object} data - Process definition (without id)
+ * @returns {object} Created process (with id assigned by server)
+ */
+export async function createProcess(data) {
+  return apiRequest('/api/v1/processes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * Update process by ID
  * @param {string} id - Process ID
  * @param {object} data - Process fields to update
