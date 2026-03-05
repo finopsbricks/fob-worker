@@ -19,10 +19,13 @@ fob processes list                          # List processes from orchestrator
 fob processes show <id>                     # Show process definition
 fob processes pull <id>                     # Pull single process to local
 fob processes pull --all                    # Pull all processes
-fob processes push <id>                     # Push single process to orchestrator
-fob processes push --all                    # Push all local processes
+fob processes push <id>                     # Update existing process on orchestrator
+fob processes push <filename>              # Create new process (e.g. my_process.json)
+fob processes push --all                    # Push all — updates existing, creates new
 fob processes update-step-metadata          # Sync step names from code to process files
 ```
+
+**File naming:** Existing processes are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New processes use just `name.json` — after pushing, the file is renamed to include the server-assigned ID.
 
 ## Work Records
 
