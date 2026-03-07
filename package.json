@@ -30,7 +30,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@fob/lib-worker": "github:finopsbricks/lib-worker#v0.6.0",
+    "@fob/lib-worker": "github:finopsbricks/lib-worker#v0.6.1",
     "dotenv": "^16.6.1",
     "yargs": "^17.7.2"
   },
