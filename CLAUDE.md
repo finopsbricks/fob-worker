@@ -29,7 +29,7 @@ fob completion                              # Output shell completion script
 fob --help                                  # Show help
 ```
 
-See `docs/cli-pattern.md` for design rationale.
+See `docs/cli-design-style.md` for design rationale.
 
 ## Shell Completion
 
@@ -63,7 +63,7 @@ src/
 docs/
   architecture/           # Internal design notes (for maintainers)
   usage/                  # How-to guides (for CLI consumers)
-  cli-pattern.md          # CLI command structure design rationale
+  cli-design-style.md     # CLI command structure and conventions
 ```
 
 ## Configuration

@@ -62,7 +62,7 @@ Single file containing:
 
 ## Related Notes
 
-- [Command Structure Design](/docs/cli-pattern.md)
+- [CLI Design Style Guide](/docs/cli-design-style.md)
 - [Steps Loading](/docs/architecture/steps-loading.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
 - [Task Construction](/docs/architecture/task-construction.md)

@@ -30,4 +30,4 @@ Internal docs for CLI maintainers:
 - [Template Resolution](docs/architecture/template-resolution.md)
 - [Process Files Layout](docs/architecture/process-files-layout.md)
 - [Auth](docs/architecture/auth.md)
-- [CLI Pattern](docs/cli-pattern.md) — command structure design rationale
+- [CLI Design Style Guide](docs/cli-design-style.md) — command structure and conventions
