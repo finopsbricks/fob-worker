@@ -2,19 +2,34 @@ import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals
 import { captureOutput, ExitError } from '../helpers.js';
 
 const mockUpdateProcess = jest.fn();
+const mockCreateProcess = jest.fn();
+const mockSetEntityTags = jest.fn();
 const mockGetOrchestratorConfig = jest.fn();
 const mockLoadProcess = jest.fn();
 const mockListLocalProcesses = jest.fn();
+const mockListNewProcessFiles = jest.fn();
+const mockLoadProcessByFilename = jest.fn();
+const mockFinalizeNewProcessFile = jest.fn();
 const mockGetProcessesDir = jest.fn();
+const mockResolveTagNames = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   updateProcess: mockUpdateProcess,
+  createProcess: mockCreateProcess,
+  setEntityTags: mockSetEntityTags,
   getOrchestratorConfig: mockGetOrchestratorConfig,
+}));
+
+jest.unstable_mockModule('../../../src/utils/tags.js', () => ({
+  resolveTagNames: mockResolveTagNames,
 }));
 
 jest.unstable_mockModule('../../../src/utils/process-files.js', () => ({
   loadProcess: mockLoadProcess,
   listLocalProcesses: mockListLocalProcesses,
+  listNewProcessFiles: mockListNewProcessFiles,
+  loadProcessByFilename: mockLoadProcessByFilename,
+  finalizeNewProcessFile: mockFinalizeNewProcessFile,
   getProcessesDir: mockGetProcessesDir,
 }));
 
@@ -33,6 +48,9 @@ describe('pushProcessesHandler()', () => {
     mockGetOrchestratorConfig.mockReturnValue({ url: 'https://orchestrator.example.com' });
     mockGetProcessesDir.mockReturnValue('.orchestrator/processes');
     mockUpdateProcess.mockResolvedValue({});
+    mockListNewProcessFiles.mockReturnValue([]);
+    mockResolveTagNames.mockResolvedValue({ tagIds: [], createdNames: [] });
+    mockSetEntityTags.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -57,12 +75,13 @@ describe('pushProcessesHandler()', () => {
       'proc-abc',
       { name: 'Monthly Billing', steps: [] }
     );
-    expect(out.stdout).toContain('Pushed: proc-abc');
+    expect(out.stdout).toContain('Updated: proc-abc');
   });
 
   it('should exit 1 when the process is not found locally', async () => {
     // Arrange
     mockLoadProcess.mockReturnValue(null);
+    mockLoadProcessByFilename.mockReturnValue(null);
 
     // Act & Assert
     await expect(pushProcessesHandler({ id: 'proc-abc', all: false })).rejects.toThrow(ExitError);
@@ -81,7 +100,7 @@ describe('pushProcessesHandler()', () => {
 
     // Assert
     expect(mockUpdateProcess).toHaveBeenCalledTimes(2);
-    expect(out.stdout).toContain('Total: 2 processes pushed');
+    expect(out.stdout).toContain('Total: 2 updated');
   });
 
   it('should print a message when there are no local processes', async () => {
@@ -110,5 +129,79 @@ describe('pushProcessesHandler()', () => {
     // Act & Assert
     await expect(pushProcessesHandler({ id: 'proc-abc', all: false })).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Unauthorized');
+  });
+
+  it('should strip tags from update data and sync them separately', async () => {
+    // Arrange
+    mockLoadProcess.mockReturnValue({
+      id: 'proc-abc',
+      name: 'Billing',
+      created_at: '2024-01-01',
+      org: 'acme',
+      tags: ['monthly', 'finance'],
+      steps: [],
+    });
+    mockResolveTagNames.mockResolvedValue({ tagIds: ['t1', 't2'], createdNames: [] });
+
+    // Act
+    await pushProcessesHandler({ id: 'proc-abc', all: false });
+
+    // Assert — tags not included in update payload
+    expect(mockUpdateProcess).toHaveBeenCalledWith('proc-abc', { name: 'Billing', steps: [] });
+    // Assert — tags synced via resolveTagNames + setEntityTags
+    expect(mockResolveTagNames).toHaveBeenCalledWith(['monthly', 'finance']);
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc-abc', ['t1', 't2']);
+  });
+
+  it('should log auto-created tags during push', async () => {
+    // Arrange
+    mockLoadProcess.mockReturnValue({
+      id: 'proc-abc',
+      name: 'Billing',
+      tags: ['new-tag'],
+      steps: [],
+    });
+    mockResolveTagNames.mockResolvedValue({ tagIds: ['t_new'], createdNames: ['new-tag'] });
+
+    // Act
+    await pushProcessesHandler({ id: 'proc-abc', all: false });
+
+    // Assert
+    expect(out.stdout).toContain('Auto-created tags: new-tag');
+    expect(out.stdout).toContain('Tags synced: new-tag');
+  });
+
+  it('should not call tag sync when tags field is absent', async () => {
+    // Arrange
+    mockLoadProcess.mockReturnValue({
+      id: 'proc-abc',
+      name: 'Billing',
+      steps: [],
+    });
+
+    // Act
+    await pushProcessesHandler({ id: 'proc-abc', all: false });
+
+    // Assert
+    expect(mockResolveTagNames).not.toHaveBeenCalled();
+    expect(mockSetEntityTags).not.toHaveBeenCalled();
+  });
+
+  it('should clear tags when tags is an empty array', async () => {
+    // Arrange
+    mockLoadProcess.mockReturnValue({
+      id: 'proc-abc',
+      name: 'Billing',
+      tags: [],
+      steps: [],
+    });
+
+    // Act
+    await pushProcessesHandler({ id: 'proc-abc', all: false });
+
+    // Assert
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc-abc', []);
+    expect(mockResolveTagNames).not.toHaveBeenCalled();
+    expect(out.stdout).toContain('Tags cleared');
   });
 });

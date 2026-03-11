@@ -158,3 +158,67 @@ export async function getWorkRecord(id) {
   return apiRequest(`/api/v1/work-records/${id}`);
 }
 
+// ============================================================================
+// Tags
+// ============================================================================
+
+/**
+ * List all tags
+ */
+export async function listTags() {
+  return apiRequest('/api/v1/tags');
+}
+
+/**
+ * Create a tag
+ * @param {object} data - { name, color?, description? }
+ */
+export async function createTag(data) {
+  return apiRequest('/api/v1/tags', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a tag by ID
+ * @param {string} id - Tag ID
+ */
+export async function deleteTag(id) {
+  const { url, headers } = getApiConfig();
+  const response = await fetch(`${url}/api/v1/tags/${id}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Orchestrator API error (${response.status}): ${text}`);
+  }
+}
+
+// ============================================================================
+// Entity Tags
+// ============================================================================
+
+/**
+ * Get tags for an entity
+ * @param {string} entityType - URL segment: 'processes' | 'items' | 'work-records'
+ * @param {string} entityId - Entity ID
+ */
+export async function getEntityTags(entityType, entityId) {
+  return apiRequest(`/api/v1/${entityType}/${entityId}/tags`);
+}
+
+/**
+ * Set tags on an entity (full replace)
+ * @param {string} entityType - URL segment: 'processes' | 'items' | 'work-records'
+ * @param {string} entityId - Entity ID
+ * @param {string[]} tagIds - Array of tag IDs
+ */
+export async function setEntityTags(entityType, entityId, tagIds) {
+  return apiRequest(`/api/v1/${entityType}/${entityId}/tags`, {
+    method: 'PUT',
+    body: JSON.stringify({ tags: tagIds }),
+  });
+}
+

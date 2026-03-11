@@ -1,4 +1,5 @@
-import { createProcess, updateProcess } from '../../utils/orchestrator.js';
+import { createProcess, updateProcess, setEntityTags } from '../../utils/orchestrator.js';
+import { resolveTagNames } from '../../utils/tags.js';
 import {
   loadProcess,
   listLocalProcesses,
@@ -7,6 +8,27 @@ import {
   finalizeNewProcessFile,
   getProcessesDir,
 } from '../../utils/process-files.js';
+
+/**
+ * Sync tags for a process after push.
+ * Tags field is optional — missing means don't touch, empty array means clear all.
+ */
+async function syncTags(processId, tags) {
+  if (tags === undefined) return;
+
+  if (tags.length === 0) {
+    await setEntityTags('processes', processId, []);
+    console.log(`  Tags cleared`);
+    return;
+  }
+
+  const { tagIds, createdNames } = await resolveTagNames(tags);
+  await setEntityTags('processes', processId, tagIds);
+  if (createdNames.length > 0) {
+    console.log(`  Auto-created tags: ${createdNames.join(', ')}`);
+  }
+  console.log(`  Tags synced: ${tags.join(', ')}`);
+}
 
 /**
  * Push a single existing process (has ID) — PUT update
@@ -19,9 +41,10 @@ async function pushExistingProcess(processId) {
     process.exit(1);
   }
 
-  const { id: _, created_at, org, ...updateData } = proc;
+  const { id: _, created_at, org, tags, ...updateData } = proc;
   await updateProcess(processId, updateData);
   console.log(`Updated: ${processId}`);
+  await syncTags(processId, tags);
 }
 
 /**
@@ -35,7 +58,7 @@ async function pushNewProcess(filename) {
   }
 
   // Strip fields that shouldn't be sent (id shouldn't exist, but be safe)
-  const { id: _, created_at, org, ...createData } = proc;
+  const { id: _, created_at, org, tags, ...createData } = proc;
 
   const response = await createProcess(createData);
   const created = response.data;
@@ -43,6 +66,7 @@ async function pushNewProcess(filename) {
   // Write the server-assigned ID back and rename the file
   const newPath = finalizeNewProcessFile(filename, created);
   console.log(`Created: ${created.id} -> ${newPath}`);
+  await syncTags(created.id, tags);
 }
 
 export async function pushProcessesHandler(argv) {
@@ -101,20 +125,22 @@ export async function pushProcessesHandler(argv) {
       // Update existing processes
       for (const processId of existingIds) {
         const proc = loadProcess(processId);
-        const { id: _, created_at, org, ...updateData } = proc;
+        const { id: _, created_at, org, tags, ...updateData } = proc;
         await updateProcess(processId, updateData);
         console.log(`Updated: ${processId}`);
+        await syncTags(processId, tags);
         updatedCount++;
       }
 
       // Create new processes
       for (const filename of newFiles) {
         const proc = loadProcessByFilename(filename);
-        const { id: _, created_at, org, ...createData } = proc;
+        const { id: _, created_at, org, tags, ...createData } = proc;
         const response = await createProcess(createData);
         const created = response.data;
         const newPath = finalizeNewProcessFile(filename, created);
         console.log(`Created: ${created.id} -> ${newPath}`);
+        await syncTags(created.id, tags);
         createdCount++;
       }
 

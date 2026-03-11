@@ -18,6 +18,12 @@ import { showWorkRecordHandler } from './work-records/show.js';
 import { workerStatusHandler } from './worker/status.js';
 import { listStepsHandler } from './steps/list.js';
 import { runStepHandler } from './steps/run.js';
+import { listTagsHandler } from './tags/list.js';
+import { createTagHandler } from './tags/create.js';
+import { deleteTagHandler } from './tags/delete.js';
+import { editProcessHandler } from './processes/edit.js';
+import { editItemHandler } from './items/edit.js';
+import { editWorkRecordHandler } from './work-records/edit.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
 function withSeparator(handler) {
@@ -145,12 +151,41 @@ export function run(args) {
           withSeparator(pushProcessesHandler)
         )
         .command(
+          'edit [id]',
+          'Edit process properties (e.g., tags)',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID',
+                type: 'string',
+              })
+              .option('add-tag', {
+                describe: 'Add tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              })
+              .option('remove-tag', {
+                describe: 'Remove tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob processes edit <id> --add-tag <name>');
+              process.exit(1);
+            }
+            return withSeparator(editProcessHandler)(argv);
+          }
+        )
+        .command(
           'update-step-metadata',
           'Update step name/description in local processes from code',
           {},
           withSeparator(updateStepMetadataHandler)
         )
-        .demandCommand(1, 'Specify an action: list, show, pull, push, update-step-metadata');
+        .demandCommand(1, 'Specify an action: list, show, pull, push, edit, update-step-metadata');
     })
     .command('work-records', 'Work with orchestrator work records', (yargs) => {
       return yargs
@@ -197,7 +232,122 @@ export function run(args) {
             return withSeparator(showWorkRecordHandler)(argv);
           }
         )
-        .demandCommand(1, 'Specify an action: list, show');
+        .command(
+          'edit [id]',
+          'Edit work record properties (e.g., tags)',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Work record ID',
+                type: 'string',
+              })
+              .option('add-tag', {
+                describe: 'Add tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              })
+              .option('remove-tag', {
+                describe: 'Remove tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob work-records edit <id> --add-tag <name>');
+              process.exit(1);
+            }
+            return withSeparator(editWorkRecordHandler)(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, show, edit');
+    })
+    .command('items', 'Work with orchestrator items', (yargs) => {
+      return yargs
+        .usage('$0 items <action> [options]')
+        .command(
+          'edit [id]',
+          'Edit item properties (e.g., tags)',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Item ID',
+                type: 'string',
+              })
+              .option('add-tag', {
+                describe: 'Add tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              })
+              .option('remove-tag', {
+                describe: 'Remove tag by name (repeatable)',
+                type: 'string',
+                array: true,
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob items edit <id> --add-tag <name>');
+              process.exit(1);
+            }
+            return withSeparator(editItemHandler)(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: edit');
+    })
+    .command('tags', 'Manage organization tags', (yargs) => {
+      return yargs
+        .usage('$0 tags <action> [options]')
+        .command('list', 'List all tags', {}, withSeparator(listTagsHandler))
+        .command(
+          'create [name]',
+          'Create a new tag',
+          (yargs) => {
+            return yargs
+              .positional('name', {
+                describe: 'Tag name',
+                type: 'string',
+              })
+              .option('color', {
+                describe: "Hex color (e.g., '#ef4444')",
+                type: 'string',
+              })
+              .option('description', {
+                describe: 'Tag description',
+                type: 'string',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.name) {
+              console.error('Usage: fob tags create <name> [--color "#hex"] [--description "..."]');
+              process.exit(1);
+            }
+            return withSeparator(createTagHandler)(argv);
+          }
+        )
+        .command(
+          'delete [id]',
+          'Delete a tag',
+          (yargs) => {
+            return yargs.positional('id', {
+              describe: 'Tag ID',
+              type: 'string',
+            });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob tags delete <id>');
+              console.error('Run "fob tags list" to see available tags');
+              process.exit(1);
+            }
+            return withSeparator(deleteTagHandler)(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, create, delete');
     })
     .command('worker', 'Worker management', (yargs) => {
       return yargs
@@ -211,7 +361,7 @@ export function run(args) {
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['steps', 'config', 'processes', 'work-records', 'worker'];
+        return ['steps', 'config', 'processes', 'items', 'work-records', 'tags', 'worker'];
       }
 
       // Config action level completions (fob config <tab>)
@@ -242,7 +392,7 @@ export function run(args) {
       // Processes action level completions (fob processes <tab>)
       if (args[0] === 'processes') {
         if (args.length === 1) {
-          return ['list', 'show', 'pull', 'push', 'update-step-metadata'];
+          return ['list', 'show', 'pull', 'push', 'edit', 'update-step-metadata'];
         }
         return [];
       }
@@ -250,7 +400,23 @@ export function run(args) {
       // Work-records action level completions (fob work-records <tab>)
       if (args[0] === 'work-records') {
         if (args.length === 1) {
-          return ['list', 'show'];
+          return ['list', 'show', 'edit'];
+        }
+        return [];
+      }
+
+      // Items action level completions (fob items <tab>)
+      if (args[0] === 'items') {
+        if (args.length === 1) {
+          return ['edit'];
+        }
+        return [];
+      }
+
+      // Tags action level completions (fob tags <tab>)
+      if (args[0] === 'tags') {
+        if (args.length === 1) {
+          return ['list', 'create', 'delete'];
         }
         return [];
       }
@@ -265,7 +431,7 @@ export function run(args) {
 
       return [];
     })
-    .demandCommand(1, 'Specify a resource: steps, config, processes, work-records, worker')
+    .demandCommand(1, 'Specify a resource: steps, config, processes, items, work-records, tags, worker')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')

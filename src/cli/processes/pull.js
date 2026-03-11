@@ -21,6 +21,10 @@ export async function pullProcessesHandler(argv) {
       // Pull single process
       const response = await getProcess(id);
       const proc = response.data;
+      // Convert tag objects to names for local storage
+      if (proc.tags) {
+        proc.tags = proc.tags.map(t => t.name);
+      }
       const filepath = saveProcess(proc);
       console.log(`Saved: ${filepath}`);
     } else {
@@ -37,6 +41,10 @@ export async function pullProcessesHandler(argv) {
         // Fetch full process details (list may not include all fields)
         const fullResponse = await getProcess(proc.id);
         const fullProc = fullResponse.data;
+        // Convert tag objects to names for local storage
+        if (fullProc.tags) {
+          fullProc.tags = fullProc.tags.map(t => t.name);
+        }
         const filepath = saveProcess(fullProc);
         console.log(`Saved: ${filepath}`);
       }

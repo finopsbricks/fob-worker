@@ -92,6 +92,24 @@ describe('pullProcessesHandler()', () => {
     expect(out.stderr).toContain('Usage: fob processes pull <id>');
   });
 
+  it('should convert tag objects to names before saving', async () => {
+    // Arrange
+    const proc = {
+      id: 'proc-abc',
+      name: 'Monthly Billing',
+      tags: [{ id: 't1', name: 'monthly', color: '#ff0000' }, { id: 't2', name: 'finance', color: '#00ff00' }],
+    };
+    mockGetProcess.mockResolvedValue({ data: proc });
+
+    // Act
+    await pullProcessesHandler({ id: 'proc-abc', all: false });
+
+    // Assert — tags saved as name strings, not objects
+    expect(mockSaveProcess).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: ['monthly', 'finance'] })
+    );
+  });
+
   it('should exit 1 with the error message on network failure', async () => {
     // Arrange
     mockGetProcess.mockRejectedValue(new Error('Timeout'));
