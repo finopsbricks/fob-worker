@@ -1,7 +1,8 @@
 /**
  * Local process and scenario file management
  *
- * Processes: .orchestrator/processes/<id>__<name>.json
+ * Processes: .orchestrator/processes/<short_code>__<name>.json  (when short_code set)
+ *            .orchestrator/processes/<id>__<name>.json           (fallback)
  * Scenarios: .orchestrator/scenarios/<slug>/
  */
 
@@ -35,54 +36,80 @@ function nameToSnakeCase(name) {
 
 /**
  * Build filename for a process
- * @param {object} process - Process with id and name
- * @returns {string} Filename like "0flNNmVLV5Dg__update_rules.json"
+ * Uses short_code as prefix when available, otherwise falls back to id.
+ * @param {object} process - Process with id, name, and optionally short_code
+ * @returns {string} Filename like "P1__discover_pending_msas.json" or "0flNNmVLV5Dg__update_rules.json"
  */
 function buildFilename(process) {
   const snakeName = nameToSnakeCase(process.name || 'unnamed');
-  return `${process.id}__${snakeName}.json`;
+  const prefix = process.short_code || process.id;
+  return `${prefix}__${snakeName}.json`;
 }
 
 /**
- * Extract process ID from filename
+ * Extract process prefix (short_code or ID) from filename
+ * "P1__discover_pending_msas.json" -> "P1"
  * "0flNNmVLV5Dg__update_rules.json" -> "0flNNmVLV5Dg"
  * @param {string} filename
  * @returns {string}
  */
-function extractIdFromFilename(filename) {
+function extractPrefixFromFilename(filename) {
   const basename = filename.replace('.json', '');
   const parts = basename.split('__');
   return parts[0];
 }
 
 /**
- * Find process file by ID (handles name changes)
- * @param {string} id - Process ID
+ * Find process file by ID or short_code (handles name changes and prefix migration)
+ * @param {string} identifier - Process ID or short_code
  * @returns {string|null} Full filepath or null if not found
  */
-function findProcessFile(id) {
+function findProcessFile(identifier) {
   if (!fs.existsSync(PROCESSES_DIR)) {
     return null;
   }
 
   const files = fs.readdirSync(PROCESSES_DIR);
-  const match = files.find(f => f.startsWith(`${id}__`) && f.endsWith('.json'));
-  return match ? path.join(PROCESSES_DIR, match) : null;
+
+  // Try prefix match (works for both ID-prefixed and short_code-prefixed files)
+  const match = files.find(f => f.startsWith(`${identifier}__`) && f.endsWith('.json'));
+  if (match) return path.join(PROCESSES_DIR, match);
+
+  // Also scan file contents to find by ID when file is short_code-prefixed
+  for (const f of files) {
+    if (!f.endsWith('.json') || !f.includes('__')) continue;
+    try {
+      const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
+      if (content.id === identifier) {
+        return path.join(PROCESSES_DIR, f);
+      }
+    } catch {
+      // skip malformed files
+    }
+  }
+
+  return null;
 }
 
 /**
  * Save a process to local file
- * Removes old file if name changed
- * @param {object} process - Process definition with id and name
+ * Removes old file if name or prefix changed
+ * @param {object} process - Process definition with id, name, and optionally short_code
  * @returns {string} Saved filepath
  */
 export function saveProcess(process) {
   ensureProcessesDir();
 
-  // Remove old file if exists (in case name changed)
-  const existingFile = findProcessFile(process.id);
-  if (existingFile) {
-    fs.unlinkSync(existingFile);
+  // Remove old file if exists (handles both ID-prefix and short_code-prefix)
+  const existingById = findProcessFile(process.id);
+  if (existingById) {
+    fs.unlinkSync(existingById);
+  }
+  if (process.short_code) {
+    const existingByCode = findProcessFile(process.short_code);
+    if (existingByCode && existingByCode !== existingById) {
+      fs.unlinkSync(existingByCode);
+    }
   }
 
   const filename = buildFilename(process);
@@ -92,12 +119,12 @@ export function saveProcess(process) {
 }
 
 /**
- * Load a process from local file
- * @param {string} id - Process ID
+ * Load a process from local file by ID or short_code
+ * @param {string} identifier - Process ID or short_code
  * @returns {object|null} Process definition or null if not found
  */
-export function loadProcess(id) {
-  const filepath = findProcessFile(id);
+export function loadProcess(identifier) {
+  const filepath = findProcessFile(identifier);
 
   if (!filepath) {
     return null;
@@ -107,7 +134,7 @@ export function loadProcess(id) {
 }
 
 /**
- * List all locally saved process IDs (existing processes with ID prefix)
+ * List all locally saved process IDs (existing processes with __ separator)
  * @returns {string[]} Array of process IDs
  */
 export function listLocalProcesses() {
@@ -117,11 +144,19 @@ export function listLocalProcesses() {
 
   return fs.readdirSync(PROCESSES_DIR)
     .filter(f => f.endsWith('.json') && f.includes('__'))
-    .map(extractIdFromFilename);
+    .map(f => {
+      // Read the file to get the actual ID (prefix may be short_code)
+      try {
+        const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
+        return content.id;
+      } catch {
+        return extractPrefixFromFilename(f);
+      }
+    });
 }
 
 /**
- * List new process files (no ID prefix — filename has no __)
+ * List new process files (no __ separator — not yet pushed)
  * @returns {string[]} Array of filenames (e.g. ['nowapps_discover_pending_msas.json'])
  */
 export function listNewProcessFiles() {
@@ -150,9 +185,9 @@ export function loadProcessByFilename(filename) {
 
 /**
  * Write the server-assigned ID back into a new process file and rename it
- * to the standard {id}__name.json format.
+ * to the standard naming format.
  * @param {string} originalFilename - Original filename (e.g. 'nowapps_discover_pending_msas.json')
- * @param {object} process - Process with id and name (as returned by server)
+ * @param {object} process - Process with id, name, and optionally short_code (as returned by server)
  * @returns {string} New filepath
  */
 export function finalizeNewProcessFile(originalFilename, process) {

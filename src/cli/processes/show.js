@@ -4,7 +4,6 @@ export async function showProcessHandler(argv) {
   const { id } = argv;
 
   console.log(`Process: ${id}`);
-  console.log('');
 
   try {
     const response = await getProcess(id);

@@ -6,7 +6,7 @@ export async function pullProcessesHandler(argv) {
 
   // Require explicit id or --all
   if (!id && !all) {
-    console.error('Usage: fob processes pull <id>');
+    console.error('Usage: fob processes pull <id|short_code>');
     console.error('       fob processes pull --all');
     console.error('');
     console.error('Run "fob processes list" to see available processes');
