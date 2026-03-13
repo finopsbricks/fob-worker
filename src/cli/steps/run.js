@@ -1,6 +1,6 @@
 import path from 'path';
 import { loadConfig, ensureTempDir } from '../../utils/config.js';
-import { initTemplates, resolveConfig } from '@fob/lib-worker';
+import { loadLibWorker } from '../../utils/lib-worker-loader.js';
 import { loadSteps, getHandler } from '../../utils/steps-loader.js';
 import { saveStepOutput, loadAllStepOutputs } from '../../utils/output.js';
 import { loadProcess, getStepConfigFromProcess, findProcessesWithStep, listScenarios, loadScenario } from '../../utils/process-files.js';
@@ -11,6 +11,9 @@ export async function runStepHandler(argv) {
 
   const config = loadConfig();
   ensureTempDir(config.tempDir);
+
+  // Load lib-worker from the worker's node_modules (not the CLI's)
+  const { initTemplates, resolveConfig } = await loadLibWorker();
 
   // Initialize templates relative to the worker's src directory
   const workerSrcDir = path.dirname(config.stepsPath);

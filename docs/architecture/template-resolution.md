@@ -4,10 +4,14 @@ How `{{env.VAR}}` and `{{org/step.field}}` placeholders in step configs are reso
 
 ## Delegation to lib-worker
 
-The CLI does not implement template resolution itself. It delegates to `resolveConfig()` from `@fob/lib-worker`, ensuring the same resolution logic used in production workers applies locally.
+The CLI does not implement template resolution itself. It delegates to `resolveConfig()` and `initTemplates()` from `@fob/lib-worker`, ensuring the same resolution logic used in production workers applies locally.
+
+Both functions are loaded at runtime from the worker's `node_modules/@fob/lib-worker` via `loadLibWorker()` — see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md) for why.
 
 ```javascript
-import { initTemplates, resolveConfig } from '@fob/lib-worker';
+import { loadLibWorker } from '../../utils/lib-worker-loader.js';
+
+const { initTemplates, resolveConfig } = await loadLibWorker();
 
 // Call once before running any steps — sets the base URL for template discovery
 initTemplates('file:///path/to/worker/src/index.js');
@@ -26,6 +30,8 @@ const resolved = resolveConfig(rawConfig, step_outputs);
 ## initTemplates
 
 `initTemplates` receives the worker's entry file URL. The base URL is used internally by lib-worker for any path-relative template lookups. In the CLI, it's set to `file://` + the resolved path of the worker's `src/index.js`.
+
+Because the CLI loads `initTemplates` from the same `@fob/lib-worker` module instance that step handlers use for `renderTemplate`, the template directory state is correctly shared.
 
 ## Where Templates Appear
 

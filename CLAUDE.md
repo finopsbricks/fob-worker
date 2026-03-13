@@ -11,7 +11,7 @@ Guidance for Claude Code when working with this package.
 This package is part of the **FinOpsBricks** monorepo (`/Users/alex/ec2code/finopsbricks/`):
 
 - **`workers/*`** — Customer-specific workers. This CLI is used inside worker repos to debug steps locally.
-- **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this; CLI loads step handlers from it.
+- **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this. CLI loads it at runtime from the worker's `node_modules/` (not as its own dependency — see `docs/architecture/lib-worker-resolution.md`).
 - **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
 - **`apps/txn.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
 - **`accounting-process-standards/`** — Documentation for step design patterns.
@@ -57,6 +57,7 @@ src/
   utils/
     config.js             # Convention-based path resolution
     steps-loader.js       # Dynamic import of steps registry
+    lib-worker-loader.js  # Runtime loader for worker's @fob/lib-worker
     output.js             # Save/load step outputs
     orchestrator.js       # HTTP calls to orchestrator API
     process-files.js      # Read/write .orchestrator/ directory
@@ -85,7 +86,7 @@ Step configs support:
 - `{{env.VAR_NAME}}` — environment variable
 - `{{org/step_name.field}}` — field from another step's output
 
-Resolution is handled by `resolveConfig()` from `@fob/lib-worker`.
+Resolution is handled by `resolveConfig()` from `@fob/lib-worker`, loaded at runtime from the worker's `node_modules/`. The CLI does **not** declare `@fob/lib-worker` as its own dependency — see `docs/architecture/lib-worker-resolution.md`.
 
 ## Standards
 

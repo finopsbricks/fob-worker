@@ -31,6 +31,7 @@ Single file containing:
 |--------|---------------|
 | `config.js` | Resolve convention-based paths (stepsPath, tempDir) |
 | `steps-loader.js` | Dynamically import worker's step registry |
+| `lib-worker-loader.js` | Load `@fob/lib-worker` from the worker's `node_modules/` at runtime |
 | `output.js` | Read/write step outputs in `temp/` |
 | `orchestrator.js` | HTTP calls to the orchestrator API |
 | `process-files.js` | Read/write process and scenario files in `.orchestrator/` |
@@ -40,9 +41,14 @@ Single file containing:
 
 | Package | Used For |
 |---------|----------|
-| `@fob/lib-worker` | `initTemplates`, `resolveConfig`, `isStepDefinition`, `getStepHandler` |
 | `yargs` | Command parsing and shell completion |
 | `dotenv` | Load `.env` at startup |
+
+### Runtime dependency (not in package.json)
+
+| Package | Used For |
+|---------|----------|
+| `@fob/lib-worker` | `initTemplates`, `resolveConfig`, `isStepDefinition`, `getStepHandler` — loaded from the worker's `node_modules/` at runtime via `lib-worker-loader.js`. See [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md). |
 
 ## Command → Handler Mapping
 

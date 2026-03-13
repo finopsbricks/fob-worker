@@ -23,7 +23,7 @@ export default defineStep({
 });
 ```
 
-`getHandler()` calls `isStepDefinition()` before returning the handler. If the step is a plain function, it throws with a clear error message.
+`getHandler()` calls `isStepDefinition()` and `getStepHandler()` from the worker's `@fob/lib-worker` (loaded at runtime via `getLibWorker()` — see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md)). If the step is a plain function, it throws with a clear error message.
 
 ## Steps Registry Format
 

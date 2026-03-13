@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { isStepDefinition, getStepHandler } from '@fob/lib-worker';
+import { getLibWorker } from './lib-worker-loader.js';
 import { loadConfig } from './config.js';
 
 /**
@@ -87,6 +87,8 @@ export function getHandler(steps, slug) {
   if (!step) {
     return null;
   }
+
+  const { isStepDefinition, getStepHandler } = getLibWorker();
 
   if (!isStepDefinition(step)) {
     throw new Error(
