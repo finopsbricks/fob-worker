@@ -5,25 +5,30 @@ How the CLI modules fit together from entry point to execution.
 ## Entry Point
 
 ```
-bin/fob.js  →  src/cli.js  →  src/utils/*
+bin/fob.js  →  src/cli/index.js  →  src/cli/*/  →  src/utils/*
 ```
 
 `bin/fob.js` is minimal — it only imports and calls `run()`:
 
 ```javascript
-import { run } from '../src/cli.js';
+import { run } from '../src/cli/index.js';
 run(hideBin(process.argv));
 ```
 
-All command definitions and handler functions live in `src/cli.js`.
+## src/cli/
 
-## src/cli.js
+The yargs command tree, shell completion, and `withSeparator()` wrapper live in `src/cli/index.js`. Each handler function lives in a resource subdirectory:
 
-Single file containing:
-- yargs command tree (resources → actions)
-- One `*Handler()` function per command
-- `interactivePicker()` for the config selection UI
-- Shell completion logic
+```
+src/cli/
+  index.js              # Command tree and completion
+  steps/                # list.js, run.js
+  processes/            # list.js, show.js, edit.js, pull.js, push.js, update-step-metadata.js
+  items/                # edit.js
+  work-records/         # list.js, show.js, edit.js
+  tags/                 # list.js, create.js, edit.js, delete.js
+  shared/               # edit-tags.js (shared tag editing logic)
+```
 
 ## src/utils/
 
@@ -35,7 +40,7 @@ Single file containing:
 | `output.js` | Read/write step outputs in `temp/` |
 | `orchestrator.js` | HTTP calls to the orchestrator API |
 | `process-files.js` | Read/write process and scenario files in `.orchestrator/` |
-| `templates.js` | Deprecated — template resolution moved to `@fob/lib-worker` |
+| `tags.js` | Tag name↔ID resolution (ensureTag, resolveTagNames) |
 
 ## External Dependencies
 
@@ -52,19 +57,26 @@ Single file containing:
 
 ## Command → Handler Mapping
 
-| Command | Handler |
-|---------|---------|
-| `fob steps list` | `listStepsHandler()` |
-| `fob steps run` | `runStepHandler()` |
-| `fob processes list` | `listProcessesHandler()` |
-| `fob processes show` | `showProcessHandler()` |
-| `fob processes pull` | `pullProcessesHandler()` |
-| `fob processes push` | `pushProcessesHandler()` |
-| `fob processes update-step-metadata` | `updateStepMetadataHandler()` |
-| `fob work-records list` | `listWorkRecordsHandler()` |
-| `fob work-records show` | `showWorkRecordHandler()` |
-| `fob worker status` | `workerStatusHandler()` |
-| `fob config show` | `showConfigHandler()` |
+| Command | Handler | File |
+|---------|---------|------|
+| `fob steps list` | `listStepsHandler()` | `steps/list.js` |
+| `fob steps run` | `runStepHandler()` | `steps/run.js` |
+| `fob processes list` | `listProcessesHandler()` | `processes/list.js` |
+| `fob processes show` | `showProcessHandler()` | `processes/show.js` |
+| `fob processes edit` | `editProcessHandler()` | `processes/edit.js` |
+| `fob processes pull` | `pullProcessesHandler()` | `processes/pull.js` |
+| `fob processes push` | `pushProcessesHandler()` | `processes/push.js` |
+| `fob processes update-step-metadata` | `updateStepMetadataHandler()` | `processes/update-step-metadata.js` |
+| `fob items edit` | `editItemHandler()` | `items/edit.js` |
+| `fob work-records list` | `listWorkRecordsHandler()` | `work-records/list.js` |
+| `fob work-records show` | `showWorkRecordHandler()` | `work-records/show.js` |
+| `fob work-records edit` | `editWorkRecordHandler()` | `work-records/edit.js` |
+| `fob tags list` | `listTagsHandler()` | `tags/list.js` |
+| `fob tags create` | `createTagHandler()` | `tags/create.js` |
+| `fob tags edit` | `editTagHandler()` | `tags/edit.js` |
+| `fob tags delete` | `deleteTagHandler()` | `tags/delete.js` |
+| `fob worker status` | `workerStatusHandler()` | `worker/status.js` |
+| `fob config show` | `showConfigHandler()` | `config/show.js` |
 
 ## Related Notes
 

@@ -172,6 +172,7 @@ fob
 │       └── --empty                       Use empty config
 ├── processes
 │   ├── list                              List processes from orchestrator
+│   │   └── --tag <name>                  Filter by tag
 │   ├── show <id>                         Show process definition
 │   ├── edit <id>                         Modify a process
 │   │   ├── --add-tag <name>              Add tag (repeatable)
@@ -185,7 +186,8 @@ fob
 │   ├── list                              List recent work records
 │   │   ├── --limit <n>                   Max results
 │   │   ├── --status <s>                  Filter by status
-│   │   └── --process <id>               Filter by process
+│   │   ├── --process <id>               Filter by process
+│   │   └── --tag <name>                  Filter by tag
 │   ├── show <id>                         Show work record details
 │   └── edit <id>                         Modify a work record
 │       ├── --add-tag <name>              Add tag (repeatable)
@@ -198,6 +200,10 @@ fob
 │   ├── list                              List all tags in org
 │   ├── create <name>                     Create a tag
 │   │   ├── --color '#hex'                Tag color (default: #6b7280)
+│   │   └── --description '...'           Tag description
+│   ├── edit <id>                         Edit a tag
+│   │   ├── --name '...'                  New tag name
+│   │   ├── --color '#hex'                Tag color
 │   │   └── --description '...'           Tag description
 │   └── delete <id>                       Delete a tag
 ├── config

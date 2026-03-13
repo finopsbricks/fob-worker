@@ -297,7 +297,7 @@ At least one flag is required.
 
 ## Open Questions
 
-1. **Tag filtering on list commands?** — Should `fob processes list --tag high-priority` filter processes by tag? Useful but requires orchestrator support (query param on list endpoint). Defer to future version?
+_None — all questions resolved._
 
 ---
 

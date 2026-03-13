@@ -42,10 +42,13 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (steps, config, processes, work-records, worker)
+- `fob <tab>` → resources (steps, config, processes, items, work-records, tags, worker)
 - `fob steps <tab>` → actions (list, run)
 - `fob steps run <tab>` → step slugs
-- `fob processes <tab>` → actions (list, show, pull, push, update-step-metadata)
+- `fob processes <tab>` → actions (list, show, edit, pull, push, update-step-metadata)
+- `fob tags <tab>` → actions (list, create, edit, delete)
+- `fob items <tab>` → actions (edit)
+- `fob work-records <tab>` → actions (list, show, edit)
 
 ## Package Structure
 
@@ -53,7 +56,14 @@ Tab completion works for:
 bin/
   fob.js                  # CLI entry point
 src/
-  cli.js                  # yargs command definitions and handlers
+  cli/
+    index.js              # yargs command tree and shell completion
+    steps/                # list.js, run.js
+    processes/            # list.js, show.js, edit.js, pull.js, push.js, update-step-metadata.js
+    items/                # edit.js
+    work-records/         # list.js, show.js, edit.js
+    tags/                 # list.js, create.js, edit.js, delete.js
+    shared/               # edit-tags.js (shared tag editing logic)
   utils/
     config.js             # Convention-based path resolution
     steps-loader.js       # Dynamic import of steps registry
@@ -61,6 +71,7 @@ src/
     output.js             # Save/load step outputs
     orchestrator.js       # HTTP calls to orchestrator API
     process-files.js      # Read/write .orchestrator/ directory
+    tags.js               # Tag name↔ID resolution helpers
 docs/
   architecture/           # Internal design notes (for maintainers)
   usage/                  # How-to guides (for CLI consumers)

@@ -103,8 +103,11 @@ export async function checkConnection() {
 /**
  * List processes
  */
-export async function listProcesses() {
-  return apiRequest('/api/v1/processes');
+export async function listProcesses(options = {}) {
+  const params = new URLSearchParams();
+  if (options.tag) params.set('tag', options.tag);
+  const query = params.toString();
+  return apiRequest(`/api/v1/processes${query ? `?${query}` : ''}`);
 }
 
 /**
@@ -146,6 +149,7 @@ export async function listWorkRecords(options = {}) {
   if (options.limit) params.set('limit', options.limit);
   if (options.status) params.set('status', options.status);
   if (options.process) params.set('process', options.process);
+  if (options.tag) params.set('tag', options.tag);
 
   const query = params.toString();
   return apiRequest(`/api/v1/work-records${query ? `?${query}` : ''}`);

@@ -34,10 +34,11 @@ source <(fob completion)
 
 After restarting your shell:
 ```bash
-fob <tab>                  # → steps, config, processes, work-records, worker
+fob <tab>                  # → steps, config, processes, items, work-records, tags, worker
 fob steps <tab>            # → list, run
 fob steps run <tab>        # → step slugs from current worker
-fob processes <tab>        # → list, show, pull, push, update-step-metadata
+fob processes <tab>        # → list, show, edit, pull, push, update-step-metadata
+fob tags <tab>             # → list, create, edit, delete
 ```
 
 ## Running from a Worker Repo

@@ -97,20 +97,31 @@ export function run(args) {
     .command('processes', 'Work with orchestrator processes', (yargs) => {
       return yargs
         .usage('$0 processes <action> [options]')
-        .command('list', 'List processes from orchestrator', {}, withSeparator(listProcessesHandler))
+        .command(
+          'list',
+          'List processes from orchestrator',
+          (yargs) => {
+            return yargs
+              .option('tag', {
+                describe: 'Filter by tag name',
+                type: 'string',
+              });
+          },
+          withSeparator(listProcessesHandler)
+        )
         .command(
           'show [id]',
           'Show process definition',
           (yargs) => {
             return yargs.positional('id', {
-              describe: 'Process ID',
+              describe: 'Process ID or short_code',
               type: 'string',
             });
           },
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.id) {
-              console.error('Usage: fob processes show <id>');
+              console.error('Usage: fob processes show <id|short_code>');
               console.error('Run "fob processes list" to see available processes');
               process.exit(1);
             }
@@ -123,7 +134,7 @@ export function run(args) {
           (yargs) => {
             return yargs
               .positional('id', {
-                describe: 'Process ID',
+                describe: 'Process ID or short_code',
                 type: 'string',
               })
               .option('all', {
@@ -153,11 +164,15 @@ export function run(args) {
         )
         .command(
           'edit [id]',
-          'Edit process properties (e.g., tags)',
+          'Edit process properties (e.g., tags, short_code)',
           (yargs) => {
             return yargs
               .positional('id', {
-                describe: 'Process ID',
+                describe: 'Process ID or short_code',
+                type: 'string',
+              })
+              .option('short-code', {
+                describe: 'Set the process short_code (e.g., P1, P9b)',
                 type: 'string',
               })
               .option('add-tag', {
@@ -174,7 +189,7 @@ export function run(args) {
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.id) {
-              console.error('Usage: fob processes edit <id> --add-tag <name>');
+              console.error('Usage: fob processes edit <id|short_code> --short-code P1 --add-tag <name>');
               process.exit(1);
             }
             return withSeparator(editProcessHandler)(argv);
@@ -209,6 +224,10 @@ export function run(args) {
               .option('process', {
                 alias: 'p',
                 describe: 'Filter by process ID',
+                type: 'string',
+              })
+              .option('tag', {
+                describe: 'Filter by tag name',
                 type: 'string',
               });
           },
