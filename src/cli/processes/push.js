@@ -1,4 +1,4 @@
-import { createProcess, updateProcess, setEntityTags } from '../../utils/orchestrator.js';
+import { createProcess, updateProcess, setEntityTags, listProcesses } from '../../utils/orchestrator.js';
 import { resolveTagNames } from '../../utils/tags.js';
 import {
   loadProcess,
@@ -8,6 +8,54 @@ import {
   finalizeNewProcessFile,
   getProcessesDir,
 } from '../../utils/process-files.js';
+
+/** @type {Map<string, string>|null} Cached short_code → ID map */
+let _shortCodeMap = null;
+
+/**
+ * Build short_code → ID map from remote processes (fetched once per push session).
+ * Falls back to local files if the API call fails.
+ * @returns {Promise<Map<string, string>>}
+ */
+async function getShortCodeMap() {
+  if (_shortCodeMap) return _shortCodeMap;
+
+  _shortCodeMap = new Map();
+  try {
+    const response = await listProcesses();
+    for (const p of response.data || []) {
+      if (p.short_code) _shortCodeMap.set(p.short_code, p.id);
+    }
+  } catch {
+    // Fallback: build from local files
+    for (const id of listLocalProcesses()) {
+      const proc = loadProcess(id);
+      if (proc?.short_code) _shortCodeMap.set(proc.short_code, proc.id);
+    }
+  }
+  return _shortCodeMap;
+}
+
+/**
+ * Resolve short_codes in a dependencies array to database IDs.
+ * Values that are already IDs (not found as short_codes) pass through unchanged.
+ * @param {string[]} dependencies
+ * @returns {Promise<string[]>}
+ */
+async function resolveDependencies(dependencies) {
+  if (!dependencies || dependencies.length === 0) return dependencies;
+
+  const map = await getShortCodeMap();
+  const resolved = dependencies.map(dep => map.get(dep) || dep);
+
+  const changed = dependencies.filter((dep, i) => dep !== resolved[i]);
+  if (changed.length > 0) {
+    const mappings = changed.map(dep => `${dep} -> ${map.get(dep)}`);
+    console.log(`  Dependencies resolved: ${mappings.join(', ')}`);
+  }
+
+  return resolved;
+}
 
 /**
  * Sync tags for a process after push.
@@ -42,6 +90,7 @@ async function pushExistingProcess(processId) {
   }
 
   const { id: _, created_at, org, tags, ...updateData } = proc;
+  updateData.dependencies = await resolveDependencies(updateData.dependencies);
   await updateProcess(processId, updateData);
   console.log(`Updated: ${processId}`);
   await syncTags(processId, tags);
@@ -59,6 +108,7 @@ async function pushNewProcess(filename) {
 
   // Strip fields that shouldn't be sent (id shouldn't exist, but be safe)
   const { id: _, created_at, org, tags, ...createData } = proc;
+  createData.dependencies = await resolveDependencies(createData.dependencies);
 
   const response = await createProcess(createData);
   const created = response.data;
@@ -126,6 +176,7 @@ export async function pushProcessesHandler(argv) {
       for (const processId of existingIds) {
         const proc = loadProcess(processId);
         const { id: _, created_at, org, tags, ...updateData } = proc;
+        updateData.dependencies = await resolveDependencies(updateData.dependencies);
         await updateProcess(processId, updateData);
         console.log(`Updated: ${processId}`);
         await syncTags(processId, tags);
@@ -136,6 +187,7 @@ export async function pushProcessesHandler(argv) {
       for (const filename of newFiles) {
         const proc = loadProcessByFilename(filename);
         const { id: _, created_at, org, tags, ...createData } = proc;
+        createData.dependencies = await resolveDependencies(createData.dependencies);
         const response = await createProcess(createData);
         const created = response.data;
         const newPath = finalizeNewProcessFile(filename, created);
