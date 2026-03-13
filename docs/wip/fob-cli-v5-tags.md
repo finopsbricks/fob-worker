@@ -262,6 +262,39 @@ All three entity types (processes, items, work records) get the same `edit` flag
 
 ---
 
+## Remaining Work
+
+### `fob tags update` command
+
+The orchestrator already supports `PUT /api/v1/tags/:id` to update a tag's name, color, and description, but the CLI has no command to call it.
+
+**Command:**
+
+```bash
+fob tags update <id> [--name <name>] [--color '#hex'] [--description '...']
+```
+
+At least one flag is required.
+
+**Implementation:**
+
+1. [ ] Add `updateTag(id, data)` to `src/utils/orchestrator.js` — `PUT /api/v1/tags/:id`
+2. [ ] Create `src/cli/tags/update.js` — `updateTagHandler(argv)`
+   - Validate at least one of `--name`, `--color`, `--description` is provided
+   - Call `updateTag(id, { name, color, description })` (only non-undefined fields)
+   - Print updated tag
+3. [ ] Register `update` action in `src/cli/index.js` under `tags` resource
+   - Options: `--name` (string), `--color` (string), `--description` (string)
+   - Update shell completion for tags actions
+4. [ ] Add `tests/cli/tags/update.test.js`
+   - Success with single field
+   - Success with multiple fields
+   - Exit 1 when no flags provided
+   - Exit 1 on API error
+5. [ ] Update API docs: `content/docs/api/endpoints/tags/index.mdx` already references update — no changes needed
+
+---
+
 ## Open Questions
 
 1. **Tag filtering on list commands?** — Should `fob processes list --tag high-priority` filter processes by tag? Useful but requires orchestrator support (query param on list endpoint). Defer to future version?

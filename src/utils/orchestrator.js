@@ -196,6 +196,15 @@ export async function deleteTag(id) {
   }
 }
 
+/**
+ * Update an existing tag
+ * @param {string} id - Tag ID
+ * @param {Object} data - Fields to update (name, color, description)
+ */
+export async function updateTag(id, data) {
+  return apiRequest(`/api/v1/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
 // ============================================================================
 // Entity Tags
 // ============================================================================

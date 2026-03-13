@@ -21,6 +21,7 @@ import { runStepHandler } from './steps/run.js';
 import { listTagsHandler } from './tags/list.js';
 import { createTagHandler } from './tags/create.js';
 import { deleteTagHandler } from './tags/delete.js';
+import { editTagHandler } from './tags/edit.js';
 import { editProcessHandler } from './processes/edit.js';
 import { editItemHandler } from './items/edit.js';
 import { editWorkRecordHandler } from './work-records/edit.js';
@@ -329,6 +330,38 @@ export function run(args) {
           }
         )
         .command(
+          'edit [id]',
+          'Edit a tag',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Tag ID',
+                type: 'string',
+              })
+              .option('name', {
+                describe: 'New tag name',
+                type: 'string',
+              })
+              .option('color', {
+                describe: "Hex color (e.g., '#ef4444')",
+                type: 'string',
+              })
+              .option('description', {
+                describe: 'Tag description',
+                type: 'string',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob tags edit <id> [--name "..."] [--color "#hex"] [--description "..."]');
+              console.error('Run "fob tags list" to see available tags');
+              process.exit(1);
+            }
+            return withSeparator(editTagHandler)(argv);
+          }
+        )
+        .command(
           'delete [id]',
           'Delete a tag',
           (yargs) => {
@@ -347,7 +380,7 @@ export function run(args) {
             return withSeparator(deleteTagHandler)(argv);
           }
         )
-        .demandCommand(1, 'Specify an action: list, create, delete');
+        .demandCommand(1, 'Specify an action: list, create, edit, delete');
     })
     .command('worker', 'Worker management', (yargs) => {
       return yargs
@@ -416,7 +449,7 @@ export function run(args) {
       // Tags action level completions (fob tags <tab>)
       if (args[0] === 'tags') {
         if (args.length === 1) {
-          return ['list', 'create', 'delete'];
+          return ['list', 'create', 'edit', 'delete'];
         }
         return [];
       }
