@@ -1,7 +1,7 @@
 import { listWorkRecords } from '../../utils/orchestrator.js';
 
 export async function listWorkRecordsHandler(argv) {
-  const { limit, status, process: processId, tag } = argv;
+  const { limit, status, process: processId, tag, json } = argv;
 
   const filters = [];
   if (limit) filters.push(`limit=${limit}`);
@@ -19,6 +19,11 @@ export async function listWorkRecordsHandler(argv) {
 
     if (records.length === 0) {
       console.log('No work records found');
+      return;
+    }
+
+    if (json) {
+      console.log(JSON.stringify(records, null, 2));
       return;
     }
 

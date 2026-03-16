@@ -10,6 +10,7 @@ import 'dotenv/config';
 import { showConfigHandler } from './config/show.js';
 import { listProcessesHandler } from './processes/list.js';
 import { showProcessHandler } from './processes/show.js';
+import { runProcessHandler } from './processes/run.js';
 import { pullProcessesHandler } from './processes/pull.js';
 import { pushProcessesHandler } from './processes/push.js';
 import { updateStepMetadataHandler } from './processes/update-step-metadata.js';
@@ -23,8 +24,11 @@ import { createTagHandler } from './tags/create.js';
 import { deleteTagHandler } from './tags/delete.js';
 import { editTagHandler } from './tags/edit.js';
 import { editProcessHandler } from './processes/edit.js';
+import { listItemsHandler } from './items/list.js';
+import { showItemHandler } from './items/show.js';
 import { editItemHandler } from './items/edit.js';
 import { editWorkRecordHandler } from './work-records/edit.js';
+import { showSupportingDocHandler } from './supporting-docs/show.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
 function withSeparator(handler) {
@@ -72,6 +76,11 @@ export function run(args) {
                 alias: 'e',
                 describe: 'Use empty config (no picker)',
                 type: 'boolean',
+              })
+              .option('item', {
+                alias: 'i',
+                describe: 'Fetch item from orchestrator to populate item_snapshot',
+                type: 'string',
               });
           },
           (argv) => {
@@ -105,6 +114,10 @@ export function run(args) {
               .option('tag', {
                 describe: 'Filter by tag name',
                 type: 'string',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
               });
           },
           withSeparator(listProcessesHandler)
@@ -113,10 +126,27 @@ export function run(args) {
           'show [id]',
           'Show process definition',
           (yargs) => {
-            return yargs.positional('id', {
-              describe: 'Process ID or short_code',
-              type: 'string',
-            });
+            return yargs
+              .positional('id', {
+                describe: 'Process ID or short_code',
+                type: 'string',
+              })
+              .option('work-records', {
+                describe: 'Include recent work records',
+                type: 'boolean',
+              })
+              .option('items', {
+                describe: 'Include linked items',
+                type: 'boolean',
+              })
+              .option('all', {
+                describe: 'Include all linked entities',
+                type: 'boolean',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
           },
           (argv) => {
             if (argv.getYargsCompletions) return;
@@ -126,6 +156,29 @@ export function run(args) {
               process.exit(1);
             }
             return withSeparator(showProcessHandler)(argv);
+          }
+        )
+        .command(
+          'run [id]',
+          'Trigger a remote process execution',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Process ID or short_code',
+                type: 'string',
+              })
+              .option('item', {
+                describe: 'Item ID to run the process on',
+                type: 'string',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob processes run <id|short_code> --item <item-id>');
+              process.exit(1);
+            }
+            return withSeparator(runProcessHandler)(argv);
           }
         )
         .command(
@@ -201,7 +254,7 @@ export function run(args) {
           {},
           withSeparator(updateStepMetadataHandler)
         )
-        .demandCommand(1, 'Specify an action: list, show, pull, push, edit, update-step-metadata');
+        .demandCommand(1, 'Specify an action: list, show, run, pull, push, edit, update-step-metadata');
     })
     .command('work-records', 'Work with orchestrator work records', (yargs) => {
       return yargs
@@ -229,6 +282,10 @@ export function run(args) {
               .option('tag', {
                 describe: 'Filter by tag name',
                 type: 'string',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
               });
           },
           withSeparator(listWorkRecordsHandler)
@@ -237,10 +294,35 @@ export function run(args) {
           'show [id]',
           'Show work record details',
           (yargs) => {
-            return yargs.positional('id', {
-              describe: 'Work record ID',
-              type: 'string',
-            });
+            return yargs
+              .positional('id', {
+                describe: 'Work record ID',
+                type: 'string',
+              })
+              .option('report', {
+                describe: 'Include report',
+                type: 'boolean',
+              })
+              .option('supporting-docs', {
+                describe: 'List supporting documents',
+                type: 'boolean',
+              })
+              .option('steps', {
+                describe: 'Include step outputs',
+                type: 'boolean',
+              })
+              .option('activity', {
+                describe: 'Include activity log',
+                type: 'boolean',
+              })
+              .option('all', {
+                describe: 'Include all sections',
+                type: 'boolean',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
           },
           (argv) => {
             if (argv.getYargsCompletions) return;
@@ -287,6 +369,68 @@ export function run(args) {
       return yargs
         .usage('$0 items <action> [options]')
         .command(
+          'list',
+          'List items',
+          (yargs) => {
+            return yargs
+              .option('type', {
+                alias: 't',
+                describe: 'Filter by item type (e.g., msa_file, invoice)',
+                type: 'string',
+              })
+              .option('status', {
+                alias: 's',
+                describe: 'Filter by status',
+                type: 'string',
+              })
+              .option('tag', {
+                describe: 'Filter by tag name',
+                type: 'string',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
+          },
+          withSeparator(listItemsHandler)
+        )
+        .command(
+          'show [id]',
+          'Show item details',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Item ID',
+                type: 'string',
+              })
+              .option('processes', {
+                describe: 'Include configured processes',
+                type: 'boolean',
+              })
+              .option('work-records', {
+                describe: 'Include execution history',
+                type: 'boolean',
+              })
+              .option('all', {
+                describe: 'Include all linked entities',
+                type: 'boolean',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob items show <id>');
+              console.error('Run "fob items list" to see available items');
+              process.exit(1);
+            }
+            return withSeparator(showItemHandler)(argv);
+          }
+        )
+        .command(
           'edit [id]',
           'Edit item properties (e.g., tags)',
           (yargs) => {
@@ -315,7 +459,39 @@ export function run(args) {
             return withSeparator(editItemHandler)(argv);
           }
         )
-        .demandCommand(1, 'Specify an action: edit');
+        .demandCommand(1, 'Specify an action: list, show, edit');
+    })
+    .command('supporting-docs', 'Work with supporting documents', (yargs) => {
+      return yargs
+        .usage('$0 supporting-docs <action> [options]')
+        .command(
+          'show [id]',
+          'Show supporting document content',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Supporting document ID',
+                type: 'string',
+              })
+              .option('save', {
+                describe: 'Download binary file to this path',
+                type: 'string',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob supporting-docs show <id>');
+              process.exit(1);
+            }
+            return withSeparator(showSupportingDocHandler)(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: show');
     })
     .command('tags', 'Manage organization tags', (yargs) => {
       return yargs
@@ -413,7 +589,7 @@ export function run(args) {
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['steps', 'config', 'processes', 'items', 'work-records', 'tags', 'worker'];
+        return ['steps', 'config', 'processes', 'items', 'work-records', 'tags', 'supporting-docs', 'worker'];
       }
 
       // Config action level completions (fob config <tab>)
@@ -444,7 +620,7 @@ export function run(args) {
       // Processes action level completions (fob processes <tab>)
       if (args[0] === 'processes') {
         if (args.length === 1) {
-          return ['list', 'show', 'pull', 'push', 'edit', 'update-step-metadata'];
+          return ['list', 'show', 'run', 'pull', 'push', 'edit', 'update-step-metadata'];
         }
         return [];
       }
@@ -460,7 +636,15 @@ export function run(args) {
       // Items action level completions (fob items <tab>)
       if (args[0] === 'items') {
         if (args.length === 1) {
-          return ['edit'];
+          return ['list', 'show', 'edit'];
+        }
+        return [];
+      }
+
+      // Supporting-docs action level completions (fob supporting-docs <tab>)
+      if (args[0] === 'supporting-docs') {
+        if (args.length === 1) {
+          return ['show'];
         }
         return [];
       }
@@ -483,7 +667,7 @@ export function run(args) {
 
       return [];
     })
-    .demandCommand(1, 'Specify a resource: steps, config, processes, items, work-records, tags, worker')
+    .demandCommand(1, 'Specify a resource: steps, config, processes, items, work-records, supporting-docs, tags, worker')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')

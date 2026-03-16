@@ -157,9 +157,25 @@ export async function listWorkRecords(options = {}) {
 
 /**
  * Get work record by ID
+ * @param {string} id - Work record ID
+ * @param {object} [options]
+ * @param {string[]} [options.include] - Optional fields to include: 'report', 'step_outputs', 'supporting_docs'
  */
-export async function getWorkRecord(id) {
-  return apiRequest(`/api/v1/work-records/${id}`);
+export async function getWorkRecord(id, options = {}) {
+  const params = new URLSearchParams();
+  if (options.include && options.include.length > 0) {
+    params.set('include', options.include.join(','));
+  }
+  const query = params.toString();
+  return apiRequest(`/api/v1/work-records/${id}${query ? `?${query}` : ''}`);
+}
+
+/**
+ * Get activity events for a work record
+ * @param {string} id - Work record ID
+ */
+export async function getWorkRecordActivity(id) {
+  return apiRequest(`/api/v1/work-records/${id}/activity`);
 }
 
 // ============================================================================
@@ -207,6 +223,97 @@ export async function deleteTag(id) {
  */
 export async function updateTag(id, data) {
   return apiRequest(`/api/v1/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+// ============================================================================
+// Items
+// ============================================================================
+
+/**
+ * List items
+ */
+export async function listItems(options = {}) {
+  const params = new URLSearchParams();
+  if (options.type) params.set('type', options.type);
+  if (options.status) params.set('status', options.status);
+  if (options.tag) params.set('tag', options.tag);
+  if (options.limit) params.set('limit', options.limit);
+  const query = params.toString();
+  return apiRequest(`/api/v1/items${query ? `?${query}` : ''}`);
+}
+
+/**
+ * Get item by ID
+ */
+export async function getItem(id) {
+  return apiRequest(`/api/v1/items/${id}`);
+}
+
+// ============================================================================
+// Process Execution
+// ============================================================================
+
+/**
+ * Trigger a process run
+ * @param {string} processId - Process ID or short_code
+ * @param {string} [itemId] - Item ID (required if process has applies_to)
+ */
+export async function runProcess(processId, itemId) {
+  const body = {};
+  if (itemId) body.item_id = itemId;
+  return apiRequest(`/api/v1/processes/${processId}/run`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+// ============================================================================
+// Cross-Entity (ItemProcesses join)
+// ============================================================================
+
+/**
+ * Get items linked to a process
+ */
+export async function getProcessItems(processId) {
+  return apiRequest(`/api/v1/processes/${processId}/items`);
+}
+
+/**
+ * Get processes linked to an item
+ */
+export async function getItemProcesses(itemId) {
+  return apiRequest(`/api/v1/items/${itemId}/processes`);
+}
+
+// ============================================================================
+// Supporting Documents
+// ============================================================================
+
+/**
+ * Get a supporting document by ID (metadata + content for markdown)
+ */
+export async function getSupportingDoc(id) {
+  return apiRequest(`/api/v1/supporting-docs/${id}`);
+}
+
+/**
+ * Download a supporting document's binary content to a file
+ * @param {string} id - Document ID
+ * @param {string} filePath - Local path to save the file
+ */
+export async function downloadSupportingDoc(id, filePath) {
+  const { url, headers } = getApiConfig();
+  const response = await fetch(`${url}/api/v1/supporting-docs/${id}/download`, { headers });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Orchestrator API error (${response.status}): ${text}`);
+  }
+
+  const { writeFile } = await import('fs/promises');
+  const buffer = Buffer.from(await response.arrayBuffer());
+  await writeFile(filePath, buffer);
+  return filePath;
 }
 
 // ============================================================================

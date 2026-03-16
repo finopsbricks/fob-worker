@@ -1,6 +1,6 @@
 # FOB CLI v5: Tag Management
 
-**Status:** WIP
+**Status:** Complete
 **Created:** 2026-03-11
 
 **Previous:** [fob-cli-v4-process-pull-push.md](fob-cli-v4-process-pull-push.md) (complete)

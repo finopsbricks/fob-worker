@@ -42,13 +42,14 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (steps, config, processes, items, work-records, tags, worker)
+- `fob <tab>` → resources (steps, config, processes, items, work-records, supporting-docs, tags, worker)
 - `fob steps <tab>` → actions (list, run)
 - `fob steps run <tab>` → step slugs
-- `fob processes <tab>` → actions (list, show, edit, pull, push, update-step-metadata)
-- `fob tags <tab>` → actions (list, create, edit, delete)
-- `fob items <tab>` → actions (edit)
+- `fob processes <tab>` → actions (list, show, run, edit, pull, push, update-step-metadata)
+- `fob items <tab>` → actions (list, show, edit)
 - `fob work-records <tab>` → actions (list, show, edit)
+- `fob supporting-docs <tab>` → actions (show)
+- `fob tags <tab>` → actions (list, create, edit, delete)
 
 ## Package Structure
 
@@ -59,9 +60,10 @@ src/
   cli/
     index.js              # yargs command tree and shell completion
     steps/                # list.js, run.js
-    processes/            # list.js, show.js, edit.js, pull.js, push.js, update-step-metadata.js
-    items/                # edit.js
+    processes/            # list.js, show.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
+    items/                # list.js, show.js, edit.js
     work-records/         # list.js, show.js, edit.js
+    supporting-docs/      # show.js
     tags/                 # list.js, create.js, edit.js, delete.js
     shared/               # edit-tags.js (shared tag editing logic)
   utils/
@@ -70,6 +72,7 @@ src/
     lib-worker-loader.js  # Runtime loader for worker's @fob/lib-worker
     output.js             # Save/load step outputs
     orchestrator.js       # HTTP calls to orchestrator API
+    format.js             # Shared formatting helpers for CLI output
     process-files.js      # Read/write .orchestrator/ directory
     tags.js               # Tag name↔ID resolution helpers
 docs/

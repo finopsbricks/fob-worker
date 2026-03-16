@@ -1,7 +1,7 @@
 import { listProcesses } from '../../utils/orchestrator.js';
 
 export async function listProcessesHandler(argv) {
-  const { tag } = argv || {};
+  const { tag, json } = argv || {};
 
   if (tag) {
     console.log(`Filter: tag=${tag}`);
@@ -14,6 +14,11 @@ export async function listProcessesHandler(argv) {
 
     if (processes.length === 0) {
       console.log('No processes found');
+      return;
+    }
+
+    if (json) {
+      console.log(JSON.stringify(processes, null, 2));
       return;
     }
 

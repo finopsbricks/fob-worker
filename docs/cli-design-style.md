@@ -19,6 +19,7 @@ fob steps ...
 fob processes ...
 fob work-records ...
 fob items ...
+fob supporting-docs ...
 fob tags ...
 fob config ...
 fob worker ...
@@ -39,7 +40,7 @@ Actions are verbs that operate on a resource. Standard actions:
 | `delete` | Remove an instance | `fob tags delete <id>` |
 | `pull` | Download from orchestrator to local | `fob processes pull <id>` |
 | `push` | Upload from local to orchestrator | `fob processes push <id>` |
-| `run` | Execute locally | `fob steps run <slug>` |
+| `run` | Execute (locally or remote) | `fob steps run <slug>`, `fob processes run <id>` |
 
 Not every resource needs every action. Only add what's useful.
 
@@ -169,12 +170,21 @@ fob
 │   └── run <slug>                        Run a step locally
 │       ├── --process <id>                Use config from process
 │       ├── --scenario <name>             Use config from scenario file
-│       └── --empty                       Use empty config
+│       ├── --empty                       Use empty config
+│       └── --item <id>                   Fetch item from orchestrator for item_snapshot
 ├── processes
 │   ├── list                              List processes from orchestrator
-│   │   └── --tag <name>                  Filter by tag
-│   ├── show <id>                         Show process definition
+│   │   ├── --tag <name>                  Filter by tag
+│   │   └── --json                        Output raw JSON
+│   ├── show <id>                         Show formatted process details
+│   │   ├── --work-records                Include recent work records
+│   │   ├── --items                       Include linked items
+│   │   ├── --all                         Include all linked entities
+│   │   └── --json                        Output raw JSON
+│   ├── run <id>                          Trigger a remote process execution
+│   │   └── --item <id>                   Item to run the process on
 │   ├── edit <id>                         Modify a process
+│   │   ├── --short-code <code>           Set short code
 │   │   ├── --add-tag <name>              Add tag (repeatable)
 │   │   └── --remove-tag <name>           Remove tag (repeatable)
 │   ├── pull <id>                         Pull process to local file
@@ -186,16 +196,37 @@ fob
 │   ├── list                              List recent work records
 │   │   ├── --limit <n>                   Max results
 │   │   ├── --status <s>                  Filter by status
-│   │   ├── --process <id>               Filter by process
-│   │   └── --tag <name>                  Filter by tag
-│   ├── show <id>                         Show work record details
+│   │   ├── --process <id>                Filter by process
+│   │   ├── --tag <name>                  Filter by tag
+│   │   └── --json                        Output raw JSON
+│   ├── show <id>                         Show formatted work record details
+│   │   ├── --report                      Include report
+│   │   ├── --steps                       Include step outputs
+│   │   ├── --supporting-docs             List supporting documents
+│   │   ├── --activity                    Include activity log
+│   │   ├── --all                         Include all sections
+│   │   └── --json                        Output raw JSON
 │   └── edit <id>                         Modify a work record
 │       ├── --add-tag <name>              Add tag (repeatable)
 │       └── --remove-tag <name>           Remove tag (repeatable)
 ├── items
+│   ├── list                              List items
+│   │   ├── --type <type>                 Filter by item type
+│   │   ├── --status <s>                  Filter by status
+│   │   ├── --tag <name>                  Filter by tag
+│   │   └── --json                        Output raw JSON
+│   ├── show <id>                         Show formatted item details
+│   │   ├── --processes                   Include configured processes
+│   │   ├── --work-records                Include execution history
+│   │   ├── --all                         Include all linked entities
+│   │   └── --json                        Output raw JSON
 │   └── edit <id>                         Modify an item
 │       ├── --add-tag <name>              Add tag (repeatable)
 │       └── --remove-tag <name>           Remove tag (repeatable)
+├── supporting-docs
+│   └── show <id>                         Show supporting document content
+│       ├── --save <path>                 Download binary file to path
+│       └── --json                        Output raw JSON
 ├── tags
 │   ├── list                              List all tags in org
 │   ├── create <name>                     Create a tag
