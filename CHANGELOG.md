@@ -15,6 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.0] - 2026-03-17
+
+### Added
+- Tag management commands: `fob tags list`, `fob tags create`, `fob tags edit`, `fob tags delete`
+- Tag filtering on `fob processes list` and `fob work-records list` via `--tag` option
+- Shared tag editing for `fob items edit` and `fob work-records edit`
+- `fob processes edit` command
+- `fob items edit` and `fob work-records edit` commands
+- Process `short_code` support — use short codes instead of full IDs throughout CLI
+- Dependency `short_code` resolution on `fob processes push` and `fob processes pull`
+- `fob processes push` now supports create-or-update (creates process if it doesn't exist)
+- `src/utils/lib-worker-loader.js` — runtime resolution of `@fob/lib-worker` from worker's `node_modules/`
+- `src/utils/tags.js` — tag name/ID resolution helpers
+- Tests for all new commands and utilities
+
+### Changed
+- `@fob/lib-worker` removed as direct CLI dependency, now resolved at runtime from worker's `node_modules/` to avoid dual-module-instance bug
+- Docs restructured: new `cli-design-style.md`, updated README, reorganized usage docs
+
 ## [0.5.1] - 2026-03-02
 
 ### Changed
