@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.0] - 2026-03-20
+
+### Added
+- `fob work-records cancel` command — cancel work records from the CLI
+- Config-based step discovery — steps are now discovered from config files instead of requiring a manual `index.js` registry
+
+### Changed
+- `fob steps list` now sorted by folder then filename
+- `fob steps list` uses `_file` from step discovery for folder/file columns
+- Updated txn app references to "statements" in docs
+
 ## [0.6.0] - 2026-03-17
 
 ### Added
