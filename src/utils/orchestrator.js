@@ -178,6 +178,16 @@ export async function getWorkRecordActivity(id) {
   return apiRequest(`/api/v1/work-records/${id}/activity`);
 }
 
+/**
+ * Cancel a running or pending work record
+ * @param {string} id - Work record ID
+ */
+export async function cancelWorkRecord(id) {
+  return apiRequest(`/api/v1/work-records/${id}/cancel`, {
+    method: 'POST',
+  });
+}
+
 // ============================================================================
 // Tags
 // ============================================================================

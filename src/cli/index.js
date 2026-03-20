@@ -28,6 +28,7 @@ import { listItemsHandler } from './items/list.js';
 import { showItemHandler } from './items/show.js';
 import { editItemHandler } from './items/edit.js';
 import { editWorkRecordHandler } from './work-records/edit.js';
+import { cancelWorkRecordHandler } from './work-records/cancel.js';
 import { showSupportingDocHandler } from './supporting-docs/show.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
@@ -363,7 +364,31 @@ export function run(args) {
             return withSeparator(editWorkRecordHandler)(argv);
           }
         )
-        .demandCommand(1, 'Specify an action: list, show, edit');
+        .command(
+          'cancel [id]',
+          'Cancel a running work record',
+          (yargs) => {
+            return yargs
+              .positional('id', {
+                describe: 'Work record ID',
+                type: 'string',
+              })
+              .option('json', {
+                describe: 'Output raw JSON',
+                type: 'boolean',
+              });
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.id) {
+              console.error('Usage: fob work-records cancel <id>');
+              console.error('Run "fob work-records list" to see recent records');
+              process.exit(1);
+            }
+            return withSeparator(cancelWorkRecordHandler)(argv);
+          }
+        )
+        .demandCommand(1, 'Specify an action: list, show, edit, cancel');
     })
     .command('items', 'Work with orchestrator items', (yargs) => {
       return yargs
@@ -628,7 +653,7 @@ export function run(args) {
       // Work-records action level completions (fob work-records <tab>)
       if (args[0] === 'work-records') {
         if (args.length === 1) {
-          return ['list', 'show', 'edit'];
+          return ['list', 'show', 'edit', 'cancel'];
         }
         return [];
       }
