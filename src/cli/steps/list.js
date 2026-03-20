@@ -33,7 +33,7 @@ export async function listStepsHandler() {
   console.log('-'.repeat(slugWidth + folderWidth + 30));
 
   // Rows (sorted)
-  for (const { slug, folder, file } of parsed.sort((a, b) => a.slug.localeCompare(b.slug))) {
+  for (const { slug, folder, file } of parsed.sort((a, b) => a.folder.localeCompare(b.folder) || a.file.localeCompare(b.file))) {
     console.log(`${slug.padEnd(slugWidth)}  ${folder.padEnd(folderWidth)}  ${file}`);
   }
 
