@@ -13,7 +13,7 @@ This package is part of the **FinOpsBricks** monorepo (`/Users/alex/ec2code/fino
 - **`workers/*`** — Customer-specific workers. This CLI is used inside worker repos to debug steps locally.
 - **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this. CLI loads it at runtime from the worker's `node_modules/` (not as its own dependency — see `docs/architecture/lib-worker-resolution.md`).
 - **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
-- **`apps/txn.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
+- **`apps/statements.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
 - **`accounting-process-standards/`** — Documentation for step design patterns.
 
 Built with **yargs** for command parsing and shell completion.
@@ -47,7 +47,7 @@ Tab completion works for:
 - `fob steps run <tab>` → step slugs
 - `fob processes <tab>` → actions (list, show, run, edit, pull, push, update-step-metadata)
 - `fob items <tab>` → actions (list, show, edit)
-- `fob work-records <tab>` → actions (list, show, edit)
+- `fob work-records <tab>` → actions (list, show, edit, cancel)
 - `fob supporting-docs <tab>` → actions (show)
 - `fob tags <tab>` → actions (list, create, edit, delete)
 
@@ -62,7 +62,7 @@ src/
     steps/                # list.js, run.js
     processes/            # list.js, show.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
     items/                # list.js, show.js, edit.js
-    work-records/         # list.js, show.js, edit.js
+    work-records/         # list.js, show.js, edit.js, cancel.js
     supporting-docs/      # show.js
     tags/                 # list.js, create.js, edit.js, delete.js
     shared/               # edit-tags.js (shared tag editing logic)
