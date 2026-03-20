@@ -1,10 +1,10 @@
 import path from 'path';
 import { loadConfig } from '../../utils/config.js';
-import { loadStepsWithFiles } from '../../utils/steps-loader.js';
+import { loadSteps } from '../../utils/steps-loader.js';
 
 export async function listStepsHandler() {
   const config = loadConfig();
-  const { steps, files } = await loadStepsWithFiles(config.stepsDir);
+  const steps = await loadSteps(config.stepsDir);
   const slugs = Object.keys(steps);
 
   console.log(`Source: ${path.relative(process.cwd(), config.stepsDir)}/`);
@@ -15,10 +15,10 @@ export async function listStepsHandler() {
     return;
   }
 
-  // Parse folder and file from paths
+  // Parse folder and file from _file path set by discoverSteps
   const parsed = slugs.map(slug => {
-    const filePath = files[slug] || '';
-    const parts = filePath.replace(/^\.\//, '').split('/');
+    const filePath = steps[slug]._file || '';
+    const parts = filePath.split('/');
     const file = parts.pop() || '-';
     const folder = parts.join('/') || '-';
     return { slug, folder, file };
