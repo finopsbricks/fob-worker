@@ -15,7 +15,7 @@ import path from 'path';
 export function loadConfig() {
   const cwd = process.cwd();
   return {
-    stepsPath: path.resolve(cwd, './src/steps/index.js'),
+    stepsDir: path.resolve(cwd, './src/steps'),
     tempDir: path.resolve(cwd, './temp'),
   };
 }

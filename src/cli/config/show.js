@@ -6,7 +6,7 @@ export function showConfigHandler() {
   const envVars = getRelevantEnvVars();
 
   console.log('\nPaths:');
-  console.log(`stepsPath  ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`stepsDir   ${path.relative(process.cwd(), config.stepsDir)}/`);
   console.log(`tempDir    ${path.relative(process.cwd(), config.tempDir)}`);
 
   const envEntries = Object.entries(envVars).filter(([, v]) => v !== undefined);

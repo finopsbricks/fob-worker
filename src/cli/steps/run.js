@@ -17,11 +17,11 @@ export async function runStepHandler(argv) {
   const { initTemplates, resolveConfig } = await loadLibWorker();
 
   // Initialize templates relative to the worker's src directory
-  const workerSrcDir = path.dirname(config.stepsPath);
+  const workerSrcDir = path.dirname(config.stepsDir);
   const workerEntryUrl = 'file://' + path.resolve(workerSrcDir, 'index.js');
   initTemplates(workerEntryUrl);
 
-  const steps = await loadSteps(config.stepsPath);
+  const steps = await loadSteps(config.stepsDir);
   const handler = getHandler(steps, slug);
 
   if (!handler) {
@@ -141,7 +141,7 @@ export async function runStepHandler(argv) {
   console.log(`Step: ${slug}`);
   console.log(`Config: ${configSource}`);
   if (itemSnapshot) console.log(`Item: ${itemSnapshot.name || itemId} (${itemId})`);
-  console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`Steps: ${path.relative(process.cwd(), config.stepsDir)}/`);
   console.log(`Temp: ${path.relative(process.cwd(), config.tempDir)}`);
 
   const step_output_slugs = Object.keys(step_outputs);

@@ -6,13 +6,13 @@ import { listLocalProcesses, loadProcess, saveProcess, getProcessesDir } from '.
 export async function updateStepMetadataHandler() {
   const config = loadConfig();
 
-  console.log(`Steps: ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`Steps: ${path.relative(process.cwd(), config.stepsDir)}/`);
   console.log(`Processes: ${getProcessesDir()}/`);
   console.log('');
 
   try {
     // Load step definitions
-    const steps = await loadSteps(config.stepsPath);
+    const steps = await loadSteps(config.stepsDir);
     const stepMetadata = {};
 
     for (const [slug, step] of Object.entries(steps)) {

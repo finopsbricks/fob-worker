@@ -4,10 +4,10 @@ import { loadStepsWithFiles } from '../../utils/steps-loader.js';
 
 export async function listStepsHandler() {
   const config = loadConfig();
-  const { steps, files } = await loadStepsWithFiles(config.stepsPath);
+  const { steps, files } = await loadStepsWithFiles(config.stepsDir);
   const slugs = Object.keys(steps);
 
-  console.log(`Source: ${path.relative(process.cwd(), config.stepsPath)}`);
+  console.log(`Source: ${path.relative(process.cwd(), config.stepsDir)}/`);
   console.log('');
 
   if (slugs.length === 0) {
