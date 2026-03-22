@@ -47,24 +47,11 @@ function buildFilename(process) {
 }
 
 /**
- * Extract process prefix (short_code or ID) from filename
- * "P1__discover_pending_msas.json" -> "P1"
- * "0flNNmVLV5Dg__update_rules.json" -> "0flNNmVLV5Dg"
- * @param {string} filename
- * @returns {string}
- */
-function extractPrefixFromFilename(filename) {
-  const basename = filename.replace('.json', '');
-  const parts = basename.split('__');
-  return parts[0];
-}
-
-/**
  * Find process file by ID or short_code (handles name changes and prefix migration)
  * @param {string} identifier - Process ID or short_code
  * @returns {string|null} Full filepath or null if not found
  */
-function findProcessFile(identifier) {
+export function findProcessFile(identifier) {
   if (!fs.existsSync(PROCESSES_DIR)) {
     return null;
   }
@@ -77,7 +64,7 @@ function findProcessFile(identifier) {
 
   // Also scan file contents to find by ID when file is short_code-prefixed
   for (const f of files) {
-    if (!f.endsWith('.json') || !f.includes('__')) continue;
+    if (!f.endsWith('.json')) continue;
     try {
       const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
       if (content.id === identifier) {
@@ -134,7 +121,19 @@ export function loadProcess(identifier) {
 }
 
 /**
- * List all locally saved process IDs (existing processes with __ separator)
+ * List all process JSON filenames in the processes directory
+ * @returns {string[]} Array of filenames (e.g. ['AP1__document_intake.json', 'P1__discover_pending_msas.json'])
+ */
+export function listAllProcessFiles() {
+  if (!fs.existsSync(PROCESSES_DIR)) {
+    return [];
+  }
+
+  return fs.readdirSync(PROCESSES_DIR).filter(f => f.endsWith('.json'));
+}
+
+/**
+ * List all locally saved process IDs (files whose JSON contains an `id` field)
  * @returns {string[]} Array of process IDs
  */
 export function listLocalProcesses() {
@@ -142,30 +141,17 @@ export function listLocalProcesses() {
     return [];
   }
 
-  return fs.readdirSync(PROCESSES_DIR)
-    .filter(f => f.endsWith('.json') && f.includes('__'))
-    .map(f => {
-      // Read the file to get the actual ID (prefix may be short_code)
-      try {
-        const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
-        return content.id;
-      } catch {
-        return extractPrefixFromFilename(f);
-      }
-    });
-}
-
-/**
- * List new process files (no __ separator — not yet pushed)
- * @returns {string[]} Array of filenames (e.g. ['nowapps_discover_pending_msas.json'])
- */
-export function listNewProcessFiles() {
-  if (!fs.existsSync(PROCESSES_DIR)) {
-    return [];
+  const ids = [];
+  for (const f of fs.readdirSync(PROCESSES_DIR)) {
+    if (!f.endsWith('.json')) continue;
+    try {
+      const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
+      if (content.id) ids.push(content.id);
+    } catch {
+      // skip malformed files
+    }
   }
-
-  return fs.readdirSync(PROCESSES_DIR)
-    .filter(f => f.endsWith('.json') && !f.includes('__'));
+  return ids;
 }
 
 /**

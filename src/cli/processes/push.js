@@ -1,11 +1,13 @@
 import { createProcess, updateProcess, setEntityTags, listProcesses } from '../../utils/orchestrator.js';
 import { resolveTagNames } from '../../utils/tags.js';
+import path from 'path';
 import {
   loadProcess,
   listLocalProcesses,
-  listNewProcessFiles,
+  listAllProcessFiles,
   loadProcessByFilename,
   finalizeNewProcessFile,
+  findProcessFile,
   getProcessesDir,
 } from '../../utils/process-files.js';
 
@@ -79,44 +81,33 @@ async function syncTags(processId, tags) {
 }
 
 /**
- * Push a single existing process (has ID) — PUT update
+ * Push a single process by filename — creates or updates based on JSON content.
+ * If the file has an `id`, it's an update (PUT). If not, it's a create (POST).
  */
-async function pushExistingProcess(processId) {
-  const proc = loadProcess(processId);
-  if (!proc) {
-    console.error(`Process not found locally: ${processId}`);
-    console.error(`Run "fob processes pull ${processId}" first`);
-    process.exit(1);
-  }
-
-  const { id: _, created_at, org, tags, ...updateData } = proc;
-  updateData.dependencies = await resolveDependencies(updateData.dependencies);
-  await updateProcess(processId, updateData);
-  console.log(`Updated: ${processId}`);
-  await syncTags(processId, tags);
-}
-
-/**
- * Push a single new process (no ID yet) — POST create, then rename file
- */
-async function pushNewProcess(filename) {
+async function pushByFilename(filename) {
   const proc = loadProcessByFilename(filename);
   if (!proc) {
     console.error(`Process file not found: ${filename}`);
     process.exit(1);
   }
 
-  // Strip fields that shouldn't be sent (id shouldn't exist, but be safe)
-  const { id: _, created_at, org, tags, ...createData } = proc;
-  createData.dependencies = await resolveDependencies(createData.dependencies);
-
-  const response = await createProcess(createData);
-  const created = response.data;
-
-  // Write the server-assigned ID back and rename the file
-  const newPath = finalizeNewProcessFile(filename, created);
-  console.log(`Created: ${created.id} -> ${newPath}`);
-  await syncTags(created.id, tags);
+  if (proc.id) {
+    // Existing process — update
+    const { id: _, created_at, org, tags, ...updateData } = proc;
+    updateData.dependencies = await resolveDependencies(updateData.dependencies);
+    await updateProcess(proc.id, updateData);
+    console.log(`Updated: ${proc.id}`);
+    await syncTags(proc.id, tags);
+  } else {
+    // New process — create
+    const { created_at, org, tags, ...createData } = proc;
+    createData.dependencies = await resolveDependencies(createData.dependencies);
+    const response = await createProcess(createData);
+    const created = response.data;
+    const newPath = finalizeNewProcessFile(filename, created);
+    console.log(`Created: ${created.id} -> ${newPath}`);
+    await syncTags(created.id, tags);
+  }
 }
 
 export async function pushProcessesHandler(argv) {
@@ -124,8 +115,8 @@ export async function pushProcessesHandler(argv) {
 
   // Require explicit id or --all
   if (!id && !all) {
-    console.error('Usage: fob processes push <id>           (update existing)');
-    console.error('       fob processes push <filename>     (create new)');
+    console.error('Usage: fob processes push <filename>     (create or update based on content)');
+    console.error('       fob processes push <id|short_code> (update by process ID or short_code)');
     console.error('       fob processes push --all');
     console.error('');
     console.error('Run "fob processes list" to see available processes');
@@ -136,34 +127,28 @@ export async function pushProcessesHandler(argv) {
 
   try {
     if (id) {
-      // Single process — determine if existing (by ID) or new (by filename)
-      const existingProc = loadProcess(id);
+      // Single process — try as filename first, then resolve by ID/short_code
+      const filename = id.endsWith('.json') ? id : `${id}.json`;
+      const proc = loadProcessByFilename(filename);
 
-      if (existingProc) {
-        // Existing process found by ID
-        await pushExistingProcess(id);
-      } else if (id.endsWith('.json')) {
-        // Looks like a filename — try as new process
-        await pushNewProcess(id);
+      if (proc) {
+        await pushByFilename(filename);
       } else {
-        // Could be a partial filename without .json
-        const filename = `${id}.json`;
-        const proc = loadProcessByFilename(filename);
-        if (proc) {
-          await pushNewProcess(filename);
+        // Try by ID or short_code — resolve to filename
+        const filepath = findProcessFile(id);
+        if (filepath) {
+          await pushByFilename(path.basename(filepath));
         } else {
           console.error(`Process not found locally: ${id}`);
-          console.error('For existing processes, use the process ID');
-          console.error('For new processes, use the filename (e.g. nowapps_my_process.json)');
+          console.error('Use a filename (e.g. AP1__document_intake.json) or a process ID/short_code');
           process.exit(1);
         }
       }
     } else {
-      // Push all — both existing and new
-      const existingIds = listLocalProcesses();
-      const newFiles = listNewProcessFiles();
+      // Push all process files — each one creates or updates based on content
+      const allFiles = listAllProcessFiles();
 
-      if (existingIds.length === 0 && newFiles.length === 0) {
+      if (allFiles.length === 0) {
         console.log('No local processes found');
         console.log('Run "fob processes pull --all" first, or create a new process file');
         return;
@@ -172,28 +157,12 @@ export async function pushProcessesHandler(argv) {
       let updatedCount = 0;
       let createdCount = 0;
 
-      // Update existing processes
-      for (const processId of existingIds) {
-        const proc = loadProcess(processId);
-        const { id: _, created_at, org, tags, ...updateData } = proc;
-        updateData.dependencies = await resolveDependencies(updateData.dependencies);
-        await updateProcess(processId, updateData);
-        console.log(`Updated: ${processId}`);
-        await syncTags(processId, tags);
-        updatedCount++;
-      }
-
-      // Create new processes
-      for (const filename of newFiles) {
+      for (const filename of allFiles) {
         const proc = loadProcessByFilename(filename);
-        const { id: _, created_at, org, tags, ...createData } = proc;
-        createData.dependencies = await resolveDependencies(createData.dependencies);
-        const response = await createProcess(createData);
-        const created = response.data;
-        const newPath = finalizeNewProcessFile(filename, created);
-        console.log(`Created: ${created.id} -> ${newPath}`);
-        await syncTags(created.id, tags);
-        createdCount++;
+        const hadId = !!proc.id;
+        await pushByFilename(filename);
+        if (hadId) updatedCount++;
+        else createdCount++;
       }
 
       console.log('');
