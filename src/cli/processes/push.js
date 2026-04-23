@@ -83,8 +83,11 @@ async function syncTags(processId, tags) {
 /**
  * Push a single process by filename — creates or updates based on JSON content.
  * If the file has an `id`, it's an update (PUT). If not, it's a create (POST).
+ * With `force`, a 404 on update falls back to create with the same id.
+ * @param {string} filename
+ * @param {{ force?: boolean }} [options]
  */
-async function pushByFilename(filename) {
+async function pushByFilename(filename, { force = false } = {}) {
   const proc = loadProcessByFilename(filename);
   if (!proc) {
     console.error(`Process file not found: ${filename}`);
@@ -93,11 +96,26 @@ async function pushByFilename(filename) {
 
   if (proc.id) {
     // Existing process — update
-    const { id: _, created_at, org, tags, ...updateData } = proc;
+    const { id, created_at, org, tags, ...updateData } = proc;
     updateData.dependencies = await resolveDependencies(updateData.dependencies);
-    await updateProcess(proc.id, updateData);
-    console.log(`Updated: ${proc.id}`);
-    await syncTags(proc.id, tags);
+
+    try {
+      await updateProcess(id, updateData);
+      console.log(`Updated: ${id}`);
+      await syncTags(id, tags);
+    } catch (err) {
+      const is404 = err.message.includes('(404)');
+      if (!is404 || !force) throw err;
+
+      // --force: process doesn't exist remotely — create with same id
+      console.log(`  Not found remotely (${id}), creating with --force...`);
+      const createData = { id, ...updateData };
+      const response = await createProcess(createData);
+      const created = response.data;
+      const newPath = finalizeNewProcessFile(filename, created);
+      console.log(`Created: ${created.id} -> ${newPath}`);
+      await syncTags(created.id, tags);
+    }
   } else {
     // New process — create
     const { created_at, org, tags, ...createData } = proc;
@@ -111,7 +129,7 @@ async function pushByFilename(filename) {
 }
 
 export async function pushProcessesHandler(argv) {
-  const { id, all } = argv;
+  const { id, all, force } = argv;
 
   // Require explicit id or --all
   if (!id && !all) {
@@ -132,12 +150,12 @@ export async function pushProcessesHandler(argv) {
       const proc = loadProcessByFilename(filename);
 
       if (proc) {
-        await pushByFilename(filename);
+        await pushByFilename(filename, { force });
       } else {
         // Try by ID or short_code — resolve to filename
         const filepath = findProcessFile(id);
         if (filepath) {
-          await pushByFilename(path.basename(filepath));
+          await pushByFilename(path.basename(filepath), { force });
         } else {
           console.error(`Process not found locally: ${id}`);
           console.error('Use a filename (e.g. AP1__document_intake.json) or a process ID/short_code');
@@ -160,7 +178,7 @@ export async function pushProcessesHandler(argv) {
       for (const filename of allFiles) {
         const proc = loadProcessByFilename(filename);
         const hadId = !!proc.id;
-        await pushByFilename(filename);
+        await pushByFilename(filename, { force });
         if (hadId) updatedCount++;
         else createdCount++;
       }

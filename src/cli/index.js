@@ -212,6 +212,11 @@ export function run(args) {
                 alias: 'a',
                 describe: 'Push all local processes (creates new + updates existing)',
                 type: 'boolean',
+              })
+              .option('force', {
+                alias: 'f',
+                describe: 'Create process if it doesn\'t exist remotely (upsert)',
+                type: 'boolean',
               });
           },
           withSeparator(pushProcessesHandler)
