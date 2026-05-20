@@ -23,7 +23,6 @@ function getWorkerConfig() {
     headers: {
       'api-key': apiKey,
       'api-secret': apiSecret,
-      'X-Worker-Type': process.env.WORKER_TYPE || 'customer',
       'X-Step-Prefix': stepPrefix,
       'Content-Type': 'application/json',
     },
