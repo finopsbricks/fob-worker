@@ -43,7 +43,7 @@ function maskSecret(value) {
 export function getRelevantEnvVars() {
   return {
     ORCHESTRATOR_URL: process.env.ORCHESTRATOR_URL,
-    STEP_PREFIX: process.env.STEP_PREFIX,
+    WORKER_LOCATION: process.env.WORKER_LOCATION,
     ORCHESTRATOR_API_KEY: maskSecret(process.env.ORCHESTRATOR_API_KEY),
     ORCHESTRATOR_API_SECRET: maskSecret(process.env.ORCHESTRATOR_API_SECRET),
   };

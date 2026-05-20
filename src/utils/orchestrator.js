@@ -12,7 +12,7 @@ function getWorkerConfig() {
   const url = process.env.ORCHESTRATOR_URL;
   const apiKey = process.env.ORCHESTRATOR_API_KEY;
   const apiSecret = process.env.ORCHESTRATOR_API_SECRET;
-  const stepPrefix = process.env.STEP_PREFIX;
+  const location = process.env.WORKER_LOCATION;
 
   if (!apiKey || !apiSecret) {
     throw new Error('ORCHESTRATOR_API_KEY and ORCHESTRATOR_API_SECRET environment variables are required');
@@ -23,7 +23,7 @@ function getWorkerConfig() {
     headers: {
       'api-key': apiKey,
       'api-secret': apiSecret,
-      'X-Step-Prefix': stepPrefix,
+      'X-Location': location,
       'Content-Type': 'application/json',
     },
   };

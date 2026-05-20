@@ -8,41 +8,29 @@ import { findPreviousStep, getHandler } from '../../src/utils/steps-loader.js';
 
 describe('findPreviousStep()', () => {
   const steps = {
-    'acme/step_one': {},
-    'acme/step_two': {},
-    'acme/step_three': {},
-    'other/step_a': {},
+    'step_one': {},
+    'step_two': {},
+    'step_three': {},
+    'other_step': {},
   };
 
   it('should return null when the slug is the first entry', () => {
-    // Act
-    const result = findPreviousStep(steps, 'acme/step_one');
-
-    // Assert
+    const result = findPreviousStep(steps, 'step_one');
     expect(result).toBeNull();
   });
 
-  it('should return the immediately preceding step with the same org prefix', () => {
-    // Act
-    const result = findPreviousStep(steps, 'acme/step_three');
-
-    // Assert
-    expect(result).toBe('acme/step_two');
+  it('should return the immediately preceding step', () => {
+    const result = findPreviousStep(steps, 'step_three');
+    expect(result).toBe('step_two');
   });
 
-  it('should return null when no prior step shares the org prefix', () => {
-    // Act — other/step_a comes after all acme/* steps, but has no preceding other/* step
-    const result = findPreviousStep(steps, 'other/step_a');
-
-    // Assert
-    expect(result).toBeNull();
+  it('should return the previous step regardless of naming', () => {
+    const result = findPreviousStep(steps, 'other_step');
+    expect(result).toBe('step_three');
   });
 
   it('should return null when the slug is not in the registry', () => {
-    // Act
-    const result = findPreviousStep(steps, 'acme/unknown');
-
-    // Assert
+    const result = findPreviousStep(steps, 'unknown');
     expect(result).toBeNull();
   });
 });
@@ -53,24 +41,16 @@ describe('findPreviousStep()', () => {
 
 describe('getHandler()', () => {
   it('should return null when the slug is not in the registry', () => {
-    // Arrange
     const steps = {};
-
-    // Act
-    const result = getHandler(steps, 'org/missing');
-
-    // Assert
+    const result = getHandler(steps, 'missing');
     expect(result).toBeNull();
   });
 
   it('should throw when the step is a plain function (not a StepDefinition)', () => {
-    // Arrange
     const steps = {
-      'org/plain_fn': async () => ({}),
+      'plain_fn': async () => ({}),
     };
-
-    // Act & Assert
-    expect(() => getHandler(steps, 'org/plain_fn')).toThrow(
+    expect(() => getHandler(steps, 'plain_fn')).toThrow(
       /must be a StepDefinition/
     );
   });

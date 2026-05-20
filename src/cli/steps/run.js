@@ -163,7 +163,7 @@ export async function runStepHandler(argv) {
       item_snapshot: itemSnapshot,
       step_outputs: step_outputs,
     },
-    org_id: process.env.STEP_PREFIX || 'local',
+    org_id: process.env.WORKER_LOCATION || 'local',
   };
 
   console.log('\n' + '-'.repeat(60));

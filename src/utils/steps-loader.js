@@ -62,7 +62,7 @@ export async function getStepSlugs() {
 }
 
 /**
- * Find previous step in registry (same org prefix)
+ * Find previous step in registry (by discovery order)
  * @param {object} steps - Steps registry
  * @param {string} currentSlug - Current step slug
  * @returns {string|null} Previous step slug
@@ -72,13 +72,5 @@ export function findPreviousStep(steps, currentSlug) {
   const currentIndex = slugs.indexOf(currentSlug);
 
   if (currentIndex <= 0) return null;
-
-  const prefix = currentSlug.split('/')[0];
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    if (slugs[i].startsWith(prefix + '/')) {
-      return slugs[i];
-    }
-  }
-
-  return null;
+  return slugs[currentIndex - 1];
 }
