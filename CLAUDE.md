@@ -14,7 +14,9 @@ This package is part of the **FinOpsBricks** monorepo (`/Users/alex/ec2code/fino
 - **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this. CLI loads it at runtime from the worker's `node_modules/` (not as its own dependency — see `docs/architecture/lib-worker-resolution.md`).
 - **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
 - **`apps/statements.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
-- **`accounting-process-standards/`** — Documentation for step design patterns.
+- **`fde-handbook/`** — FDE reference: step patterns, process design, capabilities, library APIs.
+- **`platform-handbook/`** — Platform architecture, operations, internals.
+- **`cfo-handbook/`** — Domain expertise, accounting best practices.
 
 Built with **yargs** for command parsing and shell completion.
 

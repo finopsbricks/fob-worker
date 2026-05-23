@@ -50,4 +50,4 @@ The parser extracts `import name from './path'` statements and correlates them w
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Running Steps Locally](/docs/usage/running-steps.md)
-- [Step Handler Pattern](/Users/alex/ec2code/finopsbricks/accounting-process-standards/steps/step-handler-pattern.md)
+- [Step Handler Pattern](/Users/alex/ec2code/finopsbricks/fde-handbook/step-patterns/step-handler-pattern.md)
