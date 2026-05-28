@@ -8,15 +8,15 @@ Guidance for Claude Code when working with this package.
 
 ### Related Repositories
 
-This package is part of the **FinOpsBricks** monorepo (`/Users/alex/ec2code/finopsbricks/`):
+This package is part of the **FinOpsBricks** monorepo:
 
 - **`workers/*`** — Customer-specific workers. This CLI is used inside worker repos to debug steps locally.
 - **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this. CLI loads it at runtime from the worker's `node_modules/` (not as its own dependency — see `docs/architecture/lib-worker-resolution.md`).
 - **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
 - **`apps/statements.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
-- **`fde-handbook/`** — FDE reference: step patterns, process design, capabilities, library APIs.
-- **`platform-handbook/`** — Platform architecture, operations, internals.
-- **`cfo-handbook/`** — Domain expertise, accounting best practices.
+- **`fde-handbook`** — step patterns, process design, capabilities, library APIs.
+- **`platform-handbook`** — platform architecture, operations, internals.
+- **`cfo-handbook`** — domain expertise, accounting best practices.
 
 Built with **yargs** for command parsing and shell completion.
 
