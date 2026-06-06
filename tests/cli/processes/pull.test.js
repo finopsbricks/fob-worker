@@ -6,6 +6,7 @@ const mockGetProcess = jest.fn();
 const mockGetOrchestratorConfig = jest.fn();
 const mockSaveProcess = jest.fn();
 const mockGetProcessesDir = jest.fn();
+const mockGetStationsDir = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   listProcesses: mockListProcesses,
@@ -16,6 +17,7 @@ jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
 jest.unstable_mockModule('../../../src/utils/process-files.js', () => ({
   saveProcess: mockSaveProcess,
   getProcessesDir: mockGetProcessesDir,
+  getStationsDir: mockGetStationsDir,
 }));
 
 const { pullProcessesHandler } = await import('../../../src/cli/processes/pull.js');
@@ -32,6 +34,7 @@ describe('pullProcessesHandler()', () => {
     out = captureOutput();
     mockGetOrchestratorConfig.mockReturnValue({ url: 'https://orchestrator.example.com' });
     mockGetProcessesDir.mockReturnValue('.orchestrator/processes');
+    mockGetStationsDir.mockReturnValue('.orchestrator/stations');
     mockSaveProcess.mockReturnValue('.orchestrator/processes/proc-abc.json');
   });
 
@@ -49,7 +52,7 @@ describe('pullProcessesHandler()', () => {
 
     // Assert
     expect(mockGetProcess).toHaveBeenCalledWith('proc-abc');
-    expect(mockSaveProcess).toHaveBeenCalledWith(proc);
+    expect(mockSaveProcess).toHaveBeenCalledWith(proc, { layout: 'processes' });
     expect(out.stdout).toContain('Saved:');
   });
 
@@ -89,7 +92,7 @@ describe('pullProcessesHandler()', () => {
   it('should exit 1 with usage when neither id nor --all is provided', async () => {
     // Act & Assert
     await expect(pullProcessesHandler({ id: undefined, all: false })).rejects.toThrow(ExitError);
-    expect(out.stderr).toContain('Usage: fob processes pull <id>');
+    expect(out.stderr).toContain('Usage: fob processes pull <id');
   });
 
   it('should convert tag objects to names before saving', async () => {
@@ -106,7 +109,8 @@ describe('pullProcessesHandler()', () => {
 
     // Assert — tags saved as name strings, not objects
     expect(mockSaveProcess).toHaveBeenCalledWith(
-      expect.objectContaining({ tags: ['monthly', 'finance'] })
+      expect.objectContaining({ tags: ['monthly', 'finance'] }),
+      { layout: 'processes' },
     );
   });
 

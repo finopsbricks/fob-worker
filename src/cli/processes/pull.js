@@ -1,5 +1,5 @@
 import { listProcesses, getProcess } from '../../utils/orchestrator.js';
-import { saveProcess, getProcessesDir } from '../../utils/process-files.js';
+import { saveProcess, getProcessesDir, getStationsDir } from '../../utils/process-files.js';
 
 /**
  * Convert dependency IDs to short_codes using a process map.
@@ -15,17 +15,21 @@ function convertDependenciesToShortCodes(dependencies, idToShortCode) {
 
 export async function pullProcessesHandler(argv) {
   const { id, all } = argv;
+  // argv._[0] is 'processes' or 'stations' — controls target folder layout
+  const resource = argv._?.[0] === 'stations' ? 'stations' : 'processes';
+  const layout = resource;
 
   // Require explicit id or --all
   if (!id && !all) {
-    console.error('Usage: fob processes pull <id|short_code>');
-    console.error('       fob processes pull --all');
+    console.error(`Usage: fob ${resource} pull <id|short_code>`);
+    console.error(`       fob ${resource} pull --all`);
     console.error('');
-    console.error('Run "fob processes list" to see available processes');
+    console.error(`Run "fob ${resource} list" to see available ${resource}`);
     process.exit(1);
   }
 
-  console.log(`Saving to: ${getProcessesDir()}/`);
+  const targetDir = layout === 'stations' ? `${getStationsDir()}/{LINE}/` : `${getProcessesDir()}/`;
+  console.log(`Saving to: ${targetDir}`);
 
 
   try {
@@ -44,7 +48,7 @@ export async function pullProcessesHandler(argv) {
         proc.tags = proc.tags.map(t => t.name);
       }
       proc.dependencies = convertDependenciesToShortCodes(proc.dependencies, idToShortCode);
-      const filepath = saveProcess(proc);
+      const filepath = saveProcess(proc, { layout });
       console.log(`Saved: ${filepath}`);
     } else {
       // Pull all processes
@@ -52,7 +56,7 @@ export async function pullProcessesHandler(argv) {
       const processes = response.data || [];
 
       if (processes.length === 0) {
-        console.log('No processes found');
+        console.log(`No ${resource} found`);
         return;
       }
 
@@ -70,12 +74,12 @@ export async function pullProcessesHandler(argv) {
           fullProc.tags = fullProc.tags.map(t => t.name);
         }
         fullProc.dependencies = convertDependenciesToShortCodes(fullProc.dependencies, idToShortCode);
-        const filepath = saveProcess(fullProc);
+        const filepath = saveProcess(fullProc, { layout });
         console.log(`Saved: ${filepath}`);
       }
 
       console.log('');
-      console.log(`Total: ${processes.length} processes pulled`);
+      console.log(`Total: ${processes.length} ${resource} pulled`);
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);

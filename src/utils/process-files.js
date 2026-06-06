@@ -103,28 +103,43 @@ export function findProcessFile(identifier) {
 }
 
 /**
- * Save a process to local file
- * Removes old file if name or prefix changed
- * @param {object} process - Process definition with id, name, and optionally short_code
+ * Save a process/station to a local file.
+ * Removes old file if name, prefix, or folder layout changed.
+ * @param {object} process - Process/station definition with id, name, and optionally short_code + line
+ * @param {object} [options]
+ * @param {'processes'|'stations'} [options.layout='processes'] - 'processes' → legacy flat dir; 'stations' → new nested-by-line dir
  * @returns {string} Saved filepath
  */
-export function saveProcess(process) {
-  ensureProcessesDir();
+export function saveProcess(process, options = {}) {
+  const { layout = 'processes' } = options;
 
-  // Remove old file if exists (handles both ID-prefix and short_code-prefix)
+  // Remove any existing files for this process (handles both layouts and both id/short_code prefix forms)
+  const toRemove = new Set();
   const existingById = findProcessFile(process.id);
-  if (existingById) {
-    fs.unlinkSync(existingById);
-  }
+  if (existingById) toRemove.add(existingById);
   if (process.short_code) {
     const existingByCode = findProcessFile(process.short_code);
-    if (existingByCode && existingByCode !== existingById) {
-      fs.unlinkSync(existingByCode);
-    }
+    if (existingByCode) toRemove.add(existingByCode);
+  }
+  for (const f of toRemove) {
+    fs.unlinkSync(f);
+  }
+
+  // Determine target dir per layout
+  let targetDir;
+  if (layout === 'stations') {
+    const line = process.line || process.short_code || process.id;
+    targetDir = path.join(STATIONS_DIR, line);
+  } else {
+    targetDir = PROCESSES_DIR;
+  }
+
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
   const filename = buildFilename(process);
-  const filepath = path.join(PROCESSES_DIR, filename);
+  const filepath = path.join(targetDir, filename);
   fs.writeFileSync(filepath, JSON.stringify(process, null, 2));
   return filepath;
 }
