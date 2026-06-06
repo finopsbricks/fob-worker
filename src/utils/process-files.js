@@ -1,8 +1,10 @@
 /**
- * Local process and scenario file management
+ * Local station/process and scenario file management
  *
- * Processes: .orchestrator/processes/<short_code>__<name>.json  (when short_code set)
- *            .orchestrator/processes/<id>__<name>.json           (fallback)
+ * Two folder layouts are supported (CLI reads both; writes default to legacy):
+ *   Legacy: .orchestrator/processes/<short_code>__<name>.json
+ *   New:    .orchestrator/stations/<LINE>/<short_code>__<name>.json
+ *
  * Scenarios: .orchestrator/scenarios/<slug>/
  */
 
@@ -10,7 +12,34 @@ import fs from 'fs';
 import path from 'path';
 
 const PROCESSES_DIR = '.orchestrator/processes';
+const STATIONS_DIR = '.orchestrator/stations';
 const SCENARIOS_DIR = '.orchestrator/scenarios';
+
+/**
+ * Get all station/process JSON file paths from both legacy and new layouts.
+ * @returns {string[]} Array of relative file paths
+ */
+function getAllStationFilePaths() {
+  const paths = [];
+
+  if (fs.existsSync(PROCESSES_DIR)) {
+    for (const f of fs.readdirSync(PROCESSES_DIR)) {
+      if (f.endsWith('.json')) paths.push(path.join(PROCESSES_DIR, f));
+    }
+  }
+
+  if (fs.existsSync(STATIONS_DIR)) {
+    for (const lineDir of fs.readdirSync(STATIONS_DIR)) {
+      const fullLineDir = path.join(STATIONS_DIR, lineDir);
+      if (!fs.statSync(fullLineDir).isDirectory()) continue;
+      for (const f of fs.readdirSync(fullLineDir)) {
+        if (f.endsWith('.json')) paths.push(path.join(fullLineDir, f));
+      }
+    }
+  }
+
+  return paths;
+}
 
 /**
  * Ensure the processes directory exists
@@ -52,24 +81,19 @@ function buildFilename(process) {
  * @returns {string|null} Full filepath or null if not found
  */
 export function findProcessFile(identifier) {
-  if (!fs.existsSync(PROCESSES_DIR)) {
-    return null;
+  const all = getAllStationFilePaths();
+
+  // Try filename prefix match (works for both ID-prefixed and short_code-prefixed files)
+  for (const p of all) {
+    const filename = path.basename(p);
+    if (filename.startsWith(`${identifier}__`)) return p;
   }
 
-  const files = fs.readdirSync(PROCESSES_DIR);
-
-  // Try prefix match (works for both ID-prefixed and short_code-prefixed files)
-  const match = files.find(f => f.startsWith(`${identifier}__`) && f.endsWith('.json'));
-  if (match) return path.join(PROCESSES_DIR, match);
-
-  // Also scan file contents to find by ID when file is short_code-prefixed
-  for (const f of files) {
-    if (!f.endsWith('.json')) continue;
+  // Fall back to JSON `id` field match (when file is short_code-prefixed and caller passed an id)
+  for (const p of all) {
     try {
-      const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
-      if (content.id === identifier) {
-        return path.join(PROCESSES_DIR, f);
-      }
+      const content = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (content.id === identifier) return p;
     } catch {
       // skip malformed files
     }
@@ -137,21 +161,39 @@ export function listAllProcessFiles() {
  * @returns {string[]} Array of process IDs
  */
 export function listLocalProcesses() {
-  if (!fs.existsSync(PROCESSES_DIR)) {
-    return [];
-  }
-
   const ids = [];
-  for (const f of fs.readdirSync(PROCESSES_DIR)) {
-    if (!f.endsWith('.json')) continue;
+  for (const p of getAllStationFilePaths()) {
     try {
-      const content = JSON.parse(fs.readFileSync(path.join(PROCESSES_DIR, f), 'utf8'));
+      const content = JSON.parse(fs.readFileSync(p, 'utf8'));
       if (content.id) ids.push(content.id);
     } catch {
       // skip malformed files
     }
   }
   return ids;
+}
+
+/**
+ * Load every local station/process JSON, returning the parsed objects with their source paths.
+ * Used by fob stations / fob lines to derive line topology from local files.
+ * @returns {Array<{filepath: string, dir: string, line: string|null, data: object}>}
+ */
+export function listLocalStations() {
+  const stations = [];
+  for (const filepath of getAllStationFilePaths()) {
+    try {
+      const data = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+      stations.push({
+        filepath,
+        dir: path.dirname(filepath),
+        line: data.line ?? null,
+        data,
+      });
+    } catch {
+      // skip malformed files
+    }
+  }
+  return stations;
 }
 
 /**
@@ -204,11 +246,19 @@ export function getStepConfigFromProcess(process, stepSlug) {
 }
 
 /**
- * Get the processes directory path
+ * Get the processes directory path (legacy flat layout)
  * @returns {string}
  */
 export function getProcessesDir() {
   return PROCESSES_DIR;
+}
+
+/**
+ * Get the stations directory path (new nested-by-line layout)
+ * @returns {string}
+ */
+export function getStationsDir() {
+  return STATIONS_DIR;
 }
 
 /**

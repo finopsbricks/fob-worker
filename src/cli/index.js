@@ -24,6 +24,8 @@ import { createTagHandler } from './tags/create.js';
 import { deleteTagHandler } from './tags/delete.js';
 import { editTagHandler } from './tags/edit.js';
 import { editProcessHandler } from './processes/edit.js';
+import { listLinesHandler } from './lines/list.js';
+import { showLineHandler } from './lines/show.js';
 import { listItemsHandler } from './items/list.js';
 import { showItemHandler } from './items/show.js';
 import { editItemHandler } from './items/edit.js';
@@ -41,6 +43,112 @@ function withSeparator(handler) {
     await handler(argv);
     console.log('='.repeat(60));
   };
+}
+
+/**
+ * Build the subcommand tree shared by `fob processes` and `fob stations`.
+ * Same handlers; the `names` arg threads vocab through user-visible strings.
+ */
+function buildProcessSubcommands(yargs, names) {
+  const { plural, singular } = names;
+  const Cap = singular.charAt(0).toUpperCase() + singular.slice(1);
+  return yargs
+    .usage(`$0 ${plural} <action> [options]`)
+    .command(
+      'list',
+      `List ${plural} from orchestrator`,
+      (yargs) => {
+        return yargs
+          .option('tag', { describe: 'Filter by tag name', type: 'string' })
+          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+      },
+      withSeparator(listProcessesHandler),
+    )
+    .command(
+      'show [id]',
+      `Show ${singular} definition`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} ID or short_code`, type: 'string' })
+          .option('work-records', { describe: 'Include recent work records', type: 'boolean' })
+          .option('items', { describe: 'Include linked items', type: 'boolean' })
+          .option('all', { describe: 'Include all linked entities', type: 'boolean' })
+          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error(`Usage: fob ${plural} show <id|short_code>`);
+          console.error(`Run "fob ${plural} list" to see available ${plural}`);
+          process.exit(1);
+        }
+        return withSeparator(showProcessHandler)(argv);
+      },
+    )
+    .command(
+      'run [id]',
+      `Trigger a remote ${singular} execution`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} ID or short_code`, type: 'string' })
+          .option('item', { describe: `Item ID to run the ${singular} on`, type: 'string' });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error(`Usage: fob ${plural} run <id|short_code> --item <item-id>`);
+          process.exit(1);
+        }
+        return withSeparator(runProcessHandler)(argv);
+      },
+    )
+    .command(
+      'pull [id]',
+      `Pull ${plural} from orchestrator to local files`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} ID or short_code`, type: 'string' })
+          .option('all', { alias: 'a', describe: `Pull all ${plural}`, type: 'boolean' });
+      },
+      withSeparator(pullProcessesHandler),
+    )
+    .command(
+      'push [id]',
+      `Push local ${plural} to orchestrator (creates new or updates existing)`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} ID (existing) or filename (new)`, type: 'string' })
+          .option('all', { alias: 'a', describe: `Push all local ${plural} (creates new + updates existing)`, type: 'boolean' })
+          .option('force', { alias: 'f', describe: `Create ${singular} if it doesn't exist remotely (upsert)`, type: 'boolean' });
+      },
+      withSeparator(pushProcessesHandler),
+    )
+    .command(
+      'edit [id]',
+      `Edit ${singular} properties (e.g., tags, short_code)`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} ID or short_code`, type: 'string' })
+          .option('short-code', { describe: `Set the ${singular} short_code (e.g., P1, P9b)`, type: 'string' })
+          .option('add-tag', { describe: 'Add tag by name (repeatable)', type: 'string', array: true })
+          .option('remove-tag', { describe: 'Remove tag by name (repeatable)', type: 'string', array: true });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error(`Usage: fob ${plural} edit <id|short_code> --short-code P1 --add-tag <name>`);
+          process.exit(1);
+        }
+        return withSeparator(editProcessHandler)(argv);
+      },
+    )
+    .command(
+      'update-step-metadata',
+      `Update step name/description in local ${plural} from code`,
+      {},
+      withSeparator(updateStepMetadataHandler),
+    )
+    .demandCommand(1, 'Specify an action: list, show, run, pull, push, edit, update-step-metadata');
 }
 
 /**
@@ -104,163 +212,40 @@ export function run(args) {
         .command('show', 'Show resolved paths and environment variables', {}, withSeparator(showConfigHandler))
         .demandCommand(1, 'Specify an action: show');
     })
-    .command('processes', 'Work with orchestrator processes', (yargs) => {
+    .command('processes', 'Work with orchestrator processes', (yargs) =>
+      buildProcessSubcommands(yargs, { plural: 'processes', singular: 'process' }),
+    )
+    .command('stations', 'Work with orchestrator stations (vocabulary alias for processes)', (yargs) =>
+      buildProcessSubcommands(yargs, { plural: 'stations', singular: 'station' }),
+    )
+    .command('lines', 'Inspect lines derived from local station files', (yargs) => {
       return yargs
-        .usage('$0 processes <action> [options]')
+        .usage('$0 lines <action> [options]')
         .command(
           'list',
-          'List processes from orchestrator',
-          (yargs) => {
-            return yargs
-              .option('tag', {
-                describe: 'Filter by tag name',
-                type: 'string',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
-          },
-          withSeparator(listProcessesHandler)
+          'List lines (grouped from local station files)',
+          (yargs) => yargs.option('json', { describe: 'Output raw JSON', type: 'boolean' }),
+          withSeparator(listLinesHandler),
         )
         .command(
-          'show [id]',
-          'Show process definition',
+          'show [line]',
+          'Show stations on a line (with conveyor topology)',
           (yargs) => {
             return yargs
-              .positional('id', {
-                describe: 'Process ID or short_code',
-                type: 'string',
-              })
-              .option('work-records', {
-                describe: 'Include recent work records',
-                type: 'boolean',
-              })
-              .option('items', {
-                describe: 'Include linked items',
-                type: 'boolean',
-              })
-              .option('all', {
-                describe: 'Include all linked entities',
-                type: 'boolean',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
+              .positional('line', { describe: 'Line name (e.g., VM, P8)', type: 'string' })
+              .option('json', { describe: 'Output raw JSON', type: 'boolean' });
           },
           (argv) => {
             if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob processes show <id|short_code>');
-              console.error('Run "fob processes list" to see available processes');
+            if (!argv.line) {
+              console.error('Usage: fob lines show <line>');
+              console.error('Run "fob lines list" to see available lines');
               process.exit(1);
             }
-            return withSeparator(showProcessHandler)(argv);
-          }
-        )
-        .command(
-          'run [id]',
-          'Trigger a remote process execution',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Process ID or short_code',
-                type: 'string',
-              })
-              .option('item', {
-                describe: 'Item ID to run the process on',
-                type: 'string',
-              });
+            return withSeparator(showLineHandler)(argv);
           },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob processes run <id|short_code> --item <item-id>');
-              process.exit(1);
-            }
-            return withSeparator(runProcessHandler)(argv);
-          }
         )
-        .command(
-          'pull [id]',
-          'Pull process(es) from orchestrator to local files',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Process ID or short_code',
-                type: 'string',
-              })
-              .option('all', {
-                alias: 'a',
-                describe: 'Pull all processes',
-                type: 'boolean',
-              });
-          },
-          withSeparator(pullProcessesHandler)
-        )
-        .command(
-          'push [id]',
-          'Push local process(es) to orchestrator (creates new or updates existing)',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Process ID (existing) or filename (new)',
-                type: 'string',
-              })
-              .option('all', {
-                alias: 'a',
-                describe: 'Push all local processes (creates new + updates existing)',
-                type: 'boolean',
-              })
-              .option('force', {
-                alias: 'f',
-                describe: 'Create process if it doesn\'t exist remotely (upsert)',
-                type: 'boolean',
-              });
-          },
-          withSeparator(pushProcessesHandler)
-        )
-        .command(
-          'edit [id]',
-          'Edit process properties (e.g., tags, short_code)',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Process ID or short_code',
-                type: 'string',
-              })
-              .option('short-code', {
-                describe: 'Set the process short_code (e.g., P1, P9b)',
-                type: 'string',
-              })
-              .option('add-tag', {
-                describe: 'Add tag by name (repeatable)',
-                type: 'string',
-                array: true,
-              })
-              .option('remove-tag', {
-                describe: 'Remove tag by name (repeatable)',
-                type: 'string',
-                array: true,
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob processes edit <id|short_code> --short-code P1 --add-tag <name>');
-              process.exit(1);
-            }
-            return withSeparator(editProcessHandler)(argv);
-          }
-        )
-        .command(
-          'update-step-metadata',
-          'Update step name/description in local processes from code',
-          {},
-          withSeparator(updateStepMetadataHandler)
-        )
-        .demandCommand(1, 'Specify an action: list, show, run, pull, push, edit, update-step-metadata');
+        .demandCommand(1, 'Specify an action: list, show');
     })
     .command('work-records', 'Work with orchestrator work records', (yargs) => {
       return yargs
@@ -619,7 +604,7 @@ export function run(args) {
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['steps', 'config', 'processes', 'items', 'work-records', 'tags', 'supporting-docs', 'worker'];
+        return ['steps', 'config', 'processes', 'stations', 'lines', 'items', 'work-records', 'tags', 'supporting-docs', 'worker'];
       }
 
       // Config action level completions (fob config <tab>)
@@ -647,10 +632,18 @@ export function run(args) {
         }
       }
 
-      // Processes action level completions (fob processes <tab>)
-      if (args[0] === 'processes') {
+      // Processes / Stations action level completions (fob processes <tab>, fob stations <tab>)
+      if (args[0] === 'processes' || args[0] === 'stations') {
         if (args.length === 1) {
           return ['list', 'show', 'run', 'pull', 'push', 'edit', 'update-step-metadata'];
+        }
+        return [];
+      }
+
+      // Lines action level completions (fob lines <tab>)
+      if (args[0] === 'lines') {
+        if (args.length === 1) {
+          return ['list', 'show'];
         }
         return [];
       }
@@ -697,7 +690,7 @@ export function run(args) {
 
       return [];
     })
-    .demandCommand(1, 'Specify a resource: steps, config, processes, items, work-records, supporting-docs, tags, worker')
+    .demandCommand(1, 'Specify a resource: steps, config, processes, stations, lines, items, work-records, supporting-docs, tags, worker')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')
