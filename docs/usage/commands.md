@@ -30,6 +30,48 @@ fob processes update-step-metadata          # Sync step names from code to proce
 
 **File naming:** Existing processes are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New processes use just `name.json` — after pushing, the file is renamed to include the server-assigned ID.
 
+## Stations
+
+`fob stations` is a vocabulary alias for `fob processes` — same handlers, same flags. Use it when the entity is a station in a multi-station line (e.g. VM2, VM3) rather than a legacy single-station "process".
+
+```bash
+fob stations list                           # List stations from orchestrator
+fob stations show <id>                      # Show station definition
+fob stations show <id> --state              # ...plus a per-bin workpiece-id drilldown read from temp/stations/
+```
+
+All other actions mirror `fob processes` (run, pull, push, edit, update-step-metadata).
+
+## Lines
+
+`fob lines` derives lines by grouping locally-saved stations on their `line` field.
+
+```bash
+fob lines list                              # Group local stations by line
+fob lines list --state                      # ...plus IN-FLIGHT / STUCK / FINISHED / HEALTH columns
+fob lines show <line>                       # Stations on a line, with dependency order + conveyors
+fob lines show <line> --state               # ...plus a station × live-bin table
+```
+
+`--state` reads `temp/stations/{STATION}/{BIN}/` directly. The `done` bin is shown in parens and excluded from live totals — it's an archive receipt, not a current position.
+
+## Workpieces
+
+`fob workpieces` answers operational questions about items flowing through bins. Workpieces are runtime filesystem entities — there's no orchestrator-side resource for them.
+
+```bash
+fob workpieces list                              # Every workpiece on disk
+fob workpieces list --line VM                    # Scope to one line
+fob workpieces list --bin VM3/failed             # Scope to one bin (STATION/BIN)
+fob workpieces list --match <substring>          # Filter by workpiece-id substring
+fob workpieces show <id-or-substring>            # Position + journey + folder link
+fob workpieces show <id> --watch                 # Tail moves and new log events
+fob workpieces list --bin VM3/failed --watch     # Tail a whole batch
+fob workpieces list ... --interval 5             # Override the 2s default poll
+```
+
+`show` with a substring resolving to >1 id auto-promotes to the dashboard view. Pass `--json` on any of these for machine-readable output. See [Monitoring](monitoring.md) for the mental model and common workflows.
+
 ## Items
 
 ```bash
