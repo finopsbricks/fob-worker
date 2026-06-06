@@ -1,6 +1,5 @@
 import { createProcess, updateProcess, setEntityTags, listProcesses } from '../../utils/orchestrator.js';
 import { resolveTagNames } from '../../utils/tags.js';
-import path from 'path';
 import {
   loadProcess,
   listLocalProcesses,
@@ -9,6 +8,7 @@ import {
   finalizeNewProcessFile,
   findProcessFile,
   getProcessesDir,
+  getStationsDir,
 } from '../../utils/process-files.js';
 
 /** @type {Map<string, string>|null} Cached short_code → ID map */
@@ -130,55 +130,57 @@ async function pushByFilename(filename, { force = false } = {}) {
 
 export async function pushProcessesHandler(argv) {
   const { id, all, force } = argv;
+  // argv._[0] is 'processes' or 'stations' — controls vocab in user-visible strings
+  const resource = argv._?.[0] === 'stations' ? 'stations' : 'processes';
 
   // Require explicit id or --all
   if (!id && !all) {
-    console.error('Usage: fob processes push <filename>     (create or update based on content)');
-    console.error('       fob processes push <id|short_code> (update by process ID or short_code)');
-    console.error('       fob processes push --all');
+    console.error(`Usage: fob ${resource} push <filename>     (create or update based on content)`);
+    console.error(`       fob ${resource} push <id|short_code> (update by ${resource.replace(/s$/, '')} ID or short_code)`);
+    console.error(`       fob ${resource} push --all`);
     console.error('');
-    console.error('Run "fob processes list" to see available processes');
+    console.error(`Run "fob ${resource} list" to see available ${resource}`);
     process.exit(1);
   }
 
-  console.log(`Reading from: ${getProcessesDir()}/`);
+  console.log(`Reading from: ${getProcessesDir()}/ and ${getStationsDir()}/`);
 
   try {
     if (id) {
-      // Single process — try as filename first, then resolve by ID/short_code
+      // Single — try as filename first, then resolve by ID/short_code
       const filename = id.endsWith('.json') ? id : `${id}.json`;
       const proc = loadProcessByFilename(filename);
 
       if (proc) {
         await pushByFilename(filename, { force });
       } else {
-        // Try by ID or short_code — resolve to filename
+        // Try by ID or short_code — resolve to filepath
         const filepath = findProcessFile(id);
         if (filepath) {
-          await pushByFilename(path.basename(filepath), { force });
+          await pushByFilename(filepath, { force });
         } else {
-          console.error(`Process not found locally: ${id}`);
-          console.error('Use a filename (e.g. AP1__document_intake.json) or a process ID/short_code');
+          console.error(`${resource.replace(/s$/, '')} not found locally: ${id}`);
+          console.error(`Use a filename (e.g. AP1__document_intake.json) or a ${resource.replace(/s$/, '')} ID/short_code`);
           process.exit(1);
         }
       }
     } else {
-      // Push all process files — each one creates or updates based on content
-      const allFiles = listAllProcessFiles();
+      // Push all files (from both layouts) — each one creates or updates based on content
+      const allPaths = listAllProcessFiles();
 
-      if (allFiles.length === 0) {
-        console.log('No local processes found');
-        console.log('Run "fob processes pull --all" first, or create a new process file');
+      if (allPaths.length === 0) {
+        console.log(`No local ${resource} found`);
+        console.log(`Run "fob ${resource} pull --all" first, or create a new ${resource.replace(/s$/, '')} file`);
         return;
       }
 
       let updatedCount = 0;
       let createdCount = 0;
 
-      for (const filename of allFiles) {
-        const proc = loadProcessByFilename(filename);
+      for (const filepath of allPaths) {
+        const proc = loadProcessByFilename(filepath);
         const hadId = !!proc.id;
-        await pushByFilename(filename, { force });
+        await pushByFilename(filepath, { force });
         if (hadId) updatedCount++;
         else createdCount++;
       }

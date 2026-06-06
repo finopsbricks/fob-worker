@@ -11,6 +11,9 @@ const mockListNewProcessFiles = jest.fn();
 const mockLoadProcessByFilename = jest.fn();
 const mockFinalizeNewProcessFile = jest.fn();
 const mockGetProcessesDir = jest.fn();
+const mockGetStationsDir = jest.fn();
+const mockFindProcessFile = jest.fn();
+const mockListAllProcessFiles = jest.fn();
 const mockResolveTagNames = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
@@ -27,10 +30,12 @@ jest.unstable_mockModule('../../../src/utils/tags.js', () => ({
 jest.unstable_mockModule('../../../src/utils/process-files.js', () => ({
   loadProcess: mockLoadProcess,
   listLocalProcesses: mockListLocalProcesses,
-  listNewProcessFiles: mockListNewProcessFiles,
+  listAllProcessFiles: mockListAllProcessFiles,
   loadProcessByFilename: mockLoadProcessByFilename,
   finalizeNewProcessFile: mockFinalizeNewProcessFile,
+  findProcessFile: mockFindProcessFile,
   getProcessesDir: mockGetProcessesDir,
+  getStationsDir: mockGetStationsDir,
 }));
 
 const { pushProcessesHandler } = await import('../../../src/cli/processes/push.js');

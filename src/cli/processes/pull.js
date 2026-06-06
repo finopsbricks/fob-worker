@@ -28,7 +28,7 @@ export async function pullProcessesHandler(argv) {
     process.exit(1);
   }
 
-  const targetDir = layout === 'stations' ? `${getStationsDir()}/{LINE}/` : `${getProcessesDir()}/`;
+  const targetDir = layout === 'stations' ? `${getStationsDir()}/` : `${getProcessesDir()}/`;
   console.log(`Saving to: ${targetDir}`);
 
 

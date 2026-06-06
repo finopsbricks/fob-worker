@@ -1,9 +1,12 @@
 /**
  * Local station/process and scenario file management
  *
- * Two folder layouts are supported (CLI reads both; writes default to legacy):
+ * Two flat folder layouts are supported (CLI reads both):
  *   Legacy: .orchestrator/processes/<short_code>__<name>.json
- *   New:    .orchestrator/stations/<LINE>/<short_code>__<name>.json
+ *   New:    .orchestrator/stations/<short_code>__<name>.json
+ *
+ * Line membership is encoded by the `line` field inside each JSON, not by folder
+ * hierarchy — this avoids the redundant-data drift risk of nesting by line.
  *
  * Scenarios: .orchestrator/scenarios/<slug>/
  */
@@ -21,23 +24,12 @@ const SCENARIOS_DIR = '.orchestrator/scenarios';
  */
 function getAllStationFilePaths() {
   const paths = [];
-
-  if (fs.existsSync(PROCESSES_DIR)) {
-    for (const f of fs.readdirSync(PROCESSES_DIR)) {
-      if (f.endsWith('.json')) paths.push(path.join(PROCESSES_DIR, f));
+  for (const dir of [PROCESSES_DIR, STATIONS_DIR]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (f.endsWith('.json')) paths.push(path.join(dir, f));
     }
   }
-
-  if (fs.existsSync(STATIONS_DIR)) {
-    for (const lineDir of fs.readdirSync(STATIONS_DIR)) {
-      const fullLineDir = path.join(STATIONS_DIR, lineDir);
-      if (!fs.statSync(fullLineDir).isDirectory()) continue;
-      for (const f of fs.readdirSync(fullLineDir)) {
-        if (f.endsWith('.json')) paths.push(path.join(fullLineDir, f));
-      }
-    }
-  }
-
   return paths;
 }
 
@@ -104,10 +96,10 @@ export function findProcessFile(identifier) {
 
 /**
  * Save a process/station to a local file.
- * Removes old file if name, prefix, or folder layout changed.
+ * Removes old files (in either layout) before writing.
  * @param {object} process - Process/station definition with id, name, and optionally short_code + line
  * @param {object} [options]
- * @param {'processes'|'stations'} [options.layout='processes'] - 'processes' → legacy flat dir; 'stations' → new nested-by-line dir
+ * @param {'processes'|'stations'} [options.layout='processes'] - 'processes' → legacy `.orchestrator/processes/`; 'stations' → new `.orchestrator/stations/`
  * @returns {string} Saved filepath
  */
 export function saveProcess(process, options = {}) {
@@ -125,15 +117,7 @@ export function saveProcess(process, options = {}) {
     fs.unlinkSync(f);
   }
 
-  // Determine target dir per layout
-  let targetDir;
-  if (layout === 'stations') {
-    const line = process.line || process.short_code || process.id;
-    targetDir = path.join(STATIONS_DIR, line);
-  } else {
-    targetDir = PROCESSES_DIR;
-  }
-
+  const targetDir = layout === 'stations' ? STATIONS_DIR : PROCESSES_DIR;
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }
@@ -160,15 +144,12 @@ export function loadProcess(identifier) {
 }
 
 /**
- * List all process JSON filenames in the processes directory
- * @returns {string[]} Array of filenames (e.g. ['AP1__document_intake.json', 'P1__discover_pending_msas.json'])
+ * List all process/station JSON files from both layouts (legacy flat + new nested-by-line).
+ * Returns relative paths so callers can distinguish location.
+ * @returns {string[]} Array of relative paths (e.g. '.orchestrator/processes/foo.json' or '.orchestrator/stations/VM/foo.json')
  */
 export function listAllProcessFiles() {
-  if (!fs.existsSync(PROCESSES_DIR)) {
-    return [];
-  }
-
-  return fs.readdirSync(PROCESSES_DIR).filter(f => f.endsWith('.json'));
+  return getAllStationFilePaths();
 }
 
 /**
@@ -212,39 +193,59 @@ export function listLocalStations() {
 }
 
 /**
- * Load a process from a filename (not by ID)
- * @param {string} filename - Filename within the processes directory
+ * Load a process/station from a filename or relative path.
+ * Accepts either a bare filename (searches both layouts by basename) or a relative path
+ * (treats as direct path).
+ * @param {string} arg - Bare filename (e.g. 'P1__foo.json') or path (e.g. '.orchestrator/stations/VM/foo.json')
  * @returns {object|null} Process definition or null if not found
  */
-export function loadProcessByFilename(filename) {
-  const filepath = path.join(PROCESSES_DIR, filename);
-
-  if (!fs.existsSync(filepath)) {
-    return null;
+export function loadProcessByFilename(arg) {
+  // Path form — use directly
+  if (arg.includes(path.sep) || arg.includes('/')) {
+    if (!fs.existsSync(arg)) return null;
+    return JSON.parse(fs.readFileSync(arg, 'utf8'));
   }
 
-  return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+  // Bare filename — search both layouts by basename
+  for (const filepath of getAllStationFilePaths()) {
+    if (path.basename(filepath) === arg) {
+      return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    }
+  }
+  return null;
 }
 
 /**
- * Write the server-assigned ID back into a new process file and rename it
- * to the standard naming format.
- * @param {string} originalFilename - Original filename (e.g. 'nowapps_discover_pending_msas.json')
+ * Write the server-assigned ID back into a new process/station file and rename it
+ * to the standard naming format. Preserves the original file's directory so files
+ * created in the new stations layout stay there.
+ * @param {string} originalArg - Original bare filename or relative path
  * @param {object} process - Process with id, name, and optionally short_code (as returned by server)
  * @returns {string} New filepath
  */
-export function finalizeNewProcessFile(originalFilename, process) {
-  ensureProcessesDir();
+export function finalizeNewProcessFile(originalArg, process) {
+  // Locate the original file — accept either a path or a bare filename
+  let originalPath;
+  if (originalArg.includes(path.sep) || originalArg.includes('/')) {
+    originalPath = originalArg;
+  } else {
+    originalPath = getAllStationFilePaths().find(p => path.basename(p) === originalArg)
+      || path.join(PROCESSES_DIR, originalArg);
+  }
 
   // Remove the original file
-  const originalPath = path.join(PROCESSES_DIR, originalFilename);
   if (fs.existsSync(originalPath)) {
     fs.unlinkSync(originalPath);
   }
 
-  // Write with standard naming
+  // Write the renamed file into the same directory as the original (defaults to legacy if it was missing)
+  const targetDir = fs.existsSync(path.dirname(originalPath)) ? path.dirname(originalPath) : PROCESSES_DIR;
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
   const newFilename = buildFilename(process);
-  const newPath = path.join(PROCESSES_DIR, newFilename);
+  const newPath = path.join(targetDir, newFilename);
   fs.writeFileSync(newPath, JSON.stringify(process, null, 2));
   return newPath;
 }
