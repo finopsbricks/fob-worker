@@ -1,8 +1,9 @@
 import { getProcess, listWorkRecords, getProcessItems } from '../../utils/orchestrator.js';
 import { formatHeader, formatField, formatTable, formatSection, formatDate } from '../../utils/format.js';
+import { loadLineState, LIVE_BINS } from '../../utils/line-state.js';
 
 export async function showProcessHandler(argv) {
-  const { id, workRecords, items, all, json } = argv;
+  const { id, workRecords, items, all, json, state } = argv;
 
   try {
     const response = await getProcess(id);
@@ -80,9 +81,42 @@ export async function showProcessHandler(argv) {
       }
     }
 
+    // --state — single-station drilldown with workpiece ids per bin
+    if (state) {
+      const shortCode = proc.short_code;
+      console.log(formatSection('Live state'));
+      if (!shortCode) {
+        console.log('(no short_code — cannot resolve to a station on disk)');
+      } else {
+        const lineState = loadLineState();
+        let stationLine = null;
+        for (const ls of Object.values(lineState)) {
+          if (ls.stations.includes(shortCode)) { stationLine = ls; break; }
+        }
+        if (!stationLine) {
+          console.log(`(no temp/stations/${shortCode}/ directory)`);
+        } else {
+          const bins = stationLine.bins[shortCode];
+          for (const bin of [...LIVE_BINS, 'done']) {
+            const ids = bins[bin];
+            const label = bin === 'done' ? '(done)' : bin;
+            if (ids === null) {
+              console.log(`${label.padEnd(8)} —`);
+              continue;
+            }
+            const sorted = [...ids].sort();
+            console.log(`${label.padEnd(8)} (${sorted.length})`);
+            for (const wpId of sorted) console.log(`         ${wpId}`);
+            if (sorted.length === 0) console.log('         —');
+            console.log('');
+          }
+        }
+      }
+    }
+
     // Hint when no section flags used
-    if (!workRecords && !items && !all) {
-      console.log('\nUse --work-records, --items, or --all for linked entities.');
+    if (!workRecords && !items && !all && !state) {
+      console.log('\nUse --work-records, --items, --state, or --all for linked entities.');
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);

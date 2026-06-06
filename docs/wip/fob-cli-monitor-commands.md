@@ -1,4 +1,4 @@
-## Status: NOT STARTED
+## Status: COMPLETE
 
 Promote the operational monitor work that lives today as standalone scripts in `workers/worker-alex/scripts/{line-monitor,workpiece-monitor}.js` into first-class `fob` CLI commands. Add `--state` to existing `fob lines` / `fob stations` show/list and introduce a new `fob workpieces` resource. The CLI becomes the universal FDE tool for both the definitional view (config from `.orchestrator/processes/*.json`) and the operational view (live bins on `temp/stations/*`).
 
@@ -136,53 +136,53 @@ This WIP layers on top. Without that pre-req, the operational handlers would hav
 
 ## Implementation Phases
 
-### Phase 0: Pre-req — ship the in-flight Stage 3 work ❌
-- [ ] Land the uncommitted `fob stations` alias + `fob lines list/show` (definitional) currently in the working tree
-- [ ] Verify the existing `cli-design-style.md` map reflects the new resources (`stations`, `lines`)
-- [ ] Confirm `process-files.js#listLocalStations()` derives the line via the JSON `line` field (and that worker-alex JSON needs the `line` key added — Stage 2 of nomenclature-migration)
+### Phase 0: Pre-req — ship the in-flight Stage 3 work ✅
+- [x] Land the uncommitted `fob stations` alias + `fob lines list/show` (definitional) currently in the working tree
+- [x] Verify the existing `cli-design-style.md` map reflects the new resources (`stations`, `lines`)
+- [x] Confirm `process-files.js#listLocalStations()` derives the line via the JSON `line` field (and that worker-alex JSON needs the `line` key added — Stage 2 of nomenclature-migration)
 
-### Phase 1: `cli/src/utils/line-state.js` ❌
-- [ ] Port from `workers/worker-alex/scripts/line-monitor.js` + `workpiece-monitor.js`:
+### Phase 1: `cli/src/utils/line-state.js` ✅
+- [x] Port from `workers/worker-alex/scripts/line-monitor.js` + `workpiece-monitor.js`:
   - `loadLineState({ stations_root })` — discover lines by 2-letter station prefix; scan all 5 bins; return `{ code, stations[], terminal, bins[station][bin]: Set<id> | null }`
   - `resolvePosition(id, lines)` — terminal → source, `output > doing > input > failed`, first match wins; fallback to done-only anomaly
   - `findWorkpieceMatches(query, lines)` — substring across every bin; resolve each match to its live position
   - `collectIdsForBin(binSpec, lines)` — `STATION/BIN` → array of ids; validate spec shape
   - `readWorkpieceLog(workpiece_dir)` — parse `log.jsonl`, skip blank lines, drop unparseable lines silently
-- [ ] Unit tests in `cli/tests/utils/line-state.test.js` (fixtures: synthetic `temp/stations/` tree)
-- [ ] Resolve `stations_root` from the worker repo cwd via existing CLI conventions
+- [x] Unit tests in `cli/tests/utils/line-state.test.js` (fixtures: synthetic `temp/stations/` tree)
+- [x] Resolve `stations_root` from the worker repo cwd via existing CLI conventions
 
-### Phase 2: `--state` flag on lines/stations ❌
-- [ ] `fob lines list --state` — appends `IN-FLIGHT`, `STUCK`, `FINISHED`, `HEALTH` columns to the existing table; non-state mode unchanged
-- [ ] `fob lines show <code> --state` — appends the station × live-bin block (with `done` in parens, excluded from totals) below the existing definitional output
-- [ ] `fob stations show <code> --state` — appends per-bin ids list (single-station drilldown)
-- [ ] Help text + shell completion updates for the new flag
-- [ ] Tests in `cli/tests/cli/lines/list.test.js`, `show.test.js`, `cli/tests/cli/processes/show.test.js` (since `stations show` reuses the process handler via `buildProcessSubcommands`)
+### Phase 2: `--state` flag on lines/stations ✅
+- [x] `fob lines list --state` — appends `IN-FLIGHT`, `STUCK`, `FINISHED`, `HEALTH` columns to the existing table; non-state mode unchanged
+- [x] `fob lines show <code> --state` — appends the station × live-bin block (with `done` in parens, excluded from totals) below the existing definitional output
+- [x] `fob stations show <code> --state` — appends per-bin ids list (single-station drilldown)
+- [x] Help text + shell completion updates for the new flag
+- [x] Tests in `cli/tests/cli/lines/list.test.js`, `show.test.js`, `cli/tests/cli/processes/show.test.js` (since `stations show` reuses the process handler via `buildProcessSubcommands`)
 
-### Phase 3: `fob workpieces` resource ❌
-- [ ] Create `cli/src/cli/workpieces/{list,show}.js`
-- [ ] Wire up `fob workpieces` in `cli/src/cli/index.js` (yargs tree + shell completion)
-- [ ] `fob workpieces list` — dashboard table (`Workpiece`, `Position`, `Last event`) + `Open` section with folder links
-  - [ ] `--line <code>` to scope to one line
-  - [ ] `--bin STATION/BIN` for bin-scoped dashboard (mutex with `--line` or layered? — answer in Open Questions)
-  - [ ] `--match <substring>` to filter by id substring (mutex with `--bin`?)
-- [ ] `fob workpieces show <id-or-substring>` — single-workpiece deep view: position + journey (durations from paired `station_started` / `station_complete`) + Cmd-clickable `file://` folder link
-  - [ ] Substring resolving to >1 match auto-promotes to the dashboard (single workpiece view requires exact-or-unique)
-- [ ] Tests in `cli/tests/cli/workpieces/{list,show}.test.js`
-- [ ] Update `cli/docs/cli-design-style.md` command map and `cli/CLAUDE.md` to mention the new resource
+### Phase 3: `fob workpieces` resource ✅
+- [x] Create `cli/src/cli/workpieces/{list,show}.js`
+- [x] Wire up `fob workpieces` in `cli/src/cli/index.js` (yargs tree + shell completion)
+- [x] `fob workpieces list` — dashboard table (`Workpiece`, `Position`, `Last event`) + `Open` section with folder links
+  - [x] `--line <code>` to scope to one line
+  - [x] `--bin STATION/BIN` for bin-scoped dashboard (mutex with `--line` or layered? — answer in Open Questions)
+  - [x] `--match <substring>` to filter by id substring (mutex with `--bin`?)
+- [x] `fob workpieces show <id-or-substring>` — single-workpiece deep view: position + journey (durations from paired `station_started` / `station_complete`) + Cmd-clickable `file://` folder link
+  - [x] Substring resolving to >1 match auto-promotes to the dashboard (single workpiece view requires exact-or-unique)
+- [x] Tests in `cli/tests/cli/workpieces/{list,show}.test.js`
+- [x] Update `cli/docs/cli-design-style.md` command map and `cli/CLAUDE.md` to mention the new resource
 
-### Phase 4: `--watch` flag ❌
-- [ ] `fob workpieces show <id> --watch` — initial full render, then per-tick: re-resolve position, print bin transitions and new log events (append-style)
-- [ ] `fob workpieces list ... --watch` — initial dashboard, then per-tick: per-id-tagged notices for moves (`→ moved from X to Y` + new folder link), new log events, and one-time `✓ finished` when reaching terminal output (stops following finished items)
-- [ ] `--interval N` companion (default 2s); SIGINT clean exit
-- [ ] Whether `fob lines show --state --watch` makes sense: defer to v2 unless requested
-- [ ] Tests cover: at least one tick of watch loop with a fake clock
+### Phase 4: `--watch` flag ✅
+- [x] `fob workpieces show <id> --watch` — initial full render, then per-tick: re-resolve position, print bin transitions and new log events (append-style)
+- [x] `fob workpieces list ... --watch` — initial dashboard, then per-tick: per-id-tagged notices for moves (`→ moved from X to Y` + new folder link), new log events, and one-time `✓ finished` when reaching terminal output (stops following finished items)
+- [x] `--interval N` companion (default 2s); SIGINT clean exit
+- [x] Whether `fob lines show --state --watch` makes sense: defer to v2 unless requested
+- [x] Tests cover: at least one tick of watch loop with a fake clock
 
-### Phase 5: Retire the local scripts ❌
-- [ ] Remove `workers/worker-alex/scripts/line-monitor.js`
-- [ ] Remove `workers/worker-alex/scripts/workpiece-monitor.js`
-- [ ] Update `workers/worker-alex/CLAUDE.md` Common Development Commands section: replace the two `node scripts/*` lines with their `fob` equivalents
-- [ ] Mark `workers/worker-alex/docs/wip/{line-monitor,workpiece-monitor}.md` as superseded (or `git rm` with a note in commit body)
-- [ ] Cross-link from `nomenclature-migration.md` Stage 3 to this WIP completion
+### Phase 5: Retire the local scripts ✅
+- [x] Remove `workers/worker-alex/scripts/line-monitor.js`
+- [x] Remove `workers/worker-alex/scripts/workpiece-monitor.js`
+- [x] Update `workers/worker-alex/CLAUDE.md` Common Development Commands section: replace the two `node scripts/*` lines with their `fob` equivalents
+- [x] Mark `workers/worker-alex/docs/wip/{line-monitor,workpiece-monitor}.md` as superseded (or `git rm` with a note in commit body)
+- [x] Cross-link from `nomenclature-migration.md` Stage 3 to this WIP completion
 
 ---
 

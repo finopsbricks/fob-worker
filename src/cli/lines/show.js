@@ -1,12 +1,16 @@
 import { listLocalStations } from '../../utils/process-files.js';
 import { formatHeader, formatField, formatTable, formatSection } from '../../utils/format.js';
+import { loadLineState, LIVE_BINS } from '../../utils/line-state.js';
 
 /**
  * `fob lines show <line>` — show all stations on a line, derived from local JSON files.
  * Order stations using the dependency graph (topological sort over the line's members).
+ *
+ * --state appends a station × live-bin table read from temp/stations/. The `done`
+ * bin is shown in parens for audit and excluded from the live totals.
  */
 export async function showLineHandler(argv) {
-  const { line: lineArg, json } = argv;
+  const { line: lineArg, json, state } = argv;
   const stations = listLocalStations();
 
   const members = stations.filter(s => s.line === lineArg);
@@ -17,7 +21,12 @@ export async function showLineHandler(argv) {
   }
 
   if (json) {
-    console.log(JSON.stringify(members.map(m => m.data), null, 2));
+    const payload = { stations: members.map(m => m.data) };
+    if (state) {
+      const lineState = loadLineState();
+      payload.state = lineState[lineArg] ?? null;
+    }
+    console.log(JSON.stringify(payload, null, 2));
     return;
   }
 
@@ -61,6 +70,54 @@ export async function showLineHandler(argv) {
       ['AT STATION', 'FROM BIN', 'TO BIN', 'MODE'],
       conveyors.map(c => [c.station, c.from || '—', c.to || '—', c.mode || '—']),
     ));
+  }
+
+  // --state — live bin counts from temp/stations/{station}/{bin}/
+  if (state) {
+    const lineState = loadLineState();
+    const ls = lineState[lineArg];
+    console.log(formatSection('Live state'));
+    if (!ls) {
+      console.log('(no temp/stations/ entries for this line)');
+      return;
+    }
+
+    const cell = (ids) => (ids === null ? '—' : String(ids.size));
+    const rows = ls.stations.map((stationCode) => {
+      const b = ls.bins[stationCode];
+      return [
+        stationCode,
+        cell(b.input),
+        cell(b.doing),
+        cell(b.output),
+        cell(b.failed),
+        b.done === null ? '—' : `(${b.done.size})`,
+      ];
+    });
+
+    // Live total row (excludes done).
+    const totals = { input: 0, doing: 0, output: 0, failed: 0 };
+    for (const stationCode of ls.stations) {
+      for (const bin of LIVE_BINS) {
+        const ids = ls.bins[stationCode][bin];
+        if (ids) totals[bin] += ids.size;
+      }
+    }
+    rows.push([
+      'live',
+      String(totals.input),
+      String(totals.doing),
+      String(totals.output),
+      String(totals.failed),
+      '',
+    ]);
+
+    console.log(formatTable(
+      ['STATION', 'INPUT', 'DOING', 'OUTPUT', 'FAILED', '(DONE)'],
+      rows,
+    ));
+    console.log('');
+    console.log('`(done)` shown in parens for audit; excluded from live totals.');
   }
 }
 
