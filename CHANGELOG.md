@@ -15,6 +15,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.8.0] - 2026-06-08
+
+### Added
+- `fob stations {list,show,run,pull,push,edit,update-step-metadata}` — vocabulary alias of `fob processes`, same handlers with "station" vocab threaded through help/usage/error strings
+- `fob lines list` and `fob lines show <LINE>` — group local station JSONs by `line` field, topo-sort by `dependencies`, surface conveyor topology from each station's `lib-worker:move_files` step
+- `fob lines status [code]` — snapshot summary of line health (IN-FLIGHT / STUCK / FINISHED / HEALTH) or one-line drilldown
+- `fob stations status <code>` (also reachable via `fob processes status`) — single-station bin drilldown
+- `fob workpieces {list,show}` — workpiece resource with `--line`, `--bin`, `--match` scoping; `show` resolving to >1 substring matches auto-promotes to dashboard view
+- `fob workpieces watch` — append-style live tail with per-id-tagged notices for moves, new log events, and a one-time ✓ finished notice
+- `--force` flag on `fob processes push` — on 404 during PUT, falls back to POST with the same id so the server creates with the client-specified id (enables cross-environment upsert without ID drift)
+- `.orchestrator/stations/{LINE}/` nested layout supported alongside legacy `.orchestrator/processes/` flat layout (push reads both)
+- `src/utils/line-state.js` — CLI-scoped bin-walking helpers, topology resolution, shared `topoSortStations` indexed on both `short_code` and `id`
+- `docs/usage/monitoring.md` — how-to walking through line-level and workpiece-level views with bin-semantics mental model
+- Sections for `fob stations`, `fob lines`, and `fob workpieces` in `commands.md`
+- Shell completion entries for `stations` and `lines`
+- Tests: 36 new tests for line-state helpers, workpieces, and status/watch handlers
+
+### Changed
+- **BREAKING:** `STEP_PREFIX` env var renamed to `WORKER_LOCATION`
+- **BREAKING:** `X-Step-Prefix` header renamed to `X-Location`
+- `findPreviousStep` no longer assumes slash-prefixed slugs; tests updated for unprefixed slug format
+- `saveProcess()` no longer constructs per-line subfolders — writes flat to `.orchestrator/stations/` when layout='stations' or `.orchestrator/processes/` when layout='processes'. Line membership lives in the JSON `line` key, not the folder.
+- `fob processes push` reads both `.orchestrator/processes/` and `.orchestrator/stations/` layouts; `loadProcessByFilename()` and `finalizeNewProcessFile()` accept either a bare filename or a relative path
+- Docs handbook/engineering-standards references updated to new repo locations; absolute paths stripped
+
+### Fixed
+- `fob lines list/show/status` now agree on station ordering — all three commands source topology from `.orchestrator/stations/*.json` and use the shared `topoSortStations` so id-based dependency edges resolve correctly
+- `fob lines show --json` matches the table's dependency ordering (previously dumped alphabetical-file order while the table was topo-sorted)
+- `collectIdsForBin` no longer rejects valid station codes — `fob workpieces list --bin AP3b/failed`, `TR1`, `P10`, etc. now parse
+- `fob processes show` and `fob stations show` print a hint that matches the plural the user typed (previously both said `fob stations status …`)
+
+### Removed
+- **BREAKING:** `--state` flag on `fob lines list/show`, `fob stations show`, `fob processes show` — replaced by the `status` verb (`fob lines status`, `fob stations status`)
+- **BREAKING:** `--watch` flag on `fob workpieces list/show` — replaced by `fob workpieces watch` verb
+- `X-Worker-Type` header from worker config (orchestrator no longer uses it; task routing uses `X-Step-Prefix` / now `X-Location` only)
+
+## [0.7.1] - 2026-03-22
+
+### Fixed
+- `fob processes push` now uses JSON content (`id` field presence) instead of filename to decide create vs update
+
 ## [0.7.0] - 2026-03-20
 
 ### Added
