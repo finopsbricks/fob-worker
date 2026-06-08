@@ -19,13 +19,14 @@ export async function showLineHandler(argv) {
     process.exit(1);
   }
 
+  // Topological sort by dependencies (shared with lines list / lines status).
+  // Sort before the json branch so --json and the table show the same order.
+  const ordered = topoSortStations(members);
+
   if (json) {
-    console.log(JSON.stringify(members.map(m => m.data), null, 2));
+    console.log(JSON.stringify(ordered.map(m => m.data), null, 2));
     return;
   }
-
-  // Topological sort by dependencies (shared with lines list / lines status).
-  const ordered = topoSortStations(members);
 
   console.log(formatHeader('Line', lineArg));
   console.log(formatField('Stations', String(members.length), 12));

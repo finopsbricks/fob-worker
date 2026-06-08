@@ -3,6 +3,9 @@ import { formatHeader, formatField, formatTable, formatSection, formatDate } fro
 
 export async function showProcessHandler(argv) {
   const { id, workRecords, items, all, json } = argv;
+  // `_plural` carries the alias the user actually typed (processes|stations);
+  // default to stations so direct (un-wired) callers still get a sensible hint.
+  const plural = argv._plural ?? 'stations';
 
   try {
     const response = await getProcess(id);
@@ -84,7 +87,7 @@ export async function showProcessHandler(argv) {
     if (!workRecords && !items && !all) {
       console.log('\nUse --work-records, --items, or --all for linked entities.');
       if (proc.short_code) {
-        console.log(`Run \`fob stations status ${proc.short_code}\` for live bin state.`);
+        console.log(`Run \`fob ${plural} status ${proc.short_code}\` for live bin state.`);
       }
     }
   } catch (error) {

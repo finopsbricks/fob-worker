@@ -88,6 +88,8 @@ function buildProcessSubcommands(yargs, names) {
           console.error(`For live bin state, use "fob ${plural} status <short_code>".`);
           process.exit(1);
         }
+        // Thread the invoked alias through so handler hints can match it.
+        argv._plural = plural;
         return withSeparator(showProcessHandler)(argv);
       },
     )

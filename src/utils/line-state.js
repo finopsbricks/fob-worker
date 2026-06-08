@@ -259,11 +259,14 @@ export function findWorkpieceMatches(query, lines) {
  * @returns {{ok: true, ids: string[]} | {ok: false, error: string}}
  */
 export function collectIdsForBin(bin_spec, lines) {
-  const m = bin_spec.match(/^([A-Z]{2}\d+)\/(input|doing|output|done|failed)$/);
+  // Station code is whatever short_code shape the JSON uses (AP3b, VO1x, P10,
+  // TR1, …). Don't bake assumptions about prefix length or numeric suffix into
+  // the regex — defer existence checking to the loaded line state below.
+  const m = bin_spec.match(/^([^/]+)\/(input|doing|output|done|failed)$/);
   if (!m) {
     return {
       ok: false,
-      error: `Invalid bin spec "${bin_spec}". Use STATION/BIN (e.g. VM3/failed).`,
+      error: `Invalid bin spec "${bin_spec}". Use STATION/BIN (e.g. AP3b/failed).`,
     };
   }
   const [, station, bin] = m;
