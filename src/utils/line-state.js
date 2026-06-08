@@ -1,8 +1,12 @@
 /**
  * Line state — operational view of the assembly-line filesystem.
  *
- * Reads `temp/stations/{STATION}/{BIN}/{workpiece_id}/` to answer:
- *   - which lines exist (auto-discovered by 2-letter station prefix)
+ * Line topology is sourced from `.orchestrator/stations/*.json` (the `line` field
+ * on each station is the authoritative line membership). Bin contents are read
+ * from `temp/stations/{STATION}/{BIN}/{workpiece_id}/`.
+ *
+ * This module answers:
+ *   - which lines exist (the distinct `line` values across local station JSONs)
  *   - how many workpieces sit in each bin of each station
  *   - where a given workpiece is right now (most-advanced live bin)
  *   - what events fired on its journey (parsed from log.jsonl)
@@ -16,6 +20,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { listLocalStations } from './process-files.js';
 
 const ALL_BINS = ['input', 'doing', 'output', 'failed', 'done'];
 const LIVE_BINS = ['input', 'doing', 'output', 'failed'];
@@ -51,50 +57,133 @@ export function defaultStationsRoot() {
 }
 
 /**
- * Scan the stations root and return per-line state with every bin's
- * workpiece-id Set.
+ * Build per-line operational state.
+ *
+ * Topology (line membership, station ordering, terminal) is derived from
+ * `.orchestrator/stations/*.json` — the `line` field is the authoritative
+ * grouping, and dependency edges drive topo ordering. Bin contents come from
+ * `temp/stations/{station}/{bin}/`. Stations defined in JSON but with no on-disk
+ * bin dirs render as `null` bins (— in the table); on-disk station dirs with no
+ * matching JSON are ignored (they're orphans of a renamed/deleted station).
  *
  * @param {object} [opts]
  * @param {string} [opts.stations_root] - Override the default temp/stations path.
- * @returns {Object<string, LineState>} Lines keyed by line code.
+ * @returns {Object<string, LineState>} Lines keyed by the JSON `line` value.
  */
 export function loadLineState({ stations_root = defaultStationsRoot() } = {}) {
-  if (!fs.existsSync(stations_root)) return {};
+  const station_defs = listLocalStations();
 
-  const station_dirs = fs
-    .readdirSync(stations_root, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && /^[A-Z]{2}\d+$/.test(e.name))
-    .map((e) => e.name);
+  /** @type {Map<string, Array>} */
+  const grouped = new Map();
+  for (const def of station_defs) {
+    if (!def.line) continue; // station not assigned to any line — skip
+    if (!grouped.has(def.line)) grouped.set(def.line, []);
+    grouped.get(def.line).push(def);
+  }
 
   /** @type {Object<string, LineState>} */
   const lines = {};
-  for (const station of station_dirs) {
-    const line_code = station.match(/^[A-Z]{2}/)[0];
-    if (!lines[line_code]) {
-      lines[line_code] = { code: line_code, stations: [], terminal: '', bins: {} };
-    }
-    lines[line_code].stations.push(station);
-  }
+  for (const [line_code, members] of grouped) {
+    const ordered = topoSortStations(members);
+    const station_codes = ordered.map(codeOf);
+    const terminal = computeTerminal(ordered);
 
-  for (const line of Object.values(lines)) {
-    line.stations.sort(
-      (a, b) => parseInt(a.match(/\d+/)[0], 10) - parseInt(b.match(/\d+/)[0], 10),
-    );
-    line.terminal = line.stations[line.stations.length - 1];
-    for (const station of line.stations) {
-      line.bins[station] = {};
+    const bins = {};
+    for (const station of station_codes) {
+      bins[station] = {};
       for (const bin of ALL_BINS) {
         const dir = path.join(stations_root, station, bin);
-        if (!fs.existsSync(dir)) { line.bins[station][bin] = null; continue; }
+        if (!fs.existsSync(dir)) { bins[station][bin] = null; continue; }
         const ids = fs
           .readdirSync(dir, { withFileTypes: true })
           .filter((e) => e.isDirectory())
           .map((e) => e.name);
-        line.bins[station][bin] = new Set(ids);
+        bins[station][bin] = new Set(ids);
       }
     }
+
+    lines[line_code] = { code: line_code, stations: station_codes, terminal, bins };
   }
   return lines;
+}
+
+/**
+ * Stable code accessor for a station def — prefers short_code, falls back to id.
+ * Exported so callers ordering station defs (lines/list, lines/show) agree on
+ * what a station's "code" is.
+ */
+export const codeOf = (s) => s.data.short_code || s.data.id;
+
+/**
+ * Topologically sort station defs within a single line by their `dependencies`
+ * edges. Exported and shared across `lines list`, `lines show`, and `lines
+ * status` so all three present the same execution order.
+ *
+ * Dependencies may reference peers by short_code OR orchestrator id; we index
+ * both forms to avoid silently dropping id-based edges (which would fall back
+ * to alphabetical luck — fine for AP2..AP6 by accident, wrong for TR1 in AP).
+ *
+ * @param {Array<{data: object}>} members - Station defs (from listLocalStations)
+ *   belonging to one line.
+ * @returns {Array<{data: object}>} Same defs, ordered.
+ */
+export function topoSortStations(members) {
+  const byRef = new Map();
+  for (const s of members) {
+    const code = codeOf(s);
+    byRef.set(code, s);
+    if (s.data.id) byRef.set(s.data.id, s);
+    if (s.data.short_code) byRef.set(s.data.short_code, s);
+  }
+
+  const depsOf = (s) => (s.data.dependencies || [])
+    .map((d) => (typeof d === 'string' ? d : d.short_code || d.id))
+    .map((ref) => byRef.get(ref))
+    .filter(Boolean);
+
+  // Alphabetical pre-sort gives stable sibling order when topo has ties.
+  const sorted = [...members].sort((a, b) => codeOf(a).localeCompare(codeOf(b)));
+  const visited = new Set();
+  const result = [];
+  const visit = (s) => {
+    const code = codeOf(s);
+    if (visited.has(code)) return;
+    visited.add(code);
+    for (const dep of depsOf(s)) visit(dep);
+    result.push(s);
+  };
+  for (const s of sorted) visit(s);
+  return result;
+}
+
+/**
+ * Terminal = station that no in-line peer depends on (sink of the DAG).
+ * When the line has multiple sinks (rare — branching that never rejoins),
+ * pick the one latest in topo order so summaries pick a stable "last".
+ */
+function computeTerminal(ordered) {
+  if (ordered.length === 0) return '';
+  const codes = new Set(ordered.map(codeOf));
+  const idToCode = new Map();
+  for (const s of ordered) {
+    if (s.data.id) idToCode.set(s.data.id, codeOf(s));
+  }
+
+  const depended_on = new Set();
+  for (const s of ordered) {
+    for (const d of s.data.dependencies || []) {
+      const ref = typeof d === 'string' ? d : d.short_code || d.id;
+      if (codes.has(ref)) depended_on.add(ref);
+      else if (idToCode.has(ref)) depended_on.add(idToCode.get(ref));
+    }
+  }
+
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const c = codeOf(ordered[i]);
+    if (!depended_on.has(c)) return c;
+  }
+  // Fully cyclic (shouldn't happen in a DAG); fall back to the last in topo order.
+  return codeOf(ordered[ordered.length - 1]);
 }
 
 /**

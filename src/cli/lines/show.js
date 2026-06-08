@@ -1,4 +1,5 @@
 import { listLocalStations } from '../../utils/process-files.js';
+import { topoSortStations } from '../../utils/line-state.js';
 import { formatHeader, formatField, formatTable, formatSection } from '../../utils/format.js';
 
 /**
@@ -23,8 +24,8 @@ export async function showLineHandler(argv) {
     return;
   }
 
-  // Topological sort by dependencies (within the line); fall back to alpha by short_code.
-  const ordered = topoSort(members);
+  // Topological sort by dependencies (shared with lines list / lines status).
+  const ordered = topoSortStations(members);
 
   console.log(formatHeader('Line', lineArg));
   console.log(formatField('Stations', String(members.length), 12));
@@ -67,38 +68,4 @@ export async function showLineHandler(argv) {
 
   console.log('');
   console.log(`Run \`fob lines status ${lineArg}\` for live bin counts.`);
-}
-
-/**
- * Topological sort over stations within a single line, using the `dependencies` array.
- * Dependency entries can be short_codes (strings) or {short_code, id} objects.
- * Stations whose deps fall outside the line are treated as roots within this view.
- */
-function topoSort(members) {
-  const codeOf = (s) => s.data.short_code || s.data.id;
-  const byCode = new Map(members.map(s => [codeOf(s), s]));
-
-  const depsOf = (s) => {
-    const list = s.data.dependencies || [];
-    return list
-      .map(d => (typeof d === 'string' ? d : d.short_code || d.id))
-      .filter(code => byCode.has(code));
-  };
-
-  const visited = new Set();
-  const result = [];
-  const visit = (s) => {
-    const code = codeOf(s);
-    if (visited.has(code)) return;
-    visited.add(code);
-    for (const depCode of depsOf(s)) {
-      visit(byCode.get(depCode));
-    }
-    result.push(s);
-  };
-
-  // Visit alphabetically so siblings come out predictably
-  const sorted = [...members].sort((a, b) => codeOf(a).localeCompare(codeOf(b)));
-  for (const s of sorted) visit(s);
-  return result;
 }

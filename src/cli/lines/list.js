@@ -1,4 +1,5 @@
 import { listLocalStations } from '../../utils/process-files.js';
+import { topoSortStations, codeOf } from '../../utils/line-state.js';
 import { formatTable } from '../../utils/format.js';
 
 /**
@@ -28,7 +29,8 @@ export async function listLinesHandler(argv) {
   if (json) {
     const out = {};
     for (const [line, members] of groups) {
-      out[line] = members.map(m => ({
+      const ordered = topoSortStations(members);
+      out[line] = ordered.map(m => ({
         short_code: m.data.short_code,
         id: m.data.id,
         name: m.data.name,
@@ -42,10 +44,7 @@ export async function listLinesHandler(argv) {
   const sortedLines = [...groups.keys()].sort();
   for (const line of sortedLines) {
     const members = groups.get(line);
-    const codes = members
-      .map(m => m.data.short_code || m.data.id)
-      .sort()
-      .join(', ');
+    const codes = topoSortStations(members).map(codeOf).join(', ');
     rows.push([line, String(members.length), codes]);
   }
 
