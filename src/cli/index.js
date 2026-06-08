@@ -26,8 +26,11 @@ import { editTagHandler } from './tags/edit.js';
 import { editProcessHandler } from './processes/edit.js';
 import { listLinesHandler } from './lines/list.js';
 import { showLineHandler } from './lines/show.js';
+import { statusLineHandler } from './lines/status.js';
+import { statusProcessHandler } from './processes/status.js';
 import { listWorkpiecesHandler } from './workpieces/list.js';
 import { showWorkpieceHandler } from './workpieces/show.js';
+import { watchHandler } from './workpieces/watch.js';
 import { listItemsHandler } from './items/list.js';
 import { showItemHandler } from './items/show.js';
 import { editItemHandler } from './items/edit.js';
@@ -68,24 +71,42 @@ function buildProcessSubcommands(yargs, names) {
     )
     .command(
       'show [id]',
-      `Show ${singular} definition`,
+      `Show ${singular} definition (config from .orchestrator/)`,
       (yargs) => {
         return yargs
           .positional('id', { describe: `${Cap} ID or short_code`, type: 'string' })
           .option('work-records', { describe: 'Include recent work records', type: 'boolean' })
           .option('items', { describe: 'Include linked items', type: 'boolean' })
           .option('all', { describe: 'Include all linked entities', type: 'boolean' })
-          .option('state', { describe: 'Include live bin state from temp/stations/', type: 'boolean' })
           .option('json', { describe: 'Output raw JSON', type: 'boolean' });
       },
       (argv) => {
         if (argv.getYargsCompletions) return;
         if (!argv.id) {
           console.error(`Usage: fob ${plural} show <id|short_code>`);
-          console.error(`Run "fob ${plural} list" to see available ${plural}`);
+          console.error(`Run "fob ${plural} list" to see available ${plural}.`);
+          console.error(`For live bin state, use "fob ${plural} status <short_code>".`);
           process.exit(1);
         }
         return withSeparator(showProcessHandler)(argv);
+      },
+    )
+    .command(
+      'status [id]',
+      `Snapshot of live bin state for one ${singular} (reads temp/stations/)`,
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: `${Cap} short_code (e.g. VM3)`, type: 'string' })
+          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error(`Usage: fob ${plural} status <short_code>`);
+          console.error(`Pass the ${singular} short_code (e.g. VM3). Run "fob lines status" to see active lines.`);
+          process.exit(1);
+        }
+        return withSeparator(statusProcessHandler)(argv);
       },
     )
     .command(
@@ -151,7 +172,7 @@ function buildProcessSubcommands(yargs, names) {
       {},
       withSeparator(updateStepMetadataHandler),
     )
-    .demandCommand(1, 'Specify an action: list, show, run, pull, push, edit, update-step-metadata');
+    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, update-step-metadata');
 }
 
 /**
@@ -221,61 +242,65 @@ export function run(args) {
     .command('stations', 'Work with orchestrator stations (vocabulary alias for processes)', (yargs) =>
       buildProcessSubcommands(yargs, { plural: 'stations', singular: 'station' }),
     )
-    .command('lines', 'Inspect lines derived from local station files', (yargs) => {
+    .command('lines', 'Inspect assembly lines (config + live state)', (yargs) => {
       return yargs
         .usage('$0 lines <action> [options]')
         .command(
           'list',
-          'List lines (grouped from local station files)',
-          (yargs) => yargs
-            .option('state', { describe: 'Include live bin counts from temp/stations/', type: 'boolean' })
-            .option('json', { describe: 'Output raw JSON', type: 'boolean' }),
+          'List lines grouped from local station files (definitional)',
+          (yargs) => yargs.option('json', { describe: 'Output raw JSON', type: 'boolean' }),
           withSeparator(listLinesHandler),
         )
         .command(
           'show [line]',
-          'Show stations on a line (with conveyor topology)',
+          'Show line config: stations in dependency order + conveyor topology (definitional)',
           (yargs) => {
             return yargs
-              .positional('line', { describe: 'Line name (e.g., VM, P8)', type: 'string' })
-              .option('state', { describe: 'Include live bin state from temp/stations/', type: 'boolean' })
+              .positional('line', { describe: 'Line code (e.g. VM, P8)', type: 'string' })
               .option('json', { describe: 'Output raw JSON', type: 'boolean' });
           },
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.line) {
               console.error('Usage: fob lines show <line>');
-              console.error('Run "fob lines list" to see available lines');
+              console.error('Run "fob lines list" to see available lines.');
+              console.error('For live bin state, use "fob lines status <line>".');
               process.exit(1);
             }
             return withSeparator(showLineHandler)(argv);
           },
         )
-        .demandCommand(1, 'Specify an action: list, show');
+        .command(
+          'status [line]',
+          'Snapshot of live bin state (reads temp/stations/). No arg = per-line summary.',
+          (yargs) => {
+            return yargs
+              .positional('line', { describe: 'Line code to drill into (omit for cross-line summary)', type: 'string' })
+              .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+          },
+          withSeparator(statusLineHandler),
+        )
+        .demandCommand(1, 'Specify an action: list, show, status');
     })
     .command('workpieces', 'Inspect workpieces on the filesystem (temp/stations/)', (yargs) => {
       return yargs
         .usage('$0 workpieces <action> [options]')
         .command(
           'list',
-          'Operational dashboard for workpieces on disk',
+          'Snapshot dashboard of workpieces on disk',
           (yargs) => yargs
             .option('line', { describe: 'Scope to a single line (e.g. VM)', type: 'string' })
             .option('bin', { describe: 'Scope to a specific bin (STATION/BIN, e.g. VM3/failed)', type: 'string' })
             .option('match', { describe: 'Substring filter on workpiece id', type: 'string' })
-            .option('watch', { alias: 'w', describe: 'Tail moves and new log events live', type: 'boolean' })
-            .option('interval', { describe: 'Watch poll interval in seconds (default 2)', type: 'number' })
             .option('json', { describe: 'Output raw JSON', type: 'boolean' }),
           withSeparator(listWorkpiecesHandler),
         )
         .command(
           'show [id]',
-          'Deep view of a single workpiece (or auto-dashboard for ambiguous substrings)',
+          'Deep view of one workpiece (substring matching >1 promotes to dashboard)',
           (yargs) => {
             return yargs
               .positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
-              .option('watch', { alias: 'w', describe: 'Tail moves and new log events live', type: 'boolean' })
-              .option('interval', { describe: 'Watch poll interval in seconds (default 2)', type: 'number' })
               .option('json', { describe: 'Output raw JSON', type: 'boolean' });
           },
           (argv) => {
@@ -283,12 +308,26 @@ export function run(args) {
             if (!argv.id) {
               console.error('Usage: fob workpieces show <id-or-substring>');
               console.error('Run "fob workpieces list" to see workpieces on disk.');
+              console.error('For live tail, use "fob workpieces watch <id>".');
               process.exit(1);
             }
             return withSeparator(showWorkpieceHandler)(argv);
           },
         )
-        .demandCommand(1, 'Specify an action: list, show');
+        .command(
+          'watch [id]',
+          'Live tail: bin transitions and new log events as they happen',
+          (yargs) => {
+            return yargs
+              .positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
+              .option('line', { describe: 'Scope to a single line (mutually exclusive with --bin/--match)', type: 'string' })
+              .option('bin', { describe: 'Scope to a specific bin (STATION/BIN)', type: 'string' })
+              .option('match', { describe: 'Substring filter on workpiece id', type: 'string' })
+              .option('interval', { describe: 'Poll interval in seconds (default 2)', type: 'number' });
+          },
+          withSeparator(watchHandler),
+        )
+        .demandCommand(1, 'Specify an action: list, show, watch');
     })
     .command('work-records', 'Work with orchestrator work records', (yargs) => {
       return yargs
@@ -678,7 +717,7 @@ export function run(args) {
       // Processes / Stations action level completions (fob processes <tab>, fob stations <tab>)
       if (args[0] === 'processes' || args[0] === 'stations') {
         if (args.length === 1) {
-          return ['list', 'show', 'run', 'pull', 'push', 'edit', 'update-step-metadata'];
+          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'update-step-metadata'];
         }
         return [];
       }
@@ -686,7 +725,7 @@ export function run(args) {
       // Lines action level completions (fob lines <tab>)
       if (args[0] === 'lines') {
         if (args.length === 1) {
-          return ['list', 'show'];
+          return ['list', 'show', 'status'];
         }
         return [];
       }
@@ -694,7 +733,7 @@ export function run(args) {
       // Workpieces action level completions (fob workpieces <tab>)
       if (args[0] === 'workpieces') {
         if (args.length === 1) {
-          return ['list', 'show'];
+          return ['list', 'show', 'watch'];
         }
         return [];
       }

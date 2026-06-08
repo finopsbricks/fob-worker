@@ -7,7 +7,6 @@ import {
   readWorkpieceLog,
 } from '../../utils/line-state.js';
 import { listWorkpiecesHandler } from './list.js';
-import { watchSingle } from './watch.js';
 
 /**
  * `fob workpieces show <id-or-substring>` — single-workpiece depth view.
@@ -20,7 +19,7 @@ import { watchSingle } from './watch.js';
  * pass the full id.
  */
 export async function showWorkpieceHandler(argv) {
-  const { id: query, watch, json } = argv;
+  const { id: query, json } = argv;
   if (!query) {
     console.error('Usage: fob workpieces show <id-or-substring>');
     process.exit(1);
@@ -57,10 +56,7 @@ export async function showWorkpieceHandler(argv) {
   }
 
   renderWorkpiece(resolved.id, pos);
-
-  if (watch) {
-    await watchSingle(resolved.id, { interval_secs: argv.interval });
-  }
+  console.log(`\nRun \`fob workpieces watch ${resolved.id}\` to tail this workpiece live.`);
 }
 
 function resolveQueryToId(query, lines) {

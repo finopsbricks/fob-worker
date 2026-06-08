@@ -1,10 +1,22 @@
 # Monitoring an Assembly Line
 
-How to use the `fob` CLI to answer "is my line flowing?" and "where is this workpiece?" from on-disk bin state.
+How to use the `fob` CLI to answer "is my line flowing?" and "where is this workpiece?" — both for one-shot snapshots and live tailing.
 
-All monitoring commands read `temp/stations/` in the current worker repo — `cd` into your worker first. Nothing hits the orchestrator API; this is pure filesystem inspection.
+All monitoring commands read `temp/stations/` in the current worker repo. `cd` into your worker first. None of these hit the orchestrator API; it's pure filesystem inspection.
 
-## Mental model
+## Verb shape
+
+The monitor surface separates three lifecycles, each its own verb:
+
+| Verb | What it does | Lifecycle | Data source |
+|---|---|---|---|
+| `show` | Definitional view: what is this thing configured to do? | one-shot | `.orchestrator/stations/*.json` |
+| `status` | Snapshot of live state: what is it doing *right now*? | one-shot | `temp/stations/{station}/{bin}/` |
+| `watch` | Live tail: tell me as things change | streaming | same as status, polled |
+
+`monit` is **reserved** for a future interactive TUI (pm2-style); not implemented yet.
+
+## Mental model — the bins
 
 | Bin | Meaning |
 |---|---|
@@ -16,54 +28,62 @@ All monitoring commands read `temp/stations/` in the current worker repo — `cd
 
 A workpiece's *live position* is the most-advanced live bin (`output > doing > input > failed`, terminal → source). The `done` bin is a receipt, not a position — every monitor view treats it that way.
 
-## Line-level: "is the line flowing?"
+## Line-level
 
 ```bash
-fob lines list --state              # one row per line: in-flight / stuck / finished + health
-fob lines show VM --state           # station × live-bin table for one line
-fob stations show VM3 --state       # single-station drilldown with workpiece ids per bin
+fob lines list                          # definitional list of all lines + their member stations
+fob lines show VM                       # definitional: stations in dependency order + conveyor topology
+fob lines status                        # snapshot: per-line summary (in-flight / stuck / finished + health)
+fob lines status VM                     # snapshot: station × live-bin table for one line
 ```
 
-In `lines list --state`:
+`fob lines status` (no arg) is the daily "is everything OK?" view:
 
-- **In-flight** = `input + doing + output` across non-terminal stations
-- **Stuck** = total of `failed` across the line
-- **Finished** = terminal-station `output` count
-- **Health** = a one-line callout (`flowing, biggest at X` / `⚠ N at X/failed` / `idle` / `N finished, drained`)
+```
+LINE  IN-FLIGHT  STUCK  FINISHED  HEALTH
+----------------------------------------------------
+VM    0          2      13        ⚠ 2 at VM3/failed
+```
 
-In `lines show <code> --state` the `(done)` column is shown in parens and excluded from the live totals so the math reconciles (e.g. `8 finished + 7 stuck = 15` matches the workpiece count, ignoring archive receipts).
+`fob lines status VM` drills in with `done` shown in parens so the math reconciles (`live` total excludes `done`).
 
-## Workpiece-level: "where is this one, and what happened to it?"
+## Station-level
 
 ```bash
-fob workpieces show '20260605 192535'      # exact id → deep view
-fob workpieces show 192535                  # substring resolving to 1 → deep view
-fob workpieces show 2026060                 # substring matching N → dashboard
-fob workpieces list --bin VM3/failed        # everything stuck at VM3/failed
-fob workpieces list --line VM               # every workpiece on the VM line
-fob workpieces list --match 2026060         # substring filter across all lines
-fob workpieces list --line VM --bin VM3/failed   # flags layer
+fob stations show VM3                   # definitional: config from .orchestrator/
+fob stations status VM3                 # snapshot: per-bin workpiece-id drilldown
 ```
 
-The deep view renders:
+`fob stations status VM3` reads disk only; no orchestrator round-trip.
 
-- The current position with a status hint (`stuck` / `finished` / `active` / `anomaly`)
-- The journey — every event from `log.jsonl` with computed durations on each `station_complete` / `station_failed`
-- A Cmd-clickable `file://` folder link to the workpiece directory
+## Workpiece-level
 
-The dashboard view renders one row per workpiece (id, position, last log event) and a separate `Open` section with one folder link per row — clicking opens that workpiece's directory in Finder so you can inspect `error.txt`, the accumulated `*.md` artifacts, etc., without leaving the terminal.
-
-## Watching it move
-
-Append-style: initial render, then new events and bin transitions print as they happen. Friendly to scrollback and `>` redirection.
+Workpieces are inherently operational (they exist only as runtime filesystem entities — no definitional layer), so they don't have a `show`-vs-`status` split. Two verbs cover everything:
 
 ```bash
-fob workpieces show '20260605 192535' --watch                    # tail one workpiece
-fob workpieces list --bin VM3/failed --watch                     # tail every stuck item
-fob workpieces list --line VM --watch --interval 5               # 5s poll instead of 2s
+fob workpieces list                                # dashboard of every workpiece on disk
+fob workpieces list --line VM                      # scope to one line
+fob workpieces list --bin VM3/failed               # scope to one bin (STATION/BIN)
+fob workpieces list --match 2026060                # substring filter
+fob workpieces list --line VM --bin VM3/failed     # flags layer
+
+fob workpieces show 20260605                       # exact or substring → 1 match → deep view
+fob workpieces show 2026060                        # substring → many matches → dashboard
 ```
 
-In dashboard watch each notice is tagged with the workpiece id, so you can attribute events when many move at once:
+The deep view shows position + journey from `log.jsonl` (with computed durations) + a Cmd-clickable `file://` folder link.
+
+## Live tail
+
+```bash
+fob workpieces watch 20260605                       # tail one workpiece
+fob workpieces watch --bin VM3/failed               # tail every workpiece in a bin
+fob workpieces watch --line VM                      # tail every workpiece on a line
+fob workpieces watch --match 2026060                # tail by substring
+fob workpieces watch --bin VM3/input --interval 5   # 5s poll instead of the 2s default
+```
+
+Append-style: initial snapshot, then new events and bin transitions as they happen — friendly to scrollback and `>` redirection. In the multi-workpiece form each notice is tagged with the workpiece id:
 
 ```
 14:23:01  20260605 192535  → moved from VM3/failed to VM3/input
@@ -78,18 +98,37 @@ Workpieces that reach the terminal station's `output` bin emit a one-time `✓ f
 
 | Question | Command |
 |---|---|
-| Is my line healthy right now? | `fob lines list --state` |
-| Where in the VM line is work piling up? | `fob lines show VM --state` |
+| Is my line healthy right now? | `fob lines status` |
+| Where in the VM line is work piling up? | `fob lines status VM` |
+| What's at this station? | `fob stations status VM3` |
 | What failed? | `fob workpieces list --bin VM3/failed` |
 | What happened to this specific item? | `fob workpieces show <id>` |
-| I just retried N stuck items — track them through | `fob workpieces list --bin VM3/input --watch` |
+| I just retried N stuck items — track them through | `fob workpieces watch --bin VM3/input` |
+| What's the VM line *configured* to do? | `fob lines show VM` |
+| What's *this station* configured to do? | `fob stations show VM3` |
+
+## Discoverability
+
+Every verb advertises itself in `fob <resource> --help`:
+
+```
+$ fob lines
+Specify an action: list, show, status
+
+Commands:
+  fob lines list           List lines grouped from local station files (definitional)
+  fob lines show [line]    Show line config: stations in dependency order + conveyor topology (definitional)
+  fob lines status [line]  Snapshot of live bin state (reads temp/stations/). No arg = per-line summary.
+```
+
+You shouldn't have to remember verb names — typing `fob lines` (or any resource) lists them.
 
 ## Machine-readable output
 
 Every command accepts `--json` for piping into other tools, scripts, or AI sessions:
 
 ```bash
-fob lines list --state --json | jq '.[] | select(.state.stuck > 0)'
+fob lines status --json | jq 'to_entries[] | select(.value.stuck > 0)'
 fob workpieces list --bin VM3/failed --json
 fob workpieces show <id> --json
 ```

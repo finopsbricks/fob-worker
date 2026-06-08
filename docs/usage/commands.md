@@ -32,42 +32,44 @@ fob processes update-step-metadata          # Sync step names from code to proce
 
 ## Stations
 
-`fob stations` is a vocabulary alias for `fob processes` — same handlers, same flags. Use it when the entity is a station in a multi-station line (e.g. VM2, VM3) rather than a legacy single-station "process".
+`fob stations` is a vocabulary alias for `fob processes` — same handlers, same flags — plus an operational `status` verb for the live bin drilldown.
 
 ```bash
 fob stations list                           # List stations from orchestrator
-fob stations show <id>                      # Show station definition
-fob stations show <id> --state              # ...plus a per-bin workpiece-id drilldown read from temp/stations/
+fob stations show <id>                      # Definitional: show station config
+fob stations status <short_code>            # Snapshot: per-bin workpiece-id drilldown
 ```
 
-All other actions mirror `fob processes` (run, pull, push, edit, update-step-metadata).
+All other actions mirror `fob processes` (run, pull, push, edit, update-step-metadata). `status` is also available as `fob processes status <id>`.
 
 ## Lines
 
-`fob lines` derives lines by grouping locally-saved stations on their `line` field.
+`fob lines` derives lines from locally-saved stations grouped by their `line` field, and reads `temp/stations/` for live state.
 
 ```bash
-fob lines list                              # Group local stations by line
-fob lines list --state                      # ...plus IN-FLIGHT / STUCK / FINISHED / HEALTH columns
-fob lines show <line>                       # Stations on a line, with dependency order + conveyors
-fob lines show <line> --state               # ...plus a station × live-bin table
+fob lines list                              # Definitional: group local stations by line
+fob lines show <line>                       # Definitional: dependency order + conveyor topology
+fob lines status                            # Snapshot: per-line summary across all lines
+fob lines status <line>                     # Snapshot: station × live-bin table for one line
 ```
 
-`--state` reads `temp/stations/{STATION}/{BIN}/` directly. The `done` bin is shown in parens and excluded from live totals — it's an archive receipt, not a current position.
+`status` reads `temp/stations/{STATION}/{BIN}/` directly. The `done` bin is shown in parens and excluded from live totals — it's an archive receipt, not a current position.
 
 ## Workpieces
 
 `fob workpieces` answers operational questions about items flowing through bins. Workpieces are runtime filesystem entities — there's no orchestrator-side resource for them.
 
 ```bash
-fob workpieces list                              # Every workpiece on disk
+fob workpieces list                              # Snapshot: every workpiece on disk
 fob workpieces list --line VM                    # Scope to one line
 fob workpieces list --bin VM3/failed             # Scope to one bin (STATION/BIN)
 fob workpieces list --match <substring>          # Filter by workpiece-id substring
-fob workpieces show <id-or-substring>            # Position + journey + folder link
-fob workpieces show <id> --watch                 # Tail moves and new log events
-fob workpieces list --bin VM3/failed --watch     # Tail a whole batch
-fob workpieces list ... --interval 5             # Override the 2s default poll
+fob workpieces show <id-or-substring>            # Snapshot deep view: position + journey + folder link
+fob workpieces watch <id>                        # Live tail: one workpiece
+fob workpieces watch --bin VM3/failed            # Live tail: every workpiece in a bin
+fob workpieces watch --line VM                   # Live tail: every workpiece on a line
+fob workpieces watch --match <substring>         # Live tail: substring scope
+fob workpieces watch ... --interval 5            # Override the 2s default poll interval
 ```
 
 `show` with a substring resolving to >1 id auto-promotes to the dashboard view. Pass `--json` on any of these for machine-readable output. See [Monitoring](monitoring.md) for the mental model and common workflows.

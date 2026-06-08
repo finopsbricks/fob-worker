@@ -1,17 +1,27 @@
 import {
   loadLineState,
   resolvePosition,
+  findWorkpieceMatches,
+  collectIdsForBin,
   workpieceDir,
   workpieceLink,
   readWorkpieceLog,
+  ALL_BINS,
 } from '../../utils/line-state.js';
+import { listWorkpiecesHandler } from './list.js';
+import { showWorkpieceHandler } from './show.js';
 
 /**
- * Append-style watch helpers for `fob workpieces show/list --watch`.
+ * Append-style watch — the live operational view.
  *
  * Append-style means: print only new events / position changes as they happen.
- * Friendly to scrollback and `>` redirection. Initial render is the caller's
- * responsibility — these loops pick up right after that.
+ * Friendly to scrollback and `>` redirection. Initial snapshot is rendered
+ * by the existing list/show handlers; the watch loop picks up from there.
+ *
+ * `fob workpieces watch <id>` → tail one workpiece
+ * `fob workpieces watch --bin VM3/failed` → tail every workpiece in that bin
+ * `fob workpieces watch --line VM` → tail every workpiece on a line
+ * `fob workpieces watch --match <substring>` → tail by substring filter
  */
 
 const DEFAULT_INTERVAL_SECS = 2;
@@ -84,6 +94,81 @@ export async function watchSingle(workpiece_id, { interval_secs = DEFAULT_INTERV
  * @param {object} [opts]
  * @param {number} [opts.interval_secs=2]
  */
+/**
+ * Top-level handler for `fob workpieces watch [id|--line|--bin|--match]`.
+ *
+ * Decides single vs multi based on flags / positional id, renders the
+ * matching snapshot (delegated to show/list), then enters the watch loop.
+ */
+export async function watchHandler(argv) {
+  const { id, line: lineArg, bin: binArg, match: matchArg, interval } = argv || {};
+  const lines = loadLineState();
+  const interval_secs = typeof interval === 'number' ? interval : DEFAULT_INTERVAL_SECS;
+
+  // Single-workpiece path: positional id resolving to exactly one workpiece.
+  if (id) {
+    const matches = findWorkpieceMatches(id, lines);
+    if (matches.size === 0) {
+      console.error(`No workpiece matches "${id}".`);
+      process.exit(1);
+    }
+    if (matches.size === 1 || matches.has(id)) {
+      const resolvedId = matches.has(id) ? id : [...matches.keys()][0];
+      const pos = resolvePosition(resolvedId, lines);
+      if (!pos) {
+        console.error(`Workpiece "${resolvedId}" exists but has no resolvable position.`);
+        process.exit(1);
+      }
+      // Initial snapshot via show handler.
+      await showWorkpieceHandler({ id: resolvedId });
+      await watchSingle(resolvedId, { interval_secs });
+      return;
+    }
+    // Ambiguous substring → multi
+    const ids = [...matches.keys()];
+    await listWorkpiecesHandler({ match: id });
+    await watchMulti(ids, { interval_secs });
+    return;
+  }
+
+  // Multi path: scope flags determine the fixed set of ids to follow.
+  let ids;
+  if (binArg) {
+    const result = collectIdsForBin(binArg, lines);
+    if (!result.ok) { console.error(result.error); process.exit(1); }
+    ids = result.ids;
+  } else if (matchArg) {
+    ids = [...findWorkpieceMatches(matchArg, lines).keys()];
+  } else if (lineArg) {
+    const ls = lines[lineArg];
+    if (!ls) {
+      console.error(`Line "${lineArg}" not found on disk. Available: ${Object.keys(lines).sort().join(', ') || '(none)'}`);
+      process.exit(1);
+    }
+    const set = new Set();
+    for (const station of ls.stations) {
+      for (const bin of ALL_BINS) {
+        const s = ls.bins[station][bin];
+        if (s) for (const id of s) set.add(id);
+      }
+    }
+    ids = [...set];
+  } else {
+    console.error('Usage: fob workpieces watch <id> | --line <code> | --bin STATION/BIN | --match <substring>');
+    console.error('Run "fob workpieces list" to see workpieces on disk.');
+    process.exit(1);
+  }
+
+  if (ids.length === 0) {
+    console.log('No workpieces in scope.');
+    return;
+  }
+
+  // Initial snapshot via list handler (using the same scope flags).
+  await listWorkpiecesHandler({ line: lineArg, bin: binArg, match: matchArg });
+  await watchMulti(ids, { interval_secs });
+}
+
 export async function watchMulti(ids, { interval_secs = DEFAULT_INTERVAL_SECS } = {}) {
   installSigintExit();
   console.log(`\n--- watching ${ids.length} workpiece${ids.length === 1 ? '' : 's'} (interval ${interval_secs}s, Ctrl-C to stop) ---`);

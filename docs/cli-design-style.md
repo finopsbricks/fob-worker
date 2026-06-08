@@ -34,7 +34,9 @@ Actions are verbs that operate on a resource. Standard actions:
 | Action | Purpose | Example |
 |--------|---------|---------|
 | `list` | List all instances | `fob processes list` |
-| `show` | Show one instance in detail | `fob processes show <id>` |
+| `show` | Show one instance in detail (definitional) | `fob processes show <id>` |
+| `status` | Snapshot of live operational state | `fob lines status VM` |
+| `watch` | Live tail; append-style streaming | `fob workpieces watch <id>` |
 | `create` | Create a new instance | `fob tags create <name>` |
 | `edit` | Modify an existing instance | `fob processes edit <id> --add-tag x` |
 | `delete` | Remove an instance | `fob tags delete <id>` |
@@ -43,6 +45,20 @@ Actions are verbs that operate on a resource. Standard actions:
 | `run` | Execute (locally or remote) | `fob steps run <slug>`, `fob processes run <id>` |
 
 Not every resource needs every action. Only add what's useful.
+
+### Definitional vs operational verbs
+
+For resources that have both a *configured shape* (JSON in `.orchestrator/`) and a *runtime state* (filesystem under `temp/stations/`), use separate verbs rather than flags:
+
+- `show` answers "what is this configured to do?" — reads the config.
+- `status` answers "what is it doing right now?" — reads live disk.
+- `watch` answers "tell me as things change" — same data source as `status`, but streamed.
+
+Precedent: `gh run watch`, `kubectl get --watch`, `systemctl status`, `git status`, `brew outdated`. Avoid bolting an operational view onto `show` with a flag — different question, different verb.
+
+### Reserved verbs
+
+- **`monit`** — reserved for a future interactive TUI (pm2-style). Do not use for one-shot snapshots; that's what `status` is for.
 
 ## Explicit Actions — No Inference
 

@@ -9,7 +9,6 @@ import {
   readWorkpieceLog,
   ALL_BINS,
 } from '../../utils/line-state.js';
-import { watchMulti } from './watch.js';
 
 /**
  * `fob workpieces list [--line] [--bin] [--match]` — operational dashboard
@@ -25,7 +24,7 @@ import { watchMulti } from './watch.js';
  *   - `Open` section underneath with Cmd-clickable file:// folder links
  */
 export async function listWorkpiecesHandler(argv) {
-  const { line: lineArg, bin: binArg, match: matchArg, json, watch } = argv || {};
+  const { line: lineArg, bin: binArg, match: matchArg, json } = argv || {};
   const lines = loadLineState();
 
   if (Object.keys(lines).length === 0) {
@@ -131,10 +130,6 @@ export async function listWorkpiecesHandler(argv) {
   console.log(formatSection('Open'));
   const idW = Math.max(...rows.map((r) => r.id.length));
   for (const r of rows) console.log(`  ${r.id.padEnd(idW)}  ${r.link}`);
-
-  if (watch) {
-    await watchMulti(ids, { interval_secs: argv.interval });
-  }
 }
 
 function positionShort(pos) {
