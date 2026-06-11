@@ -8,12 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Legacy `.orchestrator/processes/` directory continues to be read as a fallback so worker repos that pulled before this release keep working. Writes always go to `.orchestrator/stations/`.
 
 ### Changed
+- **BREAKING:** Hard rename of the CLI's user-facing vocabulary from "process" to "station". The orchestrator HTTP API and database keep "process" — only the CLI side renames.
+- **BREAKING:** `fob processes <action>` is removed. Use `fob stations <action>` (no alias).
+- **BREAKING:** `fob steps run --process` → `--station`. `-p` and `-s` aliases dropped (the latter collided with `--scenario`).
+- **BREAKING:** `fob work-records list --process` → `--station`. `-s` alias dropped (collided with `--status`).
+- **BREAKING:** `fob items show --processes` → `--stations`.
+- Source layout: `src/cli/processes/` → `src/cli/stations/`; `src/utils/process-files.js` → `src/utils/station-files.js`. JS symbols in `src/utils/orchestrator.js` renamed to match (`listProcesses`→`listStations`, etc.); the HTTP path strings (`/api/v1/processes/*`) and URL segments passed to `setEntityTags` keep the API contract wording.
+- Docs renamed: `docs/usage/process-sync.md` → `station-sync.md`; `docs/architecture/process-files-layout.md` → `station-files-layout.md`. README, CLAUDE.md, and every other doc updated to match.
 
 ### Fixed
+- `update-step-metadata.test.js` was mocking `config.stepsPath` while the handler reads `config.stepsDir` — pre-existing bug surfaced and fixed while threading the rename through.
+- `steps/run.test.js` mocked `@fob/lib-worker` directly, bypassing the runtime `lib-worker-loader.js`. Mock now matches the loader the handler actually uses.
 
 ### Removed
+- **BREAKING:** `fob processes` command tree and the `process-files.js` module.
 
 ## [0.8.0] - 2026-06-08
 
