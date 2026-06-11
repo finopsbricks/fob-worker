@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.0.0] - 2026-06-11
+
+First stable release. The CLI surface and on-disk layout are now considered stable; future breaking changes will follow strict semver.
+
+### Added
 - Legacy `.orchestrator/processes/` directory continues to be read as a fallback so worker repos that pulled before this release keep working. Writes always go to `.orchestrator/stations/`.
 
 ### Changed
