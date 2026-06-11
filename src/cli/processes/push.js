@@ -85,9 +85,9 @@ async function syncTags(processId, tags) {
  * If the file has an `id`, it's an update (PUT). If not, it's a create (POST).
  * With `force`, a 404 on update falls back to create with the same id.
  * @param {string} filename
- * @param {{ force?: boolean }} [options]
+ * @param {{ force?: boolean, resource?: string }} [options]
  */
-async function pushByFilename(filename, { force = false } = {}) {
+async function pushByFilename(filename, { force = false, resource = 'process' } = {}) {
   const proc = loadProcessByFilename(filename);
   if (!proc) {
     console.error(`Process file not found: ${filename}`);
@@ -105,12 +105,36 @@ async function pushByFilename(filename, { force = false } = {}) {
       await syncTags(id, tags);
     } catch (err) {
       const is404 = err.message.includes('(404)');
-      if (!is404 || !force) throw err;
+      if (!is404) throw err;
+      if (!force) {
+        const label = proc.short_code
+          ? `${resource} "${proc.short_code}" (id: ${id})`
+          : `${resource} with id "${id}"`;
+        throw new Error(
+          `${label} does not exist in the orchestrator. ` +
+          `Re-run with --force to create it remotely with this id ` +
+          `(use this when promoting a config from one environment to another).`
+        );
+      }
 
-      // --force: process doesn't exist remotely — create with same id
-      console.log(`  Not found remotely (${id}), creating with --force...`);
+      // --force: process not visible to this org — try create with same id
+      console.log(`  Not visible to this org (${id}), creating with --force...`);
       const createData = { id, ...updateData };
-      const response = await createProcess(createData);
+      let response;
+      try {
+        response = await createProcess(createData);
+      } catch (createErr) {
+        if (createErr.message.includes('(409)')) {
+          const label = proc.short_code
+            ? `${resource} "${proc.short_code}"`
+            : resource;
+          throw new Error(
+            `Cannot create ${label} with id "${id}" — that id is already used by another org in the orchestrator (ids are globally unique across the multi-tenant database). ` +
+            `Either change the id in the local file to a different alphanumeric (1-24 chars), or remove the "id" field entirely to let the orchestrator generate a fresh one — the file will be rewritten with the new id after push.`
+          );
+        }
+        throw createErr;
+      }
       const created = response.data;
       const newPath = finalizeNewProcessFile(filename, created);
       console.log(`Created: ${created.id} -> ${newPath}`);
@@ -132,11 +156,12 @@ export async function pushProcessesHandler(argv) {
   const { id, all, force } = argv;
   // argv._[0] is 'processes' or 'stations' — controls vocab in user-visible strings
   const resource = argv._?.[0] === 'stations' ? 'stations' : 'processes';
+  const singular = resource === 'stations' ? 'station' : 'process';
 
   // Require explicit id or --all
   if (!id && !all) {
     console.error(`Usage: fob ${resource} push <filename>     (create or update based on content)`);
-    console.error(`       fob ${resource} push <id|short_code> (update by ${resource.replace(/s$/, '')} ID or short_code)`);
+    console.error(`       fob ${resource} push <id|short_code> (update by ${singular} ID or short_code)`);
     console.error(`       fob ${resource} push --all`);
     console.error('');
     console.error(`Run "fob ${resource} list" to see available ${resource}`);
@@ -152,15 +177,15 @@ export async function pushProcessesHandler(argv) {
       const proc = loadProcessByFilename(filename);
 
       if (proc) {
-        await pushByFilename(filename, { force });
+        await pushByFilename(filename, { force, resource: singular });
       } else {
         // Try by ID or short_code — resolve to filepath
         const filepath = findProcessFile(id);
         if (filepath) {
-          await pushByFilename(filepath, { force });
+          await pushByFilename(filepath, { force, resource: singular });
         } else {
-          console.error(`${resource.replace(/s$/, '')} not found locally: ${id}`);
-          console.error(`Use a filename (e.g. AP1__document_intake.json) or a ${resource.replace(/s$/, '')} ID/short_code`);
+          console.error(`${singular} not found locally: ${id}`);
+          console.error(`Use a filename (e.g. AP1__document_intake.json) or a ${singular} ID/short_code`);
           process.exit(1);
         }
       }
@@ -170,7 +195,7 @@ export async function pushProcessesHandler(argv) {
 
       if (allPaths.length === 0) {
         console.log(`No local ${resource} found`);
-        console.log(`Run "fob ${resource} pull --all" first, or create a new ${resource.replace(/s$/, '')} file`);
+        console.log(`Run "fob ${resource} pull --all" first, or create a new ${singular} file`);
         return;
       }
 
@@ -180,7 +205,7 @@ export async function pushProcessesHandler(argv) {
       for (const filepath of allPaths) {
         const proc = loadProcessByFilename(filepath);
         const hadId = !!proc.id;
-        await pushByFilename(filepath, { force });
+        await pushByFilename(filepath, { force, resource: singular });
         if (hadId) updatedCount++;
         else createdCount++;
       }
