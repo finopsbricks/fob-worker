@@ -1,6 +1,6 @@
 # Process → Station Vocabulary Transition
 
-## Status: IN PROGRESS (~50%) — Phase 1 done, tests red and waiting for Phase 2
+## Status: IN PROGRESS (~75%) — Phases 1 & 2 done; docs/usage and the v8 WIP remain
 
 Hard rename of the CLI's vocabulary from "process" to "station" to match the architecture's new factory-floor metaphor. The orchestrator database and HTTP API still use "process" and are out of scope — HTTP path literals in `src/utils/orchestrator.js` stay as `/api/v1/processes/*`, but every JS symbol and user-facing string in the CLI becomes `station`.
 
@@ -73,12 +73,21 @@ That means much of the threading is done. The remaining work is collapsing the d
 - `fob processes <anything>` currently exits 0 silently because yargs lacks `.strict()`. Worth adding so the removed command produces a clear error, but it's a behavior change beyond the rename.
 - `src/utils/station-files.js` still references `.orchestrator/processes/` as a legacy read fallback (intentional back-compat). Drop it after one release cycle.
 
-### Phase 2: Tests ❌
-- [ ] `git mv tests/cli/processes/ tests/cli/stations/`
-- [ ] Update test imports (`src/cli/processes/...` → `src/cli/stations/...`)
-- [ ] Update mocked function names (`listProcesses` → `listStations`)
-- [ ] Update `describe('*ProcessHandler')` blocks → `describe('*StationHandler')`
-- [ ] Run `npm test` — all green
+### Phase 2: Tests ✅
+- [x] `git mv tests/cli/processes/ tests/cli/stations/`
+- [x] `git mv tests/utils/process-files.test.js tests/utils/station-files.test.js`
+- [x] Updated test imports (`src/cli/processes/...` → `src/cli/stations/...`; `src/utils/process-files.js` → `src/utils/station-files.js`)
+- [x] Updated mocked function names (`listProcesses`→`listStations`, `loadProcess`→`loadStation`, etc.)
+- [x] Updated `describe('*ProcessHandler')` blocks → `describe('*StationHandler')`
+- [x] Updated `tests/cli/work-records/{list,cancel}.test.js` for the `station=` filter label and "Station:" cancel summary
+- [x] Updated `tests/cli/items/show.test.js` for `--stations` flag and `getItemStations` mock
+- [x] Updated `tests/cli/steps/run.test.js` for `--station` flag, `loadStation`, `getStepConfigFromStation`, `findStationsWithStep`, and the runtime-loaded lib-worker import
+- [x] Added a test for the legacy `.orchestrator/processes/` read fallback in `station-files.test.js`
+- [x] Ran `npm test` — 25 suites pass / 9 suites still red (all pre-existing, unrelated to the rename: `tests/utils/{line-state,config,steps-loader}.test.js`, `tests/cli/{workpieces/*,lines/status,config/show,steps/list}.test.js`)
+
+**Side-fixes landed in Phase 2 (pre-existing test bugs surfaced while threading through the rename):**
+- `update-step-metadata.test.js` mocked `stepsPath` but the handler reads `config.stepsDir` — fixed.
+- `steps/run.test.js` was missing a mock for `lib-worker-loader.js` (it imported `@fob/lib-worker` directly instead of the loader the runtime uses) — fixed.
 
 ### Phase 3: Documentation ❌
 - [ ] `git mv docs/usage/process-sync.md docs/usage/station-sync.md`
