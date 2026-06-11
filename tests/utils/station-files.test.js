@@ -4,25 +4,25 @@ import os from 'os';
 import path from 'path';
 
 import {
-  getStepConfigFromProcess,
-  getProcessesDir,
+  getStepConfigFromStation,
+  getStationsDir,
   getScenariosDir,
-  saveProcess,
-  loadProcess,
-  listLocalProcesses,
-  findProcessesWithStep,
+  saveStation,
+  loadStation,
+  listLocalStationIds,
+  findStationsWithStep,
   listScenarios,
   loadScenario,
   saveScenario,
-} from '../../src/utils/process-files.js';
+} from '../../src/utils/station-files.js';
 
 // ============================================================================
 // Pure logic (no fs)
 // ============================================================================
 
-describe('getProcessesDir()', () => {
-  it('should return the processes directory path', () => {
-    expect(getProcessesDir()).toBe('.orchestrator/processes');
+describe('getStationsDir()', () => {
+  it('should return the stations directory path', () => {
+    expect(getStationsDir()).toBe('.orchestrator/stations');
   });
 });
 
@@ -32,10 +32,10 @@ describe('getScenariosDir()', () => {
   });
 });
 
-describe('getStepConfigFromProcess()', () => {
-  const proc = {
-    id: 'proc1',
-    name: 'My Process',
+describe('getStepConfigFromStation()', () => {
+  const station = {
+    id: 'st1',
+    name: 'My Station',
     steps: [
       { slug: 'org/step_a', config: { key: 'val_a' } },
       { slug: 'org/step_b', config: { key: 'val_b' } },
@@ -44,7 +44,7 @@ describe('getStepConfigFromProcess()', () => {
 
   it('should return the config for a matching step slug', () => {
     // Act
-    const result = getStepConfigFromProcess(proc, 'org/step_a');
+    const result = getStepConfigFromStation(station, 'org/step_a');
 
     // Assert
     expect(result).toEqual({ key: 'val_a' });
@@ -52,18 +52,18 @@ describe('getStepConfigFromProcess()', () => {
 
   it('should return null when the step slug is not found', () => {
     // Act
-    const result = getStepConfigFromProcess(proc, 'org/missing');
+    const result = getStepConfigFromStation(station, 'org/missing');
 
     // Assert
     expect(result).toBeNull();
   });
 
-  it('should return null when the process has no steps', () => {
+  it('should return null when the station has no steps', () => {
     // Arrange
-    const emptyProc = { id: 'p2', name: 'Empty', steps: [] };
+    const emptyStation = { id: 'p2', name: 'Empty', steps: [] };
 
     // Act
-    const result = getStepConfigFromProcess(emptyProc, 'org/step_a');
+    const result = getStepConfigFromStation(emptyStation, 'org/step_a');
 
     // Assert
     expect(result).toBeNull();
@@ -74,7 +74,7 @@ describe('getStepConfigFromProcess()', () => {
     const noSteps = { id: 'p3', name: 'No Steps' };
 
     // Act
-    const result = getStepConfigFromProcess(noSteps, 'org/step_a');
+    const result = getStepConfigFromStation(noSteps, 'org/step_a');
 
     // Assert
     expect(result).toBeNull();
@@ -85,12 +85,12 @@ describe('getStepConfigFromProcess()', () => {
 // fs-dependent — use real temp dir, chdir into it
 // ============================================================================
 
-describe('saveProcess() + loadProcess() + listLocalProcesses()', () => {
+describe('saveStation() + loadStation() + listLocalStationIds()', () => {
   let tempDir;
   let originalCwd;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-process-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-station-test-'));
     originalCwd = process.cwd();
     process.chdir(tempDir);
   });
@@ -100,72 +100,88 @@ describe('saveProcess() + loadProcess() + listLocalProcesses()', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('should save and reload a process by id', () => {
+  it('should save and reload a station by id', () => {
     // Arrange
-    const proc = { id: 'abc123', name: 'Test Process', steps: [] };
+    const station = { id: 'abc123', name: 'Test Station', steps: [] };
 
     // Act
-    saveProcess(proc);
-    const loaded = loadProcess('abc123');
+    saveStation(station);
+    const loaded = loadStation('abc123');
 
     // Assert
-    expect(loaded).toEqual(proc);
+    expect(loaded).toEqual(station);
   });
 
-  it('should return null for a process that was never saved', () => {
+  it('should return null for a station that was never saved', () => {
     // Act
-    const result = loadProcess('nonexistent');
+    const result = loadStation('nonexistent');
 
     // Assert
     expect(result).toBeNull();
   });
 
-  it('should list saved process ids', () => {
+  it('should list saved station ids', () => {
     // Arrange
-    saveProcess({ id: 'id1', name: 'Process One', steps: [] });
-    saveProcess({ id: 'id2', name: 'Process Two', steps: [] });
+    saveStation({ id: 'id1', name: 'Station One', steps: [] });
+    saveStation({ id: 'id2', name: 'Station Two', steps: [] });
 
     // Act
-    const ids = listLocalProcesses();
+    const ids = listLocalStationIds();
 
     // Assert
     expect(ids).toContain('id1');
     expect(ids).toContain('id2');
   });
 
-  it('should return empty array when no processes saved', () => {
+  it('should return empty array when no stations saved', () => {
     // Act
-    const ids = listLocalProcesses();
+    const ids = listLocalStationIds();
 
     // Assert
     expect(ids).toEqual([]);
   });
 
-  it('should replace old file when process name changes', () => {
+  it('should replace old file when station name changes', () => {
     // Arrange
-    const proc = { id: 'rename1', name: 'Old Name', steps: [] };
-    saveProcess(proc);
+    const station = { id: 'rename1', name: 'Old Name', steps: [] };
+    saveStation(station);
 
     // Act
-    saveProcess({ ...proc, name: 'New Name' });
-    const loaded = loadProcess('rename1');
+    saveStation({ ...station, name: 'New Name' });
+    const loaded = loadStation('rename1');
 
     // Assert
     expect(loaded.name).toBe('New Name');
 
     // Only one file should exist for this id
-    const files = fs.readdirSync('.orchestrator/processes');
+    const files = fs.readdirSync('.orchestrator/stations');
     const forId = files.filter(f => f.startsWith('rename1__'));
     expect(forId).toHaveLength(1);
   });
+
+  it('should read a station from the legacy .orchestrator/processes/ directory', () => {
+    // Arrange — simulate a worker repo that pulled before the rename
+    fs.mkdirSync('.orchestrator/processes', { recursive: true });
+    const legacy = { id: 'legacy1', name: 'Legacy Station', steps: [] };
+    fs.writeFileSync(
+      '.orchestrator/processes/legacy1__legacy_station.json',
+      JSON.stringify(legacy, null, 2),
+    );
+
+    // Act
+    const loaded = loadStation('legacy1');
+
+    // Assert
+    expect(loaded).toEqual(legacy);
+  });
 });
 
-describe('findProcessesWithStep()', () => {
+describe('findStationsWithStep()', () => {
   let tempDir;
   let originalCwd;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-process-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-station-test-'));
     originalCwd = process.cwd();
     process.chdir(tempDir);
   });
@@ -175,25 +191,25 @@ describe('findProcessesWithStep()', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('should return processes that contain the step slug', () => {
+  it('should return stations that contain the step slug', () => {
     // Arrange
-    saveProcess({ id: 'p1', name: 'Has Step', steps: [{ slug: 'org/my_step', config: {} }] });
-    saveProcess({ id: 'p2', name: 'No Step', steps: [{ slug: 'org/other_step', config: {} }] });
+    saveStation({ id: 'p1', name: 'Has Step', steps: [{ slug: 'org/my_step', config: {} }] });
+    saveStation({ id: 'p2', name: 'No Step', steps: [{ slug: 'org/other_step', config: {} }] });
 
     // Act
-    const result = findProcessesWithStep('org/my_step');
+    const result = findStationsWithStep('org/my_step');
 
     // Assert
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('p1');
   });
 
-  it('should return empty array when no process contains the step', () => {
+  it('should return empty array when no station contains the step', () => {
     // Arrange
-    saveProcess({ id: 'p1', name: 'Proc', steps: [{ slug: 'org/other', config: {} }] });
+    saveStation({ id: 'p1', name: 'Station', steps: [{ slug: 'org/other', config: {} }] });
 
     // Act
-    const result = findProcessesWithStep('org/missing');
+    const result = findStationsWithStep('org/missing');
 
     // Assert
     expect(result).toEqual([]);

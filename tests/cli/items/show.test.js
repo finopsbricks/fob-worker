@@ -2,13 +2,13 @@ import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals
 import { captureOutput, ExitError } from '../helpers.js';
 
 const mockGetItem = jest.fn();
-const mockGetItemProcesses = jest.fn();
+const mockGetItemStations = jest.fn();
 const mockListWorkRecords = jest.fn();
 const mockGetEntityTags = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   getItem: mockGetItem,
-  getItemProcesses: mockGetItemProcesses,
+  getItemStations: mockGetItemStations,
   listWorkRecords: mockListWorkRecords,
   getEntityTags: mockGetEntityTags,
 }));
@@ -65,20 +65,20 @@ describe('showItemHandler()', () => {
     expect(JSON.parse(out.stdout)).toEqual(item);
   });
 
-  it('should include processes with --processes', async () => {
+  it('should include stations with --stations', async () => {
     // Arrange
     mockGetItem.mockResolvedValue({
       data: { id: 'item1', name: 'Fund A', type: 'msa_file', status: 'active', created_at: '2026-03-15T10:00:00Z' },
     });
-    mockGetItemProcesses.mockResolvedValue({
+    mockGetItemStations.mockResolvedValue({
       data: [{ short_code: 'P1', name: 'Monthly', execution_count: 5 }],
     });
 
     // Act
-    await showItemHandler({ id: 'item1', processes: true });
+    await showItemHandler({ id: 'item1', stations: true });
 
     // Assert
-    expect(out.stdout).toContain('Configured Processes');
+    expect(out.stdout).toContain('Configured Stations');
     expect(out.stdout).toContain('P1');
     expect(out.stdout).toContain('Monthly');
   });

@@ -5,17 +5,19 @@ const mockGetEntityTags = jest.fn();
 const mockSetEntityTags = jest.fn();
 const mockListTags = jest.fn();
 const mockCreateTag = jest.fn();
+const mockUpdateStation = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   getEntityTags: mockGetEntityTags,
   setEntityTags: mockSetEntityTags,
   listTags: mockListTags,
   createTag: mockCreateTag,
+  updateStation: mockUpdateStation,
 }));
 
-const { editProcessHandler } = await import('../../../src/cli/processes/edit.js');
+const { editStationHandler } = await import('../../../src/cli/stations/edit.js');
 
-describe('editProcessHandler()', () => {
+describe('editStationHandler()', () => {
   let out;
 
   beforeEach(() => {
@@ -27,7 +29,7 @@ describe('editProcessHandler()', () => {
     out.restore();
   });
 
-  it('should add an existing tag to a process', async () => {
+  it('should add an existing tag to a station', async () => {
     // Arrange
     mockGetEntityTags.mockResolvedValue({ data: [] });
     mockListTags.mockResolvedValue({
@@ -36,10 +38,10 @@ describe('editProcessHandler()', () => {
     mockSetEntityTags.mockResolvedValue({ data: [{ id: 'tag1', name: 'monthly' }] });
 
     // Act
-    await editProcessHandler({ id: 'proc1', addTag: 'monthly' });
+    await editStationHandler({ id: 'st1', addTag: 'monthly' });
 
     // Assert
-    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc1', ['tag1']);
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'st1', ['tag1']);
     expect(out.stdout).toContain('Tags updated');
   });
 
@@ -51,15 +53,15 @@ describe('editProcessHandler()', () => {
     mockSetEntityTags.mockResolvedValue({ data: [{ id: 'tag_new', name: 'quarterly' }] });
 
     // Act
-    await editProcessHandler({ id: 'proc1', addTag: 'quarterly' });
+    await editStationHandler({ id: 'st1', addTag: 'quarterly' });
 
     // Assert
     expect(mockCreateTag).toHaveBeenCalledWith({ name: 'quarterly' });
-    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc1', ['tag_new']);
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'st1', ['tag_new']);
     expect(out.stdout).toContain('(created)');
   });
 
-  it('should remove a tag from a process', async () => {
+  it('should remove a tag from a station', async () => {
     // Arrange
     mockGetEntityTags.mockResolvedValue({
       data: [{ id: 'tag1', name: 'monthly' }],
@@ -70,10 +72,10 @@ describe('editProcessHandler()', () => {
     mockSetEntityTags.mockResolvedValue({ data: [] });
 
     // Act
-    await editProcessHandler({ id: 'proc1', removeTag: 'monthly' });
+    await editStationHandler({ id: 'st1', removeTag: 'monthly' });
 
     // Assert
-    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc1', []);
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'st1', []);
     expect(out.stdout).toContain('- monthly');
   });
 
@@ -88,20 +90,32 @@ describe('editProcessHandler()', () => {
     mockSetEntityTags.mockResolvedValue({ data: [{ id: 'tag2', name: 'high-priority' }] });
 
     // Act
-    await editProcessHandler({
-      id: 'proc1',
+    await editStationHandler({
+      id: 'st1',
       addTag: 'high-priority',
       removeTag: 'low-priority',
     });
 
     // Assert
-    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'proc1', ['tag2']);
+    expect(mockSetEntityTags).toHaveBeenCalledWith('processes', 'st1', ['tag2']);
   });
 
-  it('should exit 1 when no --add-tag or --remove-tag provided', async () => {
+  it('should set the short_code when --short-code is provided', async () => {
+    // Arrange
+    mockUpdateStation.mockResolvedValue({});
+
+    // Act
+    await editStationHandler({ id: 'st1', shortCode: 'P9' });
+
+    // Assert
+    expect(mockUpdateStation).toHaveBeenCalledWith('st1', { short_code: 'P9' });
+    expect(out.stdout).toContain('Short code set: P9');
+  });
+
+  it('should exit 1 when no --short-code/--add-tag/--remove-tag provided', async () => {
     // Act & Assert
-    await expect(editProcessHandler({ id: 'proc1' })).rejects.toThrow(ExitError);
-    expect(out.stderr).toContain('At least one --add-tag or --remove-tag is required');
+    await expect(editStationHandler({ id: 'st1' })).rejects.toThrow(ExitError);
+    expect(out.stderr).toContain('At least one of --short-code, --add-tag, or --remove-tag is required');
   });
 
   it('should exit 1 on API error', async () => {
@@ -109,7 +123,7 @@ describe('editProcessHandler()', () => {
     mockGetEntityTags.mockRejectedValue(new Error('Not found'));
 
     // Act & Assert
-    await expect(editProcessHandler({ id: 'proc1', addTag: 'monthly' })).rejects.toThrow(ExitError);
+    await expect(editStationHandler({ id: 'st1', addTag: 'monthly' })).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Not found');
   });
 });

@@ -42,7 +42,7 @@ describe('listWorkRecordsHandler()', () => {
     });
 
     // Act
-    await listWorkRecordsHandler({ limit: undefined, status: undefined, process: undefined });
+    await listWorkRecordsHandler({ limit: undefined, status: undefined, station: undefined });
 
     // Assert
     expect(out.stdout).toContain('wr-1');
@@ -58,12 +58,12 @@ describe('listWorkRecordsHandler()', () => {
     mockListWorkRecords.mockResolvedValue({ data: [] });
 
     // Act
-    await listWorkRecordsHandler({ limit: 10, status: 'failed', process: 'proc-1' });
+    await listWorkRecordsHandler({ limit: 10, status: 'failed', station: 'st-1' });
 
     // Assert
     expect(out.stdout).toContain('limit=10');
     expect(out.stdout).toContain('status=failed');
-    expect(out.stdout).toContain('process=proc-1');
+    expect(out.stdout).toContain('station=st-1');
   });
 
   it('should print "No work records found" when the list is empty', async () => {
@@ -71,7 +71,7 @@ describe('listWorkRecordsHandler()', () => {
     mockListWorkRecords.mockResolvedValue({ data: [] });
 
     // Act
-    await listWorkRecordsHandler({ limit: undefined, status: undefined, process: undefined });
+    await listWorkRecordsHandler({ limit: undefined, status: undefined, station: undefined });
 
     // Assert
     expect(out.stdout).toContain('No work records found');
@@ -83,7 +83,7 @@ describe('listWorkRecordsHandler()', () => {
 
     // Act & Assert
     await expect(
-      listWorkRecordsHandler({ limit: undefined, status: undefined, process: undefined })
+      listWorkRecordsHandler({ limit: undefined, status: undefined, station: undefined })
     ).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Forbidden');
   });

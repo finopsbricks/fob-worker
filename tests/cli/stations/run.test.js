@@ -1,18 +1,17 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { captureOutput, ExitError } from '../helpers.js';
 
-const mockRunProcess = jest.fn();
+const mockRunStation = jest.fn();
 const mockGetItem = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
-  runProcess: mockRunProcess,
-  getProcess: jest.fn(),
+  runStation: mockRunStation,
   getItem: mockGetItem,
 }));
 
-const { runProcessHandler } = await import('../../../src/cli/processes/run.js');
+const { runStationHandler } = await import('../../../src/cli/stations/run.js');
 
-describe('runProcessHandler()', () => {
+describe('runStationHandler()', () => {
   let out;
 
   beforeEach(() => {
@@ -24,24 +23,24 @@ describe('runProcessHandler()', () => {
     out.restore();
   });
 
-  it('should trigger a process and display result', async () => {
+  it('should trigger a station and display result', async () => {
     // Arrange
-    mockRunProcess.mockResolvedValue({
+    mockRunStation.mockResolvedValue({
       data: { work_record_id: 'wr123' },
     });
 
     // Act
-    await runProcessHandler({ id: 'proc1' });
+    await runStationHandler({ id: 'st1' });
 
     // Assert
-    expect(out.stdout).toContain('Triggered: proc1');
+    expect(out.stdout).toContain('Triggered: st1');
     expect(out.stdout).toContain('wr123');
-    expect(mockRunProcess).toHaveBeenCalledWith('proc1', undefined);
+    expect(mockRunStation).toHaveBeenCalledWith('st1', undefined);
   });
 
   it('should display item name when --item provided', async () => {
     // Arrange
-    mockRunProcess.mockResolvedValue({
+    mockRunStation.mockResolvedValue({
       data: { work_record_id: 'wr456' },
     });
     mockGetItem.mockResolvedValue({
@@ -49,20 +48,20 @@ describe('runProcessHandler()', () => {
     });
 
     // Act
-    await runProcessHandler({ id: 'proc1', item: 'item1' });
+    await runStationHandler({ id: 'st1', item: 'item1' });
 
     // Assert
     expect(out.stdout).toContain('Fund A');
     expect(out.stdout).toContain('item1');
-    expect(mockRunProcess).toHaveBeenCalledWith('proc1', 'item1');
+    expect(mockRunStation).toHaveBeenCalledWith('st1', 'item1');
   });
 
   it('should exit 1 on API error', async () => {
     // Arrange
-    mockRunProcess.mockRejectedValue(new Error('Process not found'));
+    mockRunStation.mockRejectedValue(new Error('Station not found'));
 
     // Act & Assert
-    await expect(runProcessHandler({ id: 'bad' })).rejects.toThrow(ExitError);
-    expect(out.stderr).toContain('Process not found');
+    await expect(runStationHandler({ id: 'bad' })).rejects.toThrow(ExitError);
+    expect(out.stderr).toContain('Station not found');
   });
 });

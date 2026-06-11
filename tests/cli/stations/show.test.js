@@ -1,19 +1,19 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { captureOutput, ExitError } from '../helpers.js';
 
-const mockGetProcess = jest.fn();
+const mockGetStation = jest.fn();
 const mockListWorkRecords = jest.fn();
-const mockGetProcessItems = jest.fn();
+const mockGetStationItems = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
-  getProcess: mockGetProcess,
+  getStation: mockGetStation,
   listWorkRecords: mockListWorkRecords,
-  getProcessItems: mockGetProcessItems,
+  getStationItems: mockGetStationItems,
 }));
 
-const { showProcessHandler } = await import('../../../src/cli/processes/show.js');
+const { showStationHandler } = await import('../../../src/cli/stations/show.js');
 
-describe('showProcessHandler()', () => {
+describe('showStationHandler()', () => {
   let out;
 
   beforeEach(() => {
@@ -25,12 +25,12 @@ describe('showProcessHandler()', () => {
     out.restore();
   });
 
-  it('should display formatted process summary', async () => {
+  it('should display formatted station summary', async () => {
     // Arrange
-    mockGetProcess.mockResolvedValue({
+    mockGetStation.mockResolvedValue({
       data: {
-        id: 'proc1',
-        name: 'Monthly Process',
+        id: 'st1',
+        name: 'Monthly Station',
         short_code: 'P1',
         is_enabled: true,
         tags: [{ name: 'monthly' }],
@@ -41,11 +41,11 @@ describe('showProcessHandler()', () => {
     });
 
     // Act
-    await showProcessHandler({ id: 'proc1' });
+    await showStationHandler({ id: 'st1' });
 
     // Assert
-    expect(out.stdout).toContain('Process: proc1');
-    expect(out.stdout).toContain('Monthly Process');
+    expect(out.stdout).toContain('Station: st1');
+    expect(out.stdout).toContain('Monthly Station');
     expect(out.stdout).toContain('P1');
     expect(out.stdout).toContain('enabled');
     expect(out.stdout).toContain('monthly');
@@ -55,75 +55,75 @@ describe('showProcessHandler()', () => {
 
   it('should output raw JSON with --json', async () => {
     // Arrange
-    const proc = { id: 'proc1', name: 'Test' };
-    mockGetProcess.mockResolvedValue({ data: proc });
+    const station = { id: 'st1', name: 'Test' };
+    mockGetStation.mockResolvedValue({ data: station });
 
     // Act
-    await showProcessHandler({ id: 'proc1', json: true });
+    await showStationHandler({ id: 'st1', json: true });
 
     // Assert
-    expect(JSON.parse(out.stdout)).toEqual(proc);
+    expect(JSON.parse(out.stdout)).toEqual(station);
   });
 
   it('should include work records with --work-records', async () => {
     // Arrange
-    mockGetProcess.mockResolvedValue({
-      data: { id: 'proc1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
+    mockGetStation.mockResolvedValue({
+      data: { id: 'st1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
     });
     mockListWorkRecords.mockResolvedValue({
       data: [{ id: 'wr1', status: 'completed', item: 'item1', created_at: '2026-03-15T10:00:00Z' }],
     });
 
     // Act
-    await showProcessHandler({ id: 'proc1', workRecords: true });
+    await showStationHandler({ id: 'st1', workRecords: true });
 
     // Assert
     expect(out.stdout).toContain('Work Records');
     expect(out.stdout).toContain('wr1');
-    expect(mockListWorkRecords).toHaveBeenCalledWith({ process: 'proc1', limit: 10 });
+    expect(mockListWorkRecords).toHaveBeenCalledWith({ station: 'st1', limit: 10 });
   });
 
   it('should include items with --items', async () => {
     // Arrange
-    mockGetProcess.mockResolvedValue({
-      data: { id: 'proc1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
+    mockGetStation.mockResolvedValue({
+      data: { id: 'st1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
     });
-    mockGetProcessItems.mockResolvedValue({
+    mockGetStationItems.mockResolvedValue({
       data: [{ id: 'item1', type: 'msa_file', name: 'Fund A', execution_count: 3 }],
     });
 
     // Act
-    await showProcessHandler({ id: 'proc1', items: true });
+    await showStationHandler({ id: 'st1', items: true });
 
     // Assert
     expect(out.stdout).toContain('Items');
     expect(out.stdout).toContain('item1');
     expect(out.stdout).toContain('Fund A');
-    expect(mockGetProcessItems).toHaveBeenCalledWith('proc1');
+    expect(mockGetStationItems).toHaveBeenCalledWith('st1');
   });
 
   it('should include all sections with --all', async () => {
     // Arrange
-    mockGetProcess.mockResolvedValue({
-      data: { id: 'proc1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
+    mockGetStation.mockResolvedValue({
+      data: { id: 'st1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
     });
     mockListWorkRecords.mockResolvedValue({ data: [] });
-    mockGetProcessItems.mockResolvedValue({ data: [] });
+    mockGetStationItems.mockResolvedValue({ data: [] });
 
     // Act
-    await showProcessHandler({ id: 'proc1', all: true });
+    await showStationHandler({ id: 'st1', all: true });
 
     // Assert
     expect(mockListWorkRecords).toHaveBeenCalled();
-    expect(mockGetProcessItems).toHaveBeenCalled();
+    expect(mockGetStationItems).toHaveBeenCalled();
   });
 
   it('should exit 1 on API error', async () => {
     // Arrange
-    mockGetProcess.mockRejectedValue(new Error('Not found'));
+    mockGetStation.mockRejectedValue(new Error('Not found'));
 
     // Act & Assert
-    await expect(showProcessHandler({ id: 'proc1' })).rejects.toThrow(ExitError);
+    await expect(showStationHandler({ id: 'st1' })).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Not found');
   });
 });

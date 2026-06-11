@@ -39,7 +39,7 @@ describe('cancelWorkRecordHandler()', () => {
     expect(mockCancelWorkRecord).toHaveBeenCalledWith('wr_abc123');
     expect(out.stdout).toContain('Cancelled work record wr_abc123');
     expect(out.stdout).toContain('Status:   cancelled');
-    expect(out.stdout).toContain('Process:  proc_xyz');
+    expect(out.stdout).toContain('Station:  proc_xyz');
     expect(out.stdout).toContain('Error:    Cancelled via API');
   });
 

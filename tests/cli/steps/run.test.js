@@ -4,27 +4,28 @@ import { captureOutput, ExitError } from '../helpers.js';
 
 const mockLoadConfig = jest.fn();
 const mockEnsureTempDir = jest.fn();
+const mockLoadLibWorker = jest.fn();
 const mockInitTemplates = jest.fn();
 const mockResolveConfig = jest.fn();
 const mockLoadSteps = jest.fn();
 const mockGetHandler = jest.fn();
 const mockSaveStepOutput = jest.fn();
 const mockLoadAllStepOutputs = jest.fn();
-const mockLoadProcess = jest.fn();
-const mockGetStepConfigFromProcess = jest.fn();
-const mockFindProcessesWithStep = jest.fn();
+const mockLoadStation = jest.fn();
+const mockGetStepConfigFromStation = jest.fn();
+const mockFindStationsWithStep = jest.fn();
 const mockListScenarios = jest.fn();
 const mockLoadScenario = jest.fn();
 const mockInteractivePicker = jest.fn();
+const mockGetItem = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/config.js', () => ({
   loadConfig: mockLoadConfig,
   ensureTempDir: mockEnsureTempDir,
 }));
 
-jest.unstable_mockModule('@fob/lib-worker', () => ({
-  initTemplates: mockInitTemplates,
-  resolveConfig: mockResolveConfig,
+jest.unstable_mockModule('../../../src/utils/lib-worker-loader.js', () => ({
+  loadLibWorker: mockLoadLibWorker,
 }));
 
 jest.unstable_mockModule('../../../src/utils/steps-loader.js', () => ({
@@ -37,10 +38,10 @@ jest.unstable_mockModule('../../../src/utils/output.js', () => ({
   loadAllStepOutputs: mockLoadAllStepOutputs,
 }));
 
-jest.unstable_mockModule('../../../src/utils/process-files.js', () => ({
-  loadProcess: mockLoadProcess,
-  getStepConfigFromProcess: mockGetStepConfigFromProcess,
-  findProcessesWithStep: mockFindProcessesWithStep,
+jest.unstable_mockModule('../../../src/utils/station-files.js', () => ({
+  loadStation: mockLoadStation,
+  getStepConfigFromStation: mockGetStepConfigFromStation,
+  findStationsWithStep: mockFindStationsWithStep,
   listScenarios: mockListScenarios,
   loadScenario: mockLoadScenario,
 }));
@@ -49,11 +50,11 @@ jest.unstable_mockModule('../../../src/utils/picker.js', () => ({
   interactivePicker: mockInteractivePicker,
 }));
 
-const { runStepHandler } = await import('../../../src/cli/steps/run.js');
+jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
+  getItem: mockGetItem,
+}));
 
-// ============================================================================
-// runStepHandler()
-// ============================================================================
+const { runStepHandler } = await import('../../../src/cli/steps/run.js');
 
 describe('runStepHandler()', () => {
   let out;
@@ -63,8 +64,12 @@ describe('runStepHandler()', () => {
     jest.clearAllMocks();
     out = captureOutput();
     mockLoadConfig.mockReturnValue({
-      stepsPath: path.join(process.cwd(), 'src/steps/index.js'),
+      stepsDir: path.join(process.cwd(), 'src/steps'),
       tempDir: path.join(process.cwd(), 'temp'),
+    });
+    mockLoadLibWorker.mockResolvedValue({
+      initTemplates: mockInitTemplates,
+      resolveConfig: mockResolveConfig,
     });
     mockLoadAllStepOutputs.mockReturnValue({});
     mockLoadSteps.mockResolvedValue({ 'acme/fetch_data': {} });
@@ -84,14 +89,14 @@ describe('runStepHandler()', () => {
 
     // Act & Assert
     await expect(
-      runStepHandler({ slug: 'acme/unknown', process: undefined, scenario: undefined, empty: false })
+      runStepHandler({ slug: 'acme/unknown', station: undefined, scenario: undefined, empty: false })
     ).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Unknown step: acme/unknown');
   });
 
   it('should run with an empty config when --empty is passed', async () => {
     // Act
-    await runStepHandler({ slug: 'acme/fetch_data', process: undefined, scenario: undefined, empty: true });
+    await runStepHandler({ slug: 'acme/fetch_data', station: undefined, scenario: undefined, empty: true });
 
     // Assert
     expect(mockStepHandler).toHaveBeenCalledWith(
@@ -102,41 +107,41 @@ describe('runStepHandler()', () => {
     expect(out.stdout).toContain('Config: empty (--empty flag)');
   });
 
-  it('should run with config from a process when --process is passed', async () => {
+  it('should run with config from a station when --station is passed', async () => {
     // Arrange
     const stepConfig = { account_id: '123' };
-    mockLoadProcess.mockReturnValue({ id: 'proc-1', name: 'Billing', steps: [] });
-    mockGetStepConfigFromProcess.mockReturnValue(stepConfig);
+    mockLoadStation.mockReturnValue({ id: 'st-1', name: 'Billing', steps: [] });
+    mockGetStepConfigFromStation.mockReturnValue(stepConfig);
 
     // Act
-    await runStepHandler({ slug: 'acme/fetch_data', process: 'proc-1', scenario: undefined, empty: false });
+    await runStepHandler({ slug: 'acme/fetch_data', station: 'st-1', scenario: undefined, empty: false });
 
     // Assert
     expect(mockResolveConfig).toHaveBeenCalledWith(stepConfig, {});
-    expect(out.stdout).toContain('Config: process: Billing (proc-1)');
+    expect(out.stdout).toContain('Config: station: Billing (st-1)');
   });
 
-  it('should exit 1 when the process is not found locally', async () => {
+  it('should exit 1 when the station is not found locally', async () => {
     // Arrange
-    mockLoadProcess.mockReturnValue(null);
+    mockLoadStation.mockReturnValue(null);
 
     // Act & Assert
     await expect(
-      runStepHandler({ slug: 'acme/fetch_data', process: 'proc-missing', scenario: undefined, empty: false })
+      runStepHandler({ slug: 'acme/fetch_data', station: 'st-missing', scenario: undefined, empty: false })
     ).rejects.toThrow(ExitError);
-    expect(out.stderr).toContain('Process not found locally: proc-missing');
+    expect(out.stderr).toContain('Station not found locally: st-missing');
   });
 
-  it('should exit 1 when the step is not found in the specified process', async () => {
+  it('should exit 1 when the step is not found in the specified station', async () => {
     // Arrange
-    mockLoadProcess.mockReturnValue({ id: 'proc-1', name: 'Billing', steps: [{ slug: 'acme/other' }] });
-    mockGetStepConfigFromProcess.mockReturnValue(null);
+    mockLoadStation.mockReturnValue({ id: 'st-1', name: 'Billing', steps: [{ slug: 'acme/other' }] });
+    mockGetStepConfigFromStation.mockReturnValue(null);
 
     // Act & Assert
     await expect(
-      runStepHandler({ slug: 'acme/fetch_data', process: 'proc-1', scenario: undefined, empty: false })
+      runStepHandler({ slug: 'acme/fetch_data', station: 'st-1', scenario: undefined, empty: false })
     ).rejects.toThrow(ExitError);
-    expect(out.stderr).toContain('Step "acme/fetch_data" not found in process "proc-1"');
+    expect(out.stderr).toContain('Step "acme/fetch_data" not found in station "st-1"');
   });
 
   it('should run with config from a scenario when --scenario is passed', async () => {
@@ -145,7 +150,7 @@ describe('runStepHandler()', () => {
     mockLoadScenario.mockReturnValue(scenarioConfig);
 
     // Act
-    await runStepHandler({ slug: 'acme/fetch_data', process: undefined, scenario: 'test-case', empty: false });
+    await runStepHandler({ slug: 'acme/fetch_data', station: undefined, scenario: 'test-case', empty: false });
 
     // Assert
     expect(mockResolveConfig).toHaveBeenCalledWith(scenarioConfig, {});
@@ -159,14 +164,14 @@ describe('runStepHandler()', () => {
 
     // Act & Assert
     await expect(
-      runStepHandler({ slug: 'acme/fetch_data', process: undefined, scenario: 'missing', empty: false })
+      runStepHandler({ slug: 'acme/fetch_data', station: undefined, scenario: 'missing', empty: false })
     ).rejects.toThrow(ExitError);
     expect(out.stderr).toContain('Scenario not found: missing');
   });
 
   it('should save step output and print it after running', async () => {
     // Act
-    await runStepHandler({ slug: 'acme/fetch_data', process: undefined, scenario: undefined, empty: true });
+    await runStepHandler({ slug: 'acme/fetch_data', station: undefined, scenario: undefined, empty: true });
 
     // Assert
     expect(mockSaveStepOutput).toHaveBeenCalledWith(
