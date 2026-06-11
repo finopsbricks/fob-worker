@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+## [1.0.1] - 2026-06-11
+
+### Removed
 - **BREAKING:** `.orchestrator/processes/` read fallback in `station-files.js`. Worker repos that haven't re-pulled since the 1.0.0 rename must run `fob stations pull --all` — `loadStation()` now returns `null` for files only present in the legacy directory.
 
 ## [1.0.0] - 2026-06-11
