@@ -3,12 +3,10 @@ import { captureOutput, ExitError } from '../helpers.js';
 
 const mockGetStation = jest.fn();
 const mockListWorkRecords = jest.fn();
-const mockGetStationItems = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   getStation: mockGetStation,
   listWorkRecords: mockListWorkRecords,
-  getStationItems: mockGetStationItems,
 }));
 
 const { showStationHandler } = await import('../../../src/cli/stations/show.js');
@@ -83,39 +81,18 @@ describe('showStationHandler()', () => {
     expect(mockListWorkRecords).toHaveBeenCalledWith({ station: 'st1', limit: 10 });
   });
 
-  it('should include items with --items', async () => {
-    // Arrange
-    mockGetStation.mockResolvedValue({
-      data: { id: 'st1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
-    });
-    mockGetStationItems.mockResolvedValue({
-      data: [{ id: 'item1', type: 'msa_file', name: 'Fund A', execution_count: 3 }],
-    });
-
-    // Act
-    await showStationHandler({ id: 'st1', items: true });
-
-    // Assert
-    expect(out.stdout).toContain('Items');
-    expect(out.stdout).toContain('item1');
-    expect(out.stdout).toContain('Fund A');
-    expect(mockGetStationItems).toHaveBeenCalledWith('st1');
-  });
-
   it('should include all sections with --all', async () => {
     // Arrange
     mockGetStation.mockResolvedValue({
       data: { id: 'st1', name: 'Test', is_enabled: true, dependencies: [], applies_to: [] },
     });
     mockListWorkRecords.mockResolvedValue({ data: [] });
-    mockGetStationItems.mockResolvedValue({ data: [] });
 
     // Act
     await showStationHandler({ id: 'st1', all: true });
 
     // Assert
     expect(mockListWorkRecords).toHaveBeenCalled();
-    expect(mockGetStationItems).toHaveBeenCalled();
   });
 
   it('should exit 1 on API error', async () => {

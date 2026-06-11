@@ -48,13 +48,12 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (steps, config, stations, lines, workpieces, items, work-records, supporting-docs, tags, worker)
+- `fob <tab>` → resources (lines, stations, steps, workpieces, work-records, supporting-docs, tags, worker, config)
+- `fob lines <tab>` → actions (list, show, status)
+- `fob stations <tab>` → actions (list, show, status, run, pull, push, edit, update-step-metadata)
 - `fob steps <tab>` → actions (list, run)
 - `fob steps run <tab>` → step slugs
-- `fob stations <tab>` → actions (list, show, status, run, pull, push, edit, update-step-metadata)
-- `fob lines <tab>` → actions (list, show, status)
 - `fob workpieces <tab>` → actions (list, show, watch)
-- `fob items <tab>` → actions (list, show, edit)
 - `fob work-records <tab>` → actions (list, show, edit, cancel)
 - `fob supporting-docs <tab>` → actions (show)
 - `fob tags <tab>` → actions (list, create, edit, delete)
@@ -71,7 +70,6 @@ src/
     stations/             # list.js, show.js, status.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
     lines/                # list.js, show.js, status.js
     workpieces/           # list.js, show.js, watch.js
-    items/                # list.js, show.js, edit.js
     work-records/         # list.js, show.js, edit.js, cancel.js
     supporting-docs/      # show.js
     tags/                 # list.js, create.js, edit.js, delete.js

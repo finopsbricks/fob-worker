@@ -251,19 +251,6 @@ export async function updateTag(id, data) {
 // ============================================================================
 
 /**
- * List items
- */
-export async function listItems(options = {}) {
-  const params = new URLSearchParams();
-  if (options.type) params.set('type', options.type);
-  if (options.status) params.set('status', options.status);
-  if (options.tag) params.set('tag', options.tag);
-  if (options.limit) params.set('limit', options.limit);
-  const query = params.toString();
-  return apiRequest(`/api/v1/items${query ? `?${query}` : ''}`);
-}
-
-/**
  * Get item by ID
  */
 export async function getItem(id) {
@@ -286,24 +273,6 @@ export async function runStation(stationId, itemId) {
     method: 'POST',
     body: JSON.stringify(body),
   });
-}
-
-// ============================================================================
-// Cross-Entity (Item ↔ Station join)
-// ============================================================================
-
-/**
- * Get items linked to a station
- */
-export async function getStationItems(stationId) {
-  return apiRequest(`/api/v1/processes/${stationId}/items`);
-}
-
-/**
- * Get stations linked to an item
- */
-export async function getItemStations(itemId) {
-  return apiRequest(`/api/v1/items/${itemId}/processes`);
 }
 
 // ============================================================================
@@ -343,7 +312,7 @@ export async function downloadSupportingDoc(id, filePath) {
 
 /**
  * Get tags for an entity
- * @param {string} entityType - URL segment (API contract): 'processes' | 'items' | 'work-records'
+ * @param {string} entityType - URL segment (API contract): 'processes' | 'work-records'
  * @param {string} entityId - Entity ID
  */
 export async function getEntityTags(entityType, entityId) {
@@ -352,7 +321,7 @@ export async function getEntityTags(entityType, entityId) {
 
 /**
  * Set tags on an entity (full replace)
- * @param {string} entityType - URL segment (API contract): 'processes' | 'items' | 'work-records'
+ * @param {string} entityType - URL segment (API contract): 'processes' | 'work-records'
  * @param {string} entityId - Entity ID
  * @param {string[]} tagIds - Array of tag IDs
  */

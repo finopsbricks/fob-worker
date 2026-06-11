@@ -1,8 +1,8 @@
-import { getStation, listWorkRecords, getStationItems } from '../../utils/orchestrator.js';
+import { getStation, listWorkRecords } from '../../utils/orchestrator.js';
 import { formatHeader, formatField, formatTable, formatSection, formatDate } from '../../utils/format.js';
 
 export async function showStationHandler(argv) {
-  const { id, workRecords, items, all, json } = argv;
+  const { id, workRecords, all, json } = argv;
 
   try {
     const response = await getStation(id);
@@ -61,28 +61,9 @@ export async function showStationHandler(argv) {
       }
     }
 
-    // --items or --all
-    if (items || all) {
-      const itemsResponse = await getStationItems(station.id);
-      const itemsList = itemsResponse.data || [];
-      console.log(formatSection(`Items (${itemsList.length})`));
-      if (itemsList.length > 0) {
-        const rows = itemsList.map(item => [
-          item.id,
-          item.type || '—',
-          item.name || '—',
-          String(item.execution_count || 0),
-          formatDate(item.last_executed_at),
-        ]);
-        console.log(formatTable(['ID', 'TYPE', 'NAME', 'RUNS', 'LAST RUN'], rows));
-      } else {
-        console.log('No items found.');
-      }
-    }
-
     // Hint when no section flags used
-    if (!workRecords && !items && !all) {
-      console.log('\nUse --work-records, --items, or --all for linked entities.');
+    if (!workRecords && !all) {
+      console.log('\nUse --work-records or --all for linked entities.');
       if (station.short_code) {
         console.log(`Run \`fob stations status ${station.short_code}\` for live bin state.`);
       }
