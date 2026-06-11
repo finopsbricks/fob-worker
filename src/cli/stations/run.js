@@ -1,10 +1,10 @@
-import { runProcess, getProcess, getItem } from '../../utils/orchestrator.js';
+import { runStation, getItem } from '../../utils/orchestrator.js';
 
-export async function runProcessHandler(argv) {
+export async function runStationHandler(argv) {
   const { id, item: itemId } = argv;
 
   try {
-    const response = await runProcess(id, itemId);
+    const response = await runStation(id, itemId);
     const result = response.data;
 
     console.log(`Triggered: ${id}`);

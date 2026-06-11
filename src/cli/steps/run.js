@@ -3,12 +3,12 @@ import { loadConfig, ensureTempDir } from '../../utils/config.js';
 import { loadLibWorker } from '../../utils/lib-worker-loader.js';
 import { loadSteps, getHandler } from '../../utils/steps-loader.js';
 import { saveStepOutput, loadAllStepOutputs } from '../../utils/output.js';
-import { loadProcess, getStepConfigFromProcess, findProcessesWithStep, listScenarios, loadScenario } from '../../utils/process-files.js';
+import { loadStation, getStepConfigFromStation, findStationsWithStep, listScenarios, loadScenario } from '../../utils/station-files.js';
 import { interactivePicker } from '../../utils/picker.js';
 import { getItem } from '../../utils/orchestrator.js';
 
 export async function runStepHandler(argv) {
-  const { slug, process: processId, scenario: scenarioName, empty: useEmpty, item: itemId } = argv;
+  const { slug, station: stationId, scenario: scenarioName, empty: useEmpty, item: itemId } = argv;
 
   const config = loadConfig();
   ensureTempDir(config.tempDir);
@@ -41,24 +41,24 @@ export async function runStepHandler(argv) {
     // Explicit empty config
     stepConfig = {};
     configSource = 'empty (--empty flag)';
-  } else if (processId) {
-    // Explicit process
-    const proc = loadProcess(processId);
-    if (!proc) {
-      console.error(`Process not found locally: ${processId}`);
-      console.error(`Run "fob processes pull ${processId}" first`);
+  } else if (stationId) {
+    // Explicit station
+    const station = loadStation(stationId);
+    if (!station) {
+      console.error(`Station not found locally: ${stationId}`);
+      console.error(`Run "fob stations pull ${stationId}" first`);
       process.exit(1);
     }
 
-    const procStepConfig = getStepConfigFromProcess(proc, slug);
-    if (procStepConfig === null) {
-      console.error(`Step "${slug}" not found in process "${processId}"`);
-      console.error(`Available steps: ${proc.steps?.map(s => s.slug).join(', ') || '(none)'}`);
+    const stationStepConfig = getStepConfigFromStation(station, slug);
+    if (stationStepConfig === null) {
+      console.error(`Step "${slug}" not found in station "${stationId}"`);
+      console.error(`Available steps: ${station.steps?.map(s => s.slug).join(', ') || '(none)'}`);
       process.exit(1);
     }
 
-    stepConfig = resolveConfig(procStepConfig, step_outputs);
-    configSource = `process: ${proc.name} (${processId})`;
+    stepConfig = resolveConfig(stationStepConfig, step_outputs);
+    configSource = `station: ${station.name} (${stationId})`;
   } else if (scenarioName) {
     // Explicit scenario
     const scenarioConfig = loadScenario(slug, scenarioName);
@@ -74,13 +74,13 @@ export async function runStepHandler(argv) {
     // Interactive: build options and let user pick
     const pickerOptions = [];
 
-    // Add processes that contain this step
-    const processesWithStep = findProcessesWithStep(slug);
-    for (const proc of processesWithStep) {
+    // Add stations that contain this step
+    const stationsWithStep = findStationsWithStep(slug);
+    for (const station of stationsWithStep) {
       pickerOptions.push({
-        label: `Process: ${proc.name} (${proc.id})`,
-        value: proc.id,
-        type: 'process',
+        label: `Station: ${station.name} (${station.id})`,
+        value: station.id,
+        type: 'station',
       });
     }
 
@@ -110,11 +110,11 @@ export async function runStepHandler(argv) {
     }
 
     // Load the selected config
-    if (selected.type === 'process') {
-      const proc = loadProcess(selected.value);
-      const procStepConfig = getStepConfigFromProcess(proc, slug);
-      stepConfig = resolveConfig(procStepConfig || {}, step_outputs);
-      configSource = `process: ${proc.name} (${selected.value})`;
+    if (selected.type === 'station') {
+      const station = loadStation(selected.value);
+      const stationStepConfig = getStepConfigFromStation(station, slug);
+      stepConfig = resolveConfig(stationStepConfig || {}, step_outputs);
+      configSource = `station: ${station.name} (${selected.value})`;
     } else if (selected.type === 'scenario') {
       const scenarioConfig = loadScenario(slug, selected.value);
       stepConfig = resolveConfig(scenarioConfig, step_outputs);

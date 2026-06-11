@@ -14,7 +14,7 @@ export async function cancelWorkRecordHandler(argv) {
 
     console.log(`Cancelled work record ${record.id}`);
     console.log(`Status:   ${record.status}`);
-    console.log(`Process:  ${record.process || '—'}`);
+    console.log(`Station:  ${record.process || '—'}`);
     if (record.error) console.log(`Error:    ${record.error}`);
   } catch (error) {
     console.error(`Error: ${error.message}`);

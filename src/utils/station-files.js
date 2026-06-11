@@ -1,9 +1,11 @@
 /**
- * Local station/process and scenario file management
+ * Local station and scenario file management
  *
- * Two flat folder layouts are supported (CLI reads both):
- *   Legacy: .orchestrator/processes/<short_code>__<name>.json
- *   New:    .orchestrator/stations/<short_code>__<name>.json
+ * Station files live in: .orchestrator/stations/<short_code>__<name>.json
+ *
+ * Legacy: prior to the station-vocabulary rename, files lived in
+ * .orchestrator/processes/. Reads still fall back to that directory so
+ * existing worker repos keep working; writes always go to .orchestrator/stations/.
  *
  * Line membership is encoded by the `line` field inside each JSON, not by folder
  * hierarchy — this avoids the redundant-data drift risk of nesting by line.
@@ -14,17 +16,17 @@
 import fs from 'fs';
 import path from 'path';
 
-const PROCESSES_DIR = '.orchestrator/processes';
 const STATIONS_DIR = '.orchestrator/stations';
+const LEGACY_DIR = '.orchestrator/processes';
 const SCENARIOS_DIR = '.orchestrator/scenarios';
 
 /**
- * Get all station/process JSON file paths from both legacy and new layouts.
+ * Get all station JSON file paths from the new and legacy layouts.
  * @returns {string[]} Array of relative file paths
  */
 function getAllStationFilePaths() {
   const paths = [];
-  for (const dir of [PROCESSES_DIR, STATIONS_DIR]) {
+  for (const dir of [STATIONS_DIR, LEGACY_DIR]) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir)) {
       if (f.endsWith('.json')) paths.push(path.join(dir, f));
@@ -34,16 +36,7 @@ function getAllStationFilePaths() {
 }
 
 /**
- * Ensure the processes directory exists
- */
-function ensureProcessesDir() {
-  if (!fs.existsSync(PROCESSES_DIR)) {
-    fs.mkdirSync(PROCESSES_DIR, { recursive: true });
-  }
-}
-
-/**
- * Convert process name to snake_case for filename
+ * Convert a station name to snake_case for filenames
  * "Update Rules" -> "update_rules"
  * @param {string} name
  * @returns {string}
@@ -56,23 +49,23 @@ function nameToSnakeCase(name) {
 }
 
 /**
- * Build filename for a process
+ * Build a filename for a station.
  * Uses short_code as prefix when available, otherwise falls back to id.
- * @param {object} process - Process with id, name, and optionally short_code
+ * @param {object} station - Station with id, name, and optionally short_code
  * @returns {string} Filename like "P1__discover_pending_msas.json" or "0flNNmVLV5Dg__update_rules.json"
  */
-function buildFilename(process) {
-  const snakeName = nameToSnakeCase(process.name || 'unnamed');
-  const prefix = process.short_code || process.id;
+function buildFilename(station) {
+  const snakeName = nameToSnakeCase(station.name || 'unnamed');
+  const prefix = station.short_code || station.id;
   return `${prefix}__${snakeName}.json`;
 }
 
 /**
- * Find process file by ID or short_code (handles name changes and prefix migration)
- * @param {string} identifier - Process ID or short_code
+ * Find a station file by ID or short_code (handles name changes and prefix migration).
+ * @param {string} identifier - Station ID or short_code
  * @returns {string|null} Full filepath or null if not found
  */
-export function findProcessFile(identifier) {
+export function findStationFile(identifier) {
   const all = getAllStationFilePaths();
 
   // Try filename prefix match (works for both ID-prefixed and short_code-prefixed files)
@@ -95,46 +88,41 @@ export function findProcessFile(identifier) {
 }
 
 /**
- * Save a process/station to a local file.
- * Removes old files (in either layout) before writing.
- * @param {object} process - Process/station definition with id, name, and optionally short_code + line
- * @param {object} [options]
- * @param {'processes'|'stations'} [options.layout='processes'] - 'processes' → legacy `.orchestrator/processes/`; 'stations' → new `.orchestrator/stations/`
+ * Save a station to a local file under .orchestrator/stations/.
+ * Removes any existing file for this station (in either the new or legacy layout) before writing.
+ * @param {object} station - Station definition with id, name, and optionally short_code + line
  * @returns {string} Saved filepath
  */
-export function saveProcess(process, options = {}) {
-  const { layout = 'processes' } = options;
-
-  // Remove any existing files for this process (handles both layouts and both id/short_code prefix forms)
+export function saveStation(station) {
+  // Remove any existing files for this station (handles both layouts and both id/short_code prefix forms)
   const toRemove = new Set();
-  const existingById = findProcessFile(process.id);
+  const existingById = findStationFile(station.id);
   if (existingById) toRemove.add(existingById);
-  if (process.short_code) {
-    const existingByCode = findProcessFile(process.short_code);
+  if (station.short_code) {
+    const existingByCode = findStationFile(station.short_code);
     if (existingByCode) toRemove.add(existingByCode);
   }
   for (const f of toRemove) {
     fs.unlinkSync(f);
   }
 
-  const targetDir = layout === 'stations' ? STATIONS_DIR : PROCESSES_DIR;
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
+  if (!fs.existsSync(STATIONS_DIR)) {
+    fs.mkdirSync(STATIONS_DIR, { recursive: true });
   }
 
-  const filename = buildFilename(process);
-  const filepath = path.join(targetDir, filename);
-  fs.writeFileSync(filepath, JSON.stringify(process, null, 2));
+  const filename = buildFilename(station);
+  const filepath = path.join(STATIONS_DIR, filename);
+  fs.writeFileSync(filepath, JSON.stringify(station, null, 2));
   return filepath;
 }
 
 /**
- * Load a process from local file by ID or short_code
- * @param {string} identifier - Process ID or short_code
- * @returns {object|null} Process definition or null if not found
+ * Load a station from a local file by ID or short_code.
+ * @param {string} identifier - Station ID or short_code
+ * @returns {object|null} Station definition or null if not found
  */
-export function loadProcess(identifier) {
-  const filepath = findProcessFile(identifier);
+export function loadStation(identifier) {
+  const filepath = findStationFile(identifier);
 
   if (!filepath) {
     return null;
@@ -144,19 +132,18 @@ export function loadProcess(identifier) {
 }
 
 /**
- * List all process/station JSON files from both layouts (legacy flat + new nested-by-line).
- * Returns relative paths so callers can distinguish location.
- * @returns {string[]} Array of relative paths (e.g. '.orchestrator/processes/foo.json' or '.orchestrator/stations/VM/foo.json')
+ * List all station JSON files from both new and legacy layouts.
+ * @returns {string[]} Array of relative paths
  */
-export function listAllProcessFiles() {
+export function listAllStationFiles() {
   return getAllStationFilePaths();
 }
 
 /**
- * List all locally saved process IDs (files whose JSON contains an `id` field)
- * @returns {string[]} Array of process IDs
+ * List all locally saved station IDs (files whose JSON contains an `id` field).
+ * @returns {string[]} Array of station IDs
  */
-export function listLocalProcesses() {
+export function listLocalStationIds() {
   const ids = [];
   for (const p of getAllStationFilePaths()) {
     try {
@@ -170,8 +157,8 @@ export function listLocalProcesses() {
 }
 
 /**
- * Load every local station/process JSON, returning the parsed objects with their source paths.
- * Used by fob stations / fob lines to derive line topology from local files.
+ * Load every local station JSON, returning the parsed objects with their source paths.
+ * Used by `fob stations` / `fob lines` to derive line topology from local files.
  * @returns {Array<{filepath: string, dir: string, line: string|null, data: object}>}
  */
 export function listLocalStations() {
@@ -193,13 +180,13 @@ export function listLocalStations() {
 }
 
 /**
- * Load a process/station from a filename or relative path.
+ * Load a station from a filename or relative path.
  * Accepts either a bare filename (searches both layouts by basename) or a relative path
  * (treats as direct path).
- * @param {string} arg - Bare filename (e.g. 'P1__foo.json') or path (e.g. '.orchestrator/stations/VM/foo.json')
- * @returns {object|null} Process definition or null if not found
+ * @param {string} arg - Bare filename (e.g. 'P1__foo.json') or path (e.g. '.orchestrator/stations/foo.json')
+ * @returns {object|null} Station definition or null if not found
  */
-export function loadProcessByFilename(arg) {
+export function loadStationByFilename(arg) {
   // Path form — use directly
   if (arg.includes(path.sep) || arg.includes('/')) {
     if (!fs.existsSync(arg)) return null;
@@ -216,21 +203,21 @@ export function loadProcessByFilename(arg) {
 }
 
 /**
- * Write the server-assigned ID back into a new process/station file and rename it
- * to the standard naming format. Preserves the original file's directory so files
- * created in the new stations layout stay there.
+ * Write the server-assigned ID back into a new station file and rename it
+ * to the standard naming format. New files always land in `.orchestrator/stations/`
+ * even if the original draft lived in the legacy directory.
  * @param {string} originalArg - Original bare filename or relative path
- * @param {object} process - Process with id, name, and optionally short_code (as returned by server)
+ * @param {object} station - Station with id, name, and optionally short_code (as returned by server)
  * @returns {string} New filepath
  */
-export function finalizeNewProcessFile(originalArg, process) {
+export function finalizeNewStationFile(originalArg, station) {
   // Locate the original file — accept either a path or a bare filename
   let originalPath;
   if (originalArg.includes(path.sep) || originalArg.includes('/')) {
     originalPath = originalArg;
   } else {
     originalPath = getAllStationFilePaths().find(p => path.basename(p) === originalArg)
-      || path.join(PROCESSES_DIR, originalArg);
+      || path.join(STATIONS_DIR, originalArg);
   }
 
   // Remove the original file
@@ -238,39 +225,29 @@ export function finalizeNewProcessFile(originalArg, process) {
     fs.unlinkSync(originalPath);
   }
 
-  // Write the renamed file into the same directory as the original (defaults to legacy if it was missing)
-  const targetDir = fs.existsSync(path.dirname(originalPath)) ? path.dirname(originalPath) : PROCESSES_DIR;
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
+  if (!fs.existsSync(STATIONS_DIR)) {
+    fs.mkdirSync(STATIONS_DIR, { recursive: true });
   }
 
-  const newFilename = buildFilename(process);
-  const newPath = path.join(targetDir, newFilename);
-  fs.writeFileSync(newPath, JSON.stringify(process, null, 2));
+  const newFilename = buildFilename(station);
+  const newPath = path.join(STATIONS_DIR, newFilename);
+  fs.writeFileSync(newPath, JSON.stringify(station, null, 2));
   return newPath;
 }
 
 /**
- * Get step config from a process definition
- * @param {object} process - Process definition
+ * Get step config from a station definition.
+ * @param {object} station - Station definition
  * @param {string} stepSlug - Step slug to find
  * @returns {object|null} Step config or null if step not found
  */
-export function getStepConfigFromProcess(process, stepSlug) {
-  const step = process.steps?.find(s => s.slug === stepSlug);
+export function getStepConfigFromStation(station, stepSlug) {
+  const step = station.steps?.find(s => s.slug === stepSlug);
   return step?.config || null;
 }
 
 /**
- * Get the processes directory path (legacy flat layout)
- * @returns {string}
- */
-export function getProcessesDir() {
-  return PROCESSES_DIR;
-}
-
-/**
- * Get the stations directory path (new nested-by-line layout)
+ * Get the stations directory path.
  * @returns {string}
  */
 export function getStationsDir() {
@@ -278,7 +255,7 @@ export function getStationsDir() {
 }
 
 /**
- * Get the scenarios directory path
+ * Get the scenarios directory path.
  * @returns {string}
  */
 export function getScenariosDir() {
@@ -286,22 +263,22 @@ export function getScenariosDir() {
 }
 
 // ============================================================================
-// Process Discovery
+// Station Discovery
 // ============================================================================
 
 /**
- * Find all local processes that contain a specific step
+ * Find all local stations that contain a specific step.
  * @param {string} stepSlug - Step slug to search for
- * @returns {Array<{id: string, name: string}>} Processes containing the step
+ * @returns {Array<{id: string, name: string}>} Stations containing the step
  */
-export function findProcessesWithStep(stepSlug) {
-  const processIds = listLocalProcesses();
+export function findStationsWithStep(stepSlug) {
+  const stationIds = listLocalStationIds();
   const matches = [];
 
-  for (const id of processIds) {
-    const proc = loadProcess(id);
-    if (proc?.steps?.some(s => s.slug === stepSlug)) {
-      matches.push({ id: proc.id, name: proc.name });
+  for (const id of stationIds) {
+    const station = loadStation(id);
+    if (station?.steps?.some(s => s.slug === stepSlug)) {
+      matches.push({ id: station.id, name: station.name });
     }
   }
 
@@ -313,7 +290,7 @@ export function findProcessesWithStep(stepSlug) {
 // ============================================================================
 
 /**
- * Convert step slug to scenario directory name
+ * Convert step slug to scenario directory name.
  * alex/send_email -> alex__send_email
  * @param {string} slug
  * @returns {string}
@@ -323,7 +300,7 @@ function slugToScenarioDir(slug) {
 }
 
 /**
- * Get scenario directory path for a step
+ * Get scenario directory path for a step.
  * @param {string} stepSlug
  * @returns {string}
  */
@@ -332,7 +309,7 @@ function getScenarioDirForStep(stepSlug) {
 }
 
 /**
- * List all scenarios for a step
+ * List all scenarios for a step.
  * @param {string} stepSlug - Step slug
  * @returns {string[]} Array of scenario names (without .json extension)
  */
@@ -349,7 +326,7 @@ export function listScenarios(stepSlug) {
 }
 
 /**
- * Load a scenario config
+ * Load a scenario config.
  * @param {string} stepSlug - Step slug
  * @param {string} scenarioName - Scenario name (without .json)
  * @returns {object|null} Scenario config or null if not found
@@ -365,7 +342,7 @@ export function loadScenario(stepSlug, scenarioName) {
 }
 
 /**
- * Save a scenario config
+ * Save a scenario config.
  * @param {string} stepSlug - Step slug
  * @param {string} scenarioName - Scenario name
  * @param {object} config - Config to save

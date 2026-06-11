@@ -8,7 +8,7 @@ import readline from 'readline';
  * @typedef {Object} PickerOption
  * @property {string} label - Display label
  * @property {string} value - Value to return
- * @property {string} [type] - Type for grouping (process, scenario, temp, empty)
+ * @property {string} [type] - Type for grouping (station, scenario, temp, empty)
  */
 
 /**

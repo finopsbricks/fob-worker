@@ -30,7 +30,7 @@ export async function showWorkRecordHandler(argv) {
     console.log(formatHeader('Work Record', record.id, record.status));
     console.log('');
     const lw = 14;
-    console.log(formatField('Process', record.process || '—', lw));
+    console.log(formatField('Station', record.process || '—', lw));
     console.log(formatField('Item', record.item || '—', lw));
     console.log(formatField('Status', record.status, lw));
     console.log(formatField('Duration', formatDuration(record.started_at, record.completed_at), lw));

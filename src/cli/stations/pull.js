@@ -1,11 +1,11 @@
-import { listProcesses, getProcess } from '../../utils/orchestrator.js';
-import { saveProcess, getProcessesDir, getStationsDir } from '../../utils/process-files.js';
+import { listStations, getStation } from '../../utils/orchestrator.js';
+import { saveStation, getStationsDir } from '../../utils/station-files.js';
 
 /**
- * Convert dependency IDs to short_codes using a process map.
+ * Convert dependency IDs to short_codes using a station map.
  * Values without a matching short_code pass through unchanged.
  * @param {string[]} dependencies
- * @param {Map<string, string>} idToShortCode - Map of process ID → short_code
+ * @param {Map<string, string>} idToShortCode - Map of station ID → short_code
  * @returns {string[]}
  */
 function convertDependenciesToShortCodes(dependencies, idToShortCode) {
@@ -13,73 +13,67 @@ function convertDependenciesToShortCodes(dependencies, idToShortCode) {
   return dependencies.map(dep => idToShortCode.get(dep) || dep);
 }
 
-export async function pullProcessesHandler(argv) {
+export async function pullStationsHandler(argv) {
   const { id, all } = argv;
-  // argv._[0] is 'processes' or 'stations' — controls target folder layout
-  const resource = argv._?.[0] === 'stations' ? 'stations' : 'processes';
-  const layout = resource;
 
   // Require explicit id or --all
   if (!id && !all) {
-    console.error(`Usage: fob ${resource} pull <id|short_code>`);
-    console.error(`       fob ${resource} pull --all`);
+    console.error('Usage: fob stations pull <id|short_code>');
+    console.error('       fob stations pull --all');
     console.error('');
-    console.error(`Run "fob ${resource} list" to see available ${resource}`);
+    console.error('Run "fob stations list" to see available stations');
     process.exit(1);
   }
 
-  const targetDir = layout === 'stations' ? `${getStationsDir()}/` : `${getProcessesDir()}/`;
-  console.log(`Saving to: ${targetDir}`);
-
+  console.log(`Saving to: ${getStationsDir()}/`);
 
   try {
     if (id) {
-      // Pull single process — also fetch process list for dependency resolution
+      // Pull single station — also fetch list for dependency resolution
       const [response, allResponse] = await Promise.all([
-        getProcess(id),
-        listProcesses(),
+        getStation(id),
+        listStations(),
       ]);
-      const proc = response.data;
+      const station = response.data;
       const idToShortCode = new Map(
-        (allResponse.data || []).filter(p => p.short_code).map(p => [p.id, p.short_code])
+        (allResponse.data || []).filter(s => s.short_code).map(s => [s.id, s.short_code])
       );
       // Convert tag objects to names for local storage
-      if (proc.tags) {
-        proc.tags = proc.tags.map(t => t.name);
+      if (station.tags) {
+        station.tags = station.tags.map(t => t.name);
       }
-      proc.dependencies = convertDependenciesToShortCodes(proc.dependencies, idToShortCode);
-      const filepath = saveProcess(proc, { layout });
+      station.dependencies = convertDependenciesToShortCodes(station.dependencies, idToShortCode);
+      const filepath = saveStation(station);
       console.log(`Saved: ${filepath}`);
     } else {
-      // Pull all processes
-      const response = await listProcesses();
-      const processes = response.data || [];
+      // Pull all stations
+      const response = await listStations();
+      const stations = response.data || [];
 
-      if (processes.length === 0) {
-        console.log(`No ${resource} found`);
+      if (stations.length === 0) {
+        console.log('No stations found');
         return;
       }
 
       // Build ID → short_code map from the full list
       const idToShortCode = new Map(
-        processes.filter(p => p.short_code).map(p => [p.id, p.short_code])
+        stations.filter(s => s.short_code).map(s => [s.id, s.short_code])
       );
 
-      for (const proc of processes) {
-        // Fetch full process details (list may not include all fields)
-        const fullResponse = await getProcess(proc.id);
-        const fullProc = fullResponse.data;
-        // Convert tag objects to names for local storage
-        if (fullProc.tags) {
-          fullProc.tags = fullProc.tags.map(t => t.name);
+      for (const station of stations) {
+        // Fetch full details (list may not include all fields)
+        const fullResponse = await getStation(station.id);
+        const fullStation = fullResponse.data;
+        if (fullStation.tags) {
+          fullStation.tags = fullStation.tags.map(t => t.name);
         }
-        fullProc.dependencies = convertDependenciesToShortCodes(fullProc.dependencies, idToShortCode);
-        const filepath = saveProcess(fullProc, { layout });
+        fullStation.dependencies = convertDependenciesToShortCodes(fullStation.dependencies, idToShortCode);
+        const filepath = saveStation(fullStation);
         console.log(`Saved: ${filepath}`);
       }
 
       console.log('');
-      console.log(`Total: ${processes.length} ${resource} pulled`);
+      console.log(`Total: ${stations.length} stations pulled`);
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);

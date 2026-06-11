@@ -1,14 +1,14 @@
-import { formatHeader, formatSection } from '../../utils/format.js';
+import { formatHeader } from '../../utils/format.js';
 import { loadLineState, LIVE_BINS } from '../../utils/line-state.js';
 
 /**
- * `fob stations status <code>` / `fob processes status <id>` — single-station
- * operational drilldown: per-bin workpiece ids read from temp/stations/.
+ * `fob stations status <code>` — single-station operational drilldown: per-bin
+ * workpiece ids read from temp/stations/.
  *
  * Resolves the argument directly against on-disk station short_codes — no
  * orchestrator call. Pass the station short_code (e.g. VM3).
  */
-export async function statusProcessHandler(argv) {
+export async function statusStationHandler(argv) {
   const { id, json } = argv;
   if (!id) {
     console.error('Usage: fob stations status <short_code>');

@@ -1,6 +1,6 @@
 # @fob/cli
 
-Developer CLI for FinOpsBricks process engine workers.
+Developer CLI for FinOpsBricks workers — `fob stations`, `fob lines`, `fob workpieces` and friends.
 
 Command pattern: `fob <resource> <action> [target] [options]`
 

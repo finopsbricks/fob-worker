@@ -1,7 +1,7 @@
 /**
  * @fob/cli
  *
- * Developer CLI for FinOpsBricks process engine workers.
+ * Developer CLI for FinOpsBricks workers.
  *
  * Primary usage is via the `fob` command line tool.
  * This module exports utilities for programmatic use if needed.

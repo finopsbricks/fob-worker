@@ -1,8 +1,8 @@
-import { getItem, getItemProcesses, listWorkRecords, getEntityTags } from '../../utils/orchestrator.js';
+import { getItem, getItemStations, listWorkRecords, getEntityTags } from '../../utils/orchestrator.js';
 import { formatHeader, formatField, formatTable, formatSection, formatDate } from '../../utils/format.js';
 
 export async function showItemHandler(argv) {
-  const { id, processes, workRecords, all, json } = argv;
+  const { id, stations, workRecords, all, json } = argv;
 
   try {
     const response = await getItem(id);
@@ -42,22 +42,22 @@ export async function showItemHandler(argv) {
       }
     }
 
-    // --processes or --all
-    if (processes || all) {
-      const procResponse = await getItemProcesses(id);
-      const procs = procResponse.data || [];
-      console.log(formatSection(`Configured Processes (${procs.length})`));
-      if (procs.length > 0) {
-        const rows = procs.map(p => [
-          p.short_code || '—',
-          p.name || '—',
-          String(p.execution_count || 0),
-          formatDate(p.last_executed_at),
+    // --stations or --all
+    if (stations || all) {
+      const stationsResponse = await getItemStations(id);
+      const stationsList = stationsResponse.data || [];
+      console.log(formatSection(`Configured Stations (${stationsList.length})`));
+      if (stationsList.length > 0) {
+        const rows = stationsList.map(s => [
+          s.short_code || '—',
+          s.name || '—',
+          String(s.execution_count || 0),
+          formatDate(s.last_executed_at),
         ]);
         console.log(formatTable(['SHORT CODE', 'NAME', 'RUNS', 'LAST RUN'], rows));
-        console.log(`\nUse \`fob processes run <process-id> --item ${id}\` to trigger a run.`);
+        console.log(`\nUse \`fob stations run <station-id> --item ${id}\` to trigger a run.`);
       } else {
-        console.log('No configured processes.');
+        console.log('No configured stations.');
       }
     }
 
@@ -74,7 +74,7 @@ export async function showItemHandler(argv) {
           formatDate(r.started_at),
           formatDate(r.completed_at),
         ]);
-        console.log(formatTable(['ID', 'PROCESS', 'STATUS', 'STARTED', 'COMPLETED'], rows));
+        console.log(formatTable(['ID', 'STATION', 'STATUS', 'STARTED', 'COMPLETED'], rows));
         console.log(`\nUse \`fob work-records list --item ${id}\` for full list.`);
       } else {
         console.log('No work records found.');
@@ -82,8 +82,8 @@ export async function showItemHandler(argv) {
     }
 
     // Hint when no section flags used
-    if (!processes && !workRecords && !all) {
-      console.log('\nUse --processes, --work-records, or --all for linked entities.');
+    if (!stations && !workRecords && !all) {
+      console.log('\nUse --stations, --work-records, or --all for linked entities.');
     }
   } catch (error) {
     console.error(`Error: ${error.message}`);

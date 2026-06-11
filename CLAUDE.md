@@ -4,7 +4,7 @@ Guidance for Claude Code when working with this package.
 
 ## Overview
 
-`@fob/cli` is a developer CLI for FinOpsBricks process engine workers. It provides commands for local step debugging without duplicating code across worker repos.
+`@fob/cli` is a developer CLI for FinOpsBricks workers. It provides commands for local step debugging without duplicating code across worker repos.
 
 ### Related Repositories
 
@@ -12,7 +12,7 @@ This package is part of the **FinOpsBricks** monorepo:
 
 - **`workers/*`** — Customer-specific workers. This CLI is used inside worker repos to debug steps locally.
 - **`lib/lib-worker`** — Shared worker infrastructure (`@fob/lib-worker`). Workers depend on this. CLI loads it at runtime from the worker's `node_modules/` (not as its own dependency — see `docs/architecture/lib-worker-resolution.md`).
-- **`apps/orchestrator.finopsbricks.com`** — Process orchestrator. Defines processes and step sequences.
+- **`apps/orchestrator.finopsbricks.com`** — Orchestrator. Defines stations and step sequences. (Note: its API and database still use "process" terminology — the rename is CLI-side only.)
 - **`apps/statements.finopsbricks.com`** — System of record. Steps may call this API during local debugging.
 - **`fde-handbook`** — step patterns, process design, capabilities, library APIs.
 - **`platform-handbook`** — platform architecture, operations, internals.
@@ -27,9 +27,13 @@ Pattern: `fob <resource> <action> [target] [options]`
 ```bash
 fob steps list                              # List available steps
 fob steps run alex/fetch_account_freshness  # Run a step locally
+fob stations list                           # List stations from orchestrator
+fob stations pull --all                     # Pull stations to .orchestrator/stations/
 fob completion                              # Output shell completion script
 fob --help                                  # Show help
 ```
+
+Note: the orchestrator API and database still use "process" — only the CLI's vocabulary is "station". URL paths like `/api/v1/processes/*` and JSON field names like `record.process` are preserved as the API contract.
 
 See `docs/cli-design-style.md` for design rationale.
 
@@ -44,10 +48,12 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (steps, config, processes, items, work-records, supporting-docs, tags, worker)
+- `fob <tab>` → resources (steps, config, stations, lines, workpieces, items, work-records, supporting-docs, tags, worker)
 - `fob steps <tab>` → actions (list, run)
 - `fob steps run <tab>` → step slugs
-- `fob processes <tab>` → actions (list, show, run, edit, pull, push, update-step-metadata)
+- `fob stations <tab>` → actions (list, show, status, run, pull, push, edit, update-step-metadata)
+- `fob lines <tab>` → actions (list, show, status)
+- `fob workpieces <tab>` → actions (list, show, watch)
 - `fob items <tab>` → actions (list, show, edit)
 - `fob work-records <tab>` → actions (list, show, edit, cancel)
 - `fob supporting-docs <tab>` → actions (show)
@@ -62,7 +68,9 @@ src/
   cli/
     index.js              # yargs command tree and shell completion
     steps/                # list.js, run.js
-    processes/            # list.js, show.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
+    stations/             # list.js, show.js, status.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
+    lines/                # list.js, show.js, status.js
+    workpieces/           # list.js, show.js, watch.js
     items/                # list.js, show.js, edit.js
     work-records/         # list.js, show.js, edit.js, cancel.js
     supporting-docs/      # show.js
@@ -73,9 +81,10 @@ src/
     steps-loader.js       # Dynamic import of steps registry
     lib-worker-loader.js  # Runtime loader for worker's @fob/lib-worker
     output.js             # Save/load step outputs
-    orchestrator.js       # HTTP calls to orchestrator API
+    orchestrator.js       # HTTP calls to orchestrator API (keeps /api/v1/processes path)
     format.js             # Shared formatting helpers for CLI output
-    process-files.js      # Read/write .orchestrator/ directory
+    station-files.js      # Read/write .orchestrator/stations/ (with legacy .orchestrator/processes/ read fallback)
+    line-state.js         # Live line/bin state from temp/stations/
     tags.js               # Tag name↔ID resolution helpers
 docs/
   architecture/           # Internal design notes (for maintainers)

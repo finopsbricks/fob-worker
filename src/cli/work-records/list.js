@@ -1,12 +1,12 @@
 import { listWorkRecords } from '../../utils/orchestrator.js';
 
 export async function listWorkRecordsHandler(argv) {
-  const { limit, status, process: processId, tag, json } = argv;
+  const { limit, status, station: stationId, tag, json } = argv;
 
   const filters = [];
   if (limit) filters.push(`limit=${limit}`);
   if (status) filters.push(`status=${status}`);
-  if (processId) filters.push(`process=${processId}`);
+  if (stationId) filters.push(`station=${stationId}`);
   if (tag) filters.push(`tag=${tag}`);
   if (filters.length > 0) {
     console.log(`Filters: ${filters.join(', ')}`);
@@ -14,7 +14,7 @@ export async function listWorkRecordsHandler(argv) {
   console.log('');
 
   try {
-    const response = await listWorkRecords({ limit, status, process: processId, tag });
+    const response = await listWorkRecords({ limit, status, station: stationId, tag });
     const records = response.data || [];
 
     if (records.length === 0) {

@@ -1,4 +1,4 @@
-import { listLocalStations } from '../../utils/process-files.js';
+import { listLocalStations } from '../../utils/station-files.js';
 import { topoSortStations, codeOf } from '../../utils/line-state.js';
 import { formatTable } from '../../utils/format.js';
 
@@ -13,8 +13,8 @@ export async function listLinesHandler(argv) {
   const stations = listLocalStations();
 
   if (stations.length === 0) {
-    console.log('No local station/process files found.');
-    console.log('Run "fob stations pull --all" or "fob processes pull --all" to fetch from orchestrator.');
+    console.log('No local station files found.');
+    console.log('Run "fob stations pull --all" to fetch from orchestrator.');
     return;
   }
 

@@ -1,7 +1,14 @@
 /**
  * Orchestrator API client
  *
- * Provides access to orchestrator endpoints for processes and work records.
+ * Provides access to orchestrator endpoints for stations and work records.
+ *
+ * Note: the orchestrator HTTP API and database still use the term "process".
+ * URL path strings (`/api/v1/processes/...`), query params (`?process=`), and
+ * URL segments passed to setEntityTags (`'processes'`) keep that wording —
+ * they are the API contract. Only the JS-side function and parameter names
+ * use station nomenclature.
+ *
  * Uses ORCHESTRATOR_API_KEY/SECRET for both v1 API and worker endpoints.
  */
 
@@ -100,9 +107,9 @@ export async function checkConnection() {
 }
 
 /**
- * List processes
+ * List stations
  */
-export async function listProcesses(options = {}) {
+export async function listStations(options = {}) {
   const params = new URLSearchParams();
   if (options.tag) params.set('tag', options.tag);
   const query = params.toString();
@@ -110,18 +117,18 @@ export async function listProcesses(options = {}) {
 }
 
 /**
- * Get process by ID
+ * Get station by ID
  */
-export async function getProcess(id) {
+export async function getStation(id) {
   return apiRequest(`/api/v1/processes/${id}`);
 }
 
 /**
- * Create a new process
- * @param {object} data - Process definition (without id)
- * @returns {object} Created process (with id assigned by server)
+ * Create a new station
+ * @param {object} data - Station definition (without id)
+ * @returns {object} Created station (with id assigned by server)
  */
-export async function createProcess(data) {
+export async function createStation(data) {
   return apiRequest('/api/v1/processes', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -129,11 +136,11 @@ export async function createProcess(data) {
 }
 
 /**
- * Update process by ID
- * @param {string} id - Process ID
- * @param {object} data - Process fields to update
+ * Update station by ID
+ * @param {string} id - Station ID
+ * @param {object} data - Station fields to update
  */
-export async function updateProcess(id, data) {
+export async function updateStation(id, data) {
   return apiRequest(`/api/v1/processes/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -142,12 +149,17 @@ export async function updateProcess(id, data) {
 
 /**
  * List work records
+ * @param {object} [options]
+ * @param {number} [options.limit]
+ * @param {string} [options.status]
+ * @param {string} [options.station] - Filter by station ID (sent as `?process=` to match the API contract)
+ * @param {string} [options.tag]
  */
 export async function listWorkRecords(options = {}) {
   const params = new URLSearchParams();
   if (options.limit) params.set('limit', options.limit);
   if (options.status) params.set('status', options.status);
-  if (options.process) params.set('process', options.process);
+  if (options.station) params.set('process', options.station);
   if (options.tag) params.set('tag', options.tag);
 
   const query = params.toString();
@@ -259,38 +271,38 @@ export async function getItem(id) {
 }
 
 // ============================================================================
-// Process Execution
+// Station Execution
 // ============================================================================
 
 /**
- * Trigger a process run
- * @param {string} processId - Process ID or short_code
- * @param {string} [itemId] - Item ID (required if process has applies_to)
+ * Trigger a station run
+ * @param {string} stationId - Station ID or short_code
+ * @param {string} [itemId] - Item ID (required if station has applies_to)
  */
-export async function runProcess(processId, itemId) {
+export async function runStation(stationId, itemId) {
   const body = {};
   if (itemId) body.item_id = itemId;
-  return apiRequest(`/api/v1/processes/${processId}/run`, {
+  return apiRequest(`/api/v1/processes/${stationId}/run`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
 // ============================================================================
-// Cross-Entity (ItemProcesses join)
+// Cross-Entity (Item ↔ Station join)
 // ============================================================================
 
 /**
- * Get items linked to a process
+ * Get items linked to a station
  */
-export async function getProcessItems(processId) {
-  return apiRequest(`/api/v1/processes/${processId}/items`);
+export async function getStationItems(stationId) {
+  return apiRequest(`/api/v1/processes/${stationId}/items`);
 }
 
 /**
- * Get processes linked to an item
+ * Get stations linked to an item
  */
-export async function getItemProcesses(itemId) {
+export async function getItemStations(itemId) {
   return apiRequest(`/api/v1/items/${itemId}/processes`);
 }
 
@@ -331,7 +343,7 @@ export async function downloadSupportingDoc(id, filePath) {
 
 /**
  * Get tags for an entity
- * @param {string} entityType - URL segment: 'processes' | 'items' | 'work-records'
+ * @param {string} entityType - URL segment (API contract): 'processes' | 'items' | 'work-records'
  * @param {string} entityId - Entity ID
  */
 export async function getEntityTags(entityType, entityId) {
@@ -340,7 +352,7 @@ export async function getEntityTags(entityType, entityId) {
 
 /**
  * Set tags on an entity (full replace)
- * @param {string} entityType - URL segment: 'processes' | 'items' | 'work-records'
+ * @param {string} entityType - URL segment (API contract): 'processes' | 'items' | 'work-records'
  * @param {string} entityId - Entity ID
  * @param {string[]} tagIds - Array of tag IDs
  */
@@ -350,4 +362,3 @@ export async function setEntityTags(entityType, entityId, tagIds) {
     body: JSON.stringify({ tags: tagIds }),
   });
 }
-

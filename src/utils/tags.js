@@ -1,6 +1,6 @@
 /**
  * Tag name ↔ ID resolution helpers.
- * Used by CLI edit commands and process push.
+ * Used by CLI edit commands and station push.
  */
 
 import { listTags, createTag } from './orchestrator.js';

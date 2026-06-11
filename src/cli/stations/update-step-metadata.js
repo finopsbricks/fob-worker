@@ -1,13 +1,13 @@
 import path from 'path';
 import { loadConfig } from '../../utils/config.js';
 import { loadSteps } from '../../utils/steps-loader.js';
-import { listLocalProcesses, loadProcess, saveProcess, getProcessesDir } from '../../utils/process-files.js';
+import { listLocalStationIds, loadStation, saveStation, getStationsDir } from '../../utils/station-files.js';
 
 export async function updateStepMetadataHandler() {
   const config = loadConfig();
 
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsDir)}/`);
-  console.log(`Processes: ${getProcessesDir()}/`);
+  console.log(`Stations: ${getStationsDir()}/`);
   console.log('');
 
   try {
@@ -27,23 +27,23 @@ export async function updateStepMetadataHandler() {
     console.log(`Loaded ${Object.keys(stepMetadata).length} step definitions`);
     console.log('');
 
-    // Update each local process
-    const localIds = listLocalProcesses();
+    // Update each local station
+    const localIds = listLocalStationIds();
 
     if (localIds.length === 0) {
-      console.log('No local processes found');
-      console.log('Run "fob processes pull" first');
+      console.log('No local stations found');
+      console.log('Run "fob stations pull" first');
       return;
     }
 
     let totalUpdated = 0;
 
-    for (const processId of localIds) {
-      const proc = loadProcess(processId);
+    for (const stationId of localIds) {
+      const station = loadStation(stationId);
       let updated = false;
 
-      if (proc.steps && Array.isArray(proc.steps)) {
-        for (const step of proc.steps) {
+      if (station.steps && Array.isArray(station.steps)) {
+        for (const step of station.steps) {
           const meta = stepMetadata[step.slug];
           if (meta) {
             if (step.name !== meta.name || step.description !== meta.description) {
@@ -56,14 +56,14 @@ export async function updateStepMetadataHandler() {
       }
 
       if (updated) {
-        saveProcess(proc);
-        console.log(`Updated: ${proc.name} (${processId})`);
+        saveStation(station);
+        console.log(`Updated: ${station.name} (${stationId})`);
         totalUpdated++;
       }
     }
 
     console.log('');
-    console.log(`Updated ${totalUpdated} of ${localIds.length} processes`);
+    console.log(`Updated ${totalUpdated} of ${localIds.length} stations`);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);

@@ -1,6 +1,6 @@
-import { listProcesses } from '../../utils/orchestrator.js';
+import { listStations } from '../../utils/orchestrator.js';
 
-export async function listProcessesHandler(argv) {
+export async function listStationsHandler(argv) {
   const { tag, json } = argv || {};
 
   if (tag) {
@@ -9,23 +9,23 @@ export async function listProcessesHandler(argv) {
   }
 
   try {
-    const response = await listProcesses({ tag });
-    const processes = response.data || [];
+    const response = await listStations({ tag });
+    const stations = response.data || [];
 
-    if (processes.length === 0) {
-      console.log('No processes found');
+    if (stations.length === 0) {
+      console.log('No stations found');
       return;
     }
 
     if (json) {
-      console.log(JSON.stringify(processes, null, 2));
+      console.log(JSON.stringify(stations, null, 2));
       return;
     }
 
     // Calculate column widths
-    const codeWidth = Math.max(4, ...processes.map(p => (p.short_code || '').length));
-    const idWidth = Math.max(4, ...processes.map(p => p.id.length));
-    const nameWidth = Math.max(4, ...processes.map(p => (p.name || '').length));
+    const codeWidth = Math.max(4, ...stations.map(s => (s.short_code || '').length));
+    const idWidth = Math.max(4, ...stations.map(s => s.id.length));
+    const nameWidth = Math.max(4, ...stations.map(s => (s.name || '').length));
 
     // Header
     const header = `${'CODE'.padEnd(codeWidth)}  ${'ID'.padEnd(idWidth)}  ${'NAME'.padEnd(nameWidth)}  STEPS`;
@@ -33,16 +33,16 @@ export async function listProcessesHandler(argv) {
     console.log('-'.repeat(header.length));
 
     // Rows
-    for (const proc of processes) {
-      const code = (proc.short_code || '-').padEnd(codeWidth);
-      const id = proc.id.padEnd(idWidth);
-      const name = (proc.name || '-').padEnd(nameWidth);
-      const steps = proc.steps ? proc.steps.length : 0;
+    for (const station of stations) {
+      const code = (station.short_code || '-').padEnd(codeWidth);
+      const id = station.id.padEnd(idWidth);
+      const name = (station.name || '-').padEnd(nameWidth);
+      const steps = station.steps ? station.steps.length : 0;
       console.log(`${code}  ${id}  ${name}  ${steps}`);
     }
 
     console.log('');
-    console.log(`Total: ${processes.length} processes`);
+    console.log(`Total: ${stations.length} stations`);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);

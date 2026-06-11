@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { listLocalStations } from './process-files.js';
+import { listLocalStations } from './station-files.js';
 
 const ALL_BINS = ['input', 'doing', 'output', 'failed', 'done'];
 const LIVE_BINS = ['input', 'doing', 'output', 'failed'];
