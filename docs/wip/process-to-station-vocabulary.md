@@ -1,6 +1,6 @@
 # Process → Station Vocabulary Transition
 
-## Status: IN PROGRESS (~75%) — Phases 1 & 2 done; docs/usage and the v8 WIP remain
+## Status: IN PROGRESS (~95%) — Phases 1–4 done; only release (Phase 5) remains
 
 Hard rename of the CLI's vocabulary from "process" to "station" to match the architecture's new factory-floor metaphor. The orchestrator database and HTTP API still use "process" and are out of scope — HTTP path literals in `src/utils/orchestrator.js` stay as `/api/v1/processes/*`, but every JS symbol and user-facing string in the CLI becomes `station`.
 
@@ -96,8 +96,8 @@ That means much of the threading is done. The remaining work is collapsing the d
 - [ ] Update `docs/usage/monitoring.md`, `docs/usage/scenarios.md`, etc.
 - [ ] Update cross-links across `docs/`
 
-### Phase 4: Outstanding WIP cleanup ❌
-- [ ] Restate `docs/wip/fob-cli-v8-process-delete.md` as `fob-cli-v9-station-delete.md` (or roll its phases into this WIP)
+### Phase 4: Outstanding WIP cleanup ✅
+- [x] Restated `docs/wip/fob-cli-v8-process-delete.md` as `docs/wip/fob-cli-v9-station-delete.md` with station vocabulary throughout (API/DB references kept as `process` since the orchestrator hasn't migrated)
 
 ### Phase 5: Release ❌
 - [ ] Update CHANGELOG.md — breaking change (`fob processes` removed)
@@ -118,4 +118,4 @@ That means much of the threading is done. The remaining work is collapsing the d
 
 ## Related
 
-- [fob-cli-v8-process-delete.md](fob-cli-v8-process-delete.md) — outstanding `delete` action, to be restated under station vocabulary in Phase 4
+- [fob-cli-v9-station-delete.md](fob-cli-v9-station-delete.md) — outstanding `delete` action, restated under station vocabulary in Phase 4 (was v8-process-delete)
