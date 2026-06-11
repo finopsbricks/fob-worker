@@ -14,13 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **BREAKING:** `.orchestrator/processes/` read fallback in `station-files.js`. Worker repos that haven't re-pulled since the 1.0.0 rename must run `fob stations pull --all` — `loadStation()` now returns `null` for files only present in the legacy directory.
 
 ## [1.0.0] - 2026-06-11
 
 First stable release. The CLI surface and on-disk layout are now considered stable; future breaking changes will follow strict semver.
 
 ### Added
-- Legacy `.orchestrator/processes/` directory continues to be read as a fallback so worker repos that pulled before this release keep working. Writes always go to `.orchestrator/stations/`.
+- Legacy `.orchestrator/processes/` directory continues to be read as a fallback so worker repos that pulled before this release keep working. Writes always go to `.orchestrator/stations/`. (Removed in the next release — see [Unreleased].)
 
 ### Changed
 - **BREAKING:** Hard rename of the CLI's user-facing vocabulary from "process" to "station". The orchestrator HTTP API and database keep "process" — only the CLI side renames.

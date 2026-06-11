@@ -159,20 +159,20 @@ describe('saveStation() + loadStation() + listLocalStationIds()', () => {
     expect(forId).toHaveLength(1);
   });
 
-  it('should read a station from the legacy .orchestrator/processes/ directory', () => {
-    // Arrange — simulate a worker repo that pulled before the rename
+  it('should not read stations from the legacy .orchestrator/processes/ directory', () => {
+    // Arrange — a worker repo that pulled before the rename should re-pull,
+    // not get silent reads from the legacy location.
     fs.mkdirSync('.orchestrator/processes', { recursive: true });
-    const legacy = { id: 'legacy1', name: 'Legacy Station', steps: [] };
     fs.writeFileSync(
       '.orchestrator/processes/legacy1__legacy_station.json',
-      JSON.stringify(legacy, null, 2),
+      JSON.stringify({ id: 'legacy1', name: 'Legacy', steps: [] }, null, 2),
     );
 
     // Act
     const loaded = loadStation('legacy1');
 
     // Assert
-    expect(loaded).toEqual(legacy);
+    expect(loaded).toBeNull();
   });
 });
 

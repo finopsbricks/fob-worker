@@ -31,7 +31,7 @@ fob stations push <id> --force              # Create with the given id (cross-en
 fob stations update-step-metadata           # Sync step names from code to station files
 ```
 
-**File naming:** Existing stations are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New stations use just `name.json` — after pushing, the file is renamed to include the server-assigned ID. Files live in `.orchestrator/stations/`; the legacy `.orchestrator/processes/` directory is read-only and supported for back-compat.
+**File naming:** Existing stations are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New stations use just `name.json` — after pushing, the file is renamed to include the server-assigned ID. Files live in `.orchestrator/stations/`.
 
 ## Lines
 

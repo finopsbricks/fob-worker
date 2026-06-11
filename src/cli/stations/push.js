@@ -165,7 +165,7 @@ export async function pushStationsHandler(argv) {
     process.exit(1);
   }
 
-  console.log(`Reading from: ${getStationsDir()}/ (and legacy .orchestrator/processes/ if present)`);
+  console.log(`Reading from: ${getStationsDir()}/`);
 
   try {
     if (id) {

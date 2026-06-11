@@ -71,7 +71,7 @@ That means much of the threading is done. The remaining work is collapsing the d
 
 **Phase 1 follow-ups noted for later:**
 - `fob processes <anything>` currently exits 0 silently because yargs lacks `.strict()`. Worth adding so the removed command produces a clear error, but it's a behavior change beyond the rename.
-- `src/utils/station-files.js` still references `.orchestrator/processes/` as a legacy read fallback (intentional back-compat). Drop it after one release cycle.
+- ~~`src/utils/station-files.js` still references `.orchestrator/processes/` as a legacy read fallback~~ Dropped — folded into the 1.0.0 release (decision: let stale repos fail loudly with "No stations found" and force a fresh pull).
 
 ### Phase 2: Tests ✅
 - [x] `git mv tests/cli/processes/ tests/cli/stations/`

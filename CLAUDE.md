@@ -83,7 +83,7 @@ src/
     output.js             # Save/load step outputs
     orchestrator.js       # HTTP calls to orchestrator API (keeps /api/v1/processes path)
     format.js             # Shared formatting helpers for CLI output
-    station-files.js      # Read/write .orchestrator/stations/ (with legacy .orchestrator/processes/ read fallback)
+    station-files.js      # Read/write .orchestrator/stations/
     line-state.js         # Live line/bin state from temp/stations/
     tags.js               # Tag name↔ID resolution helpers
 docs/

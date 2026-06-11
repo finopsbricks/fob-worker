@@ -21,7 +21,7 @@ Select config for alex/send_email:
 ```
 
 Options come from:
-1. Station definitions pulled to `.orchestrator/stations/` (or legacy `.orchestrator/processes/`) that contain this step
+1. Station definitions pulled to `.orchestrator/stations/` that contain this step
 2. Scenario files in `.orchestrator/scenarios/<step-slug>/`
 3. Empty config (always available)
 

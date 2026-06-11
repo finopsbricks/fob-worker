@@ -2,7 +2,7 @@
 
 How station definitions and test scenarios are stored in the worker directory.
 
-> The orchestrator API and database still use the term "process". The legacy `.orchestrator/processes/` directory name reflects that — the CLI reads from it for back-compat but only writes to the new `.orchestrator/stations/` location.
+> The orchestrator API and database still use the term "process". URL paths and JSON field names keep that wording — only the local directory and file naming use "station".
 
 ## Directory Structure
 
@@ -12,7 +12,6 @@ How station definitions and test scenarios are stored in the worker directory.
 │   ├── fvVNrEH6kFW1__verify_statement.json
 │   ├── NKB2zLGHbJxN__data_freshness_report.json
 │   └── 0flNNmVLV5Dg__update_rules.json
-├── processes/        # legacy — read-only fallback for older worker repos
 └── scenarios/
     └── alex__send_email/
         ├── happy-path.json

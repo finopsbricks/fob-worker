@@ -3,10 +3,6 @@
  *
  * Station files live in: .orchestrator/stations/<short_code>__<name>.json
  *
- * Legacy: prior to the station-vocabulary rename, files lived in
- * .orchestrator/processes/. Reads still fall back to that directory so
- * existing worker repos keep working; writes always go to .orchestrator/stations/.
- *
  * Line membership is encoded by the `line` field inside each JSON, not by folder
  * hierarchy — this avoids the redundant-data drift risk of nesting by line.
  *
@@ -17,20 +13,17 @@ import fs from 'fs';
 import path from 'path';
 
 const STATIONS_DIR = '.orchestrator/stations';
-const LEGACY_DIR = '.orchestrator/processes';
 const SCENARIOS_DIR = '.orchestrator/scenarios';
 
 /**
- * Get all station JSON file paths from the new and legacy layouts.
+ * Get all station JSON file paths from `.orchestrator/stations/`.
  * @returns {string[]} Array of relative file paths
  */
 function getAllStationFilePaths() {
+  if (!fs.existsSync(STATIONS_DIR)) return [];
   const paths = [];
-  for (const dir of [STATIONS_DIR, LEGACY_DIR]) {
-    if (!fs.existsSync(dir)) continue;
-    for (const f of fs.readdirSync(dir)) {
-      if (f.endsWith('.json')) paths.push(path.join(dir, f));
-    }
+  for (const f of fs.readdirSync(STATIONS_DIR)) {
+    if (f.endsWith('.json')) paths.push(path.join(STATIONS_DIR, f));
   }
   return paths;
 }
@@ -89,12 +82,12 @@ export function findStationFile(identifier) {
 
 /**
  * Save a station to a local file under .orchestrator/stations/.
- * Removes any existing file for this station (in either the new or legacy layout) before writing.
+ * Removes any existing file for this station before writing.
  * @param {object} station - Station definition with id, name, and optionally short_code + line
  * @returns {string} Saved filepath
  */
 export function saveStation(station) {
-  // Remove any existing files for this station (handles both layouts and both id/short_code prefix forms)
+  // Remove any existing files for this station (handles id/short_code prefix forms)
   const toRemove = new Set();
   const existingById = findStationFile(station.id);
   if (existingById) toRemove.add(existingById);
@@ -132,7 +125,7 @@ export function loadStation(identifier) {
 }
 
 /**
- * List all station JSON files from both new and legacy layouts.
+ * List all station JSON files in `.orchestrator/stations/`.
  * @returns {string[]} Array of relative paths
  */
 export function listAllStationFiles() {
@@ -181,8 +174,8 @@ export function listLocalStations() {
 
 /**
  * Load a station from a filename or relative path.
- * Accepts either a bare filename (searches both layouts by basename) or a relative path
- * (treats as direct path).
+ * Accepts either a bare filename (resolved against `.orchestrator/stations/`)
+ * or a relative path (treated as a direct path).
  * @param {string} arg - Bare filename (e.g. 'P1__foo.json') or path (e.g. '.orchestrator/stations/foo.json')
  * @returns {object|null} Station definition or null if not found
  */
@@ -193,7 +186,7 @@ export function loadStationByFilename(arg) {
     return JSON.parse(fs.readFileSync(arg, 'utf8'));
   }
 
-  // Bare filename — search both layouts by basename
+  // Bare filename — resolve against the stations directory
   for (const filepath of getAllStationFilePaths()) {
     if (path.basename(filepath) === arg) {
       return JSON.parse(fs.readFileSync(filepath, 'utf8'));
@@ -204,8 +197,7 @@ export function loadStationByFilename(arg) {
 
 /**
  * Write the server-assigned ID back into a new station file and rename it
- * to the standard naming format. New files always land in `.orchestrator/stations/`
- * even if the original draft lived in the legacy directory.
+ * to the standard naming format. New files always land in `.orchestrator/stations/`.
  * @param {string} originalArg - Original bare filename or relative path
  * @param {object} station - Station with id, name, and optionally short_code (as returned by server)
  * @returns {string} New filepath

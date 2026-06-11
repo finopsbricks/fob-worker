@@ -2,7 +2,7 @@
 
 Workflow for pulling station definitions from the orchestrator, editing locally, and pushing back.
 
-> The orchestrator API and database still use the term "process" — URL paths, JSON field names, and the legacy `.orchestrator/processes/` directory keep that wording. The CLI's user-facing vocabulary is "station".
+> The orchestrator API and database still use the term "process" — URL paths and JSON field names keep that wording. The CLI's user-facing vocabulary is "station".
 
 ## Prerequisites
 
@@ -100,7 +100,7 @@ Stations can run automatically on a cron schedule. Add schedule fields to the st
 
 ## Local File Location
 
-Stations are saved to `.orchestrator/stations/` inside the worker directory. This directory is local only and should be in `.gitignore`. Existing repos that still have files under `.orchestrator/processes/` continue to work — the CLI reads from both locations but only writes to `.orchestrator/stations/`.
+Stations are saved to `.orchestrator/stations/` inside the worker directory. This directory is local only and should be in `.gitignore`.
 
 ## Related Notes
 
