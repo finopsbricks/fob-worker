@@ -13,7 +13,7 @@ Step handlers receive a `task` argument from the orchestrator in production. To 
   step_queue_id: `local-${Date.now()}`,   // synthetic
   step: {
     slug: slug,                            // from command arg
-    config: stepConfig,                    // resolved from process/scenario/empty
+    config: stepConfig,                    // resolved from station/scenario/empty
   },
   work_record: {
     id: `local-wr-${Date.now()}`,          // synthetic
@@ -44,7 +44,7 @@ Running steps in sequence chains their outputs naturally — each step's output 
 | Flag | Config Source |
 |------|--------------|
 | `--empty` | `{}` |
-| `--process <id>` | Extracted from process definition, then template-resolved |
+| `--station <id>` | Extracted from station definition, then template-resolved |
 | `--scenario <name>` | Loaded from scenario file, then template-resolved |
 | (none) | Interactive picker → then resolved like above |
 
@@ -52,5 +52,5 @@ Running steps in sequence chains their outputs naturally — each step's output 
 
 - [Steps Loading](/docs/architecture/steps-loading.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
-- [Process Files Layout](/docs/architecture/process-files-layout.md)
+- [Station Files Layout](/docs/architecture/station-files-layout.md)
 - [Running Steps Locally](/docs/usage/running-steps.md)

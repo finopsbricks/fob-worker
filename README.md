@@ -15,7 +15,7 @@ Guides for CLI users:
 
 - [Command Reference](docs/usage/commands.md) — all commands grouped by resource
 - [Running Steps](docs/usage/running-steps.md) — local step debugging workflow
-- [Process Sync](docs/usage/process-sync.md) — pull/edit/push workflow
+- [Station Sync](docs/usage/station-sync.md) — pull/edit/push workflow
 - [Scenarios](docs/usage/scenarios.md) — reusable test configs for steps
 
 
@@ -28,6 +28,6 @@ Internal docs for CLI maintainers:
 - [Steps Loading](docs/architecture/steps-loading.md)
 - [Task Construction](docs/architecture/task-construction.md)
 - [Template Resolution](docs/architecture/template-resolution.md)
-- [Process Files Layout](docs/architecture/process-files-layout.md)
+- [Station Files Layout](docs/architecture/station-files-layout.md)
 - [Auth](docs/architecture/auth.md)
 - [CLI Design Style Guide](docs/cli-design-style.md) — command structure and conventions

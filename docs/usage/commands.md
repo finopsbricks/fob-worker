@@ -7,40 +7,31 @@ All available CLI commands grouped by resource.
 ```bash
 fob steps list                              # List available steps
 fob steps run <slug>                        # Run with interactive config picker
-fob steps run <slug> --process <id>         # Use config from a process
+fob steps run <slug> --station <id>         # Use config from a station
 fob steps run <slug> --scenario <name>      # Use config from a scenario file
 fob steps run <slug> --empty                # Run with empty config
 ```
 
-## Processes
-
-```bash
-fob processes list                          # List processes from orchestrator
-fob processes list --tag <name>             # Filter by tag
-fob processes show <id>                     # Show process definition
-fob processes edit <id> --add-tag <name>    # Add tag to process
-fob processes edit <id> --remove-tag <name> # Remove tag from process
-fob processes pull <id>                     # Pull single process to local
-fob processes pull --all                    # Pull all processes
-fob processes push <id>                     # Update existing process on orchestrator
-fob processes push <filename>              # Create new process (e.g. my_process.json)
-fob processes push --all                    # Push all — updates existing, creates new
-fob processes update-step-metadata          # Sync step names from code to process files
-```
-
-**File naming:** Existing processes are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New processes use just `name.json` — after pushing, the file is renamed to include the server-assigned ID.
-
 ## Stations
-
-`fob stations` is a vocabulary alias for `fob processes` — same handlers, same flags — plus an operational `status` verb for the live bin drilldown.
 
 ```bash
 fob stations list                           # List stations from orchestrator
-fob stations show <id>                      # Definitional: show station config
-fob stations status <short_code>            # Snapshot: per-bin workpiece-id drilldown
+fob stations list --tag <name>              # Filter by tag
+fob stations show <id>                      # Show station definition
+fob stations status <short_code>            # Snapshot: per-bin workpiece-id drilldown for one station
+fob stations edit <id> --add-tag <name>     # Add tag to station
+fob stations edit <id> --remove-tag <name>  # Remove tag from station
+fob stations edit <id> --short-code <code>  # Set the station short_code (e.g. P1, VM3)
+fob stations pull <id>                      # Pull single station to local
+fob stations pull --all                     # Pull all stations
+fob stations push <id>                      # Update existing station on orchestrator
+fob stations push <filename>                # Create new station (e.g. my_station.json)
+fob stations push --all                     # Push all — updates existing, creates new
+fob stations push <id> --force              # Create with the given id (cross-env promotion)
+fob stations update-step-metadata           # Sync step names from code to station files
 ```
 
-All other actions mirror `fob processes` (run, pull, push, edit, update-step-metadata). `status` is also available as `fob processes status <id>`.
+**File naming:** Existing stations are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New stations use just `name.json` — after pushing, the file is renamed to include the server-assigned ID. Files live in `.orchestrator/stations/`; the legacy `.orchestrator/processes/` directory is read-only and supported for back-compat.
 
 ## Lines
 
@@ -77,6 +68,10 @@ fob workpieces watch ... --interval 5            # Override the 2s default poll 
 ## Items
 
 ```bash
+fob items list                              # List items from orchestrator
+fob items show <id>                         # Show item details
+fob items show <id> --stations              # Include configured stations
+fob items show <id> --work-records          # Include execution history
 fob items edit <id> --add-tag <name>        # Add tag to item
 fob items edit <id> --remove-tag <name>     # Remove tag from item
 ```
@@ -87,11 +82,12 @@ fob items edit <id> --remove-tag <name>     # Remove tag from item
 fob work-records list                       # List recent work records
 fob work-records list --limit 10            # Limit results
 fob work-records list --status running      # Filter by status
-fob work-records list --process <id>        # Filter by process
+fob work-records list --station <id>        # Filter by station
 fob work-records list --tag <name>          # Filter by tag
 fob work-records show <id>                  # Show work record details
 fob work-records edit <id> --add-tag <name> # Add tag to work record
 fob work-records edit <id> --remove-tag <name> # Remove tag from work record
+fob work-records cancel <id>                # Cancel a running/pending work record
 ```
 
 ## Tags
@@ -122,6 +118,6 @@ fob config show                             # Show resolved paths and environmen
 ## Related Notes
 
 - [Running Steps Locally](/docs/usage/running-steps.md) — step debugging workflow
-- [Process Sync](/docs/usage/process-sync.md) — pull/edit/push workflow
+- [Station Sync](/docs/usage/station-sync.md) — pull/edit/push workflow
 - [Scenarios](/docs/usage/scenarios.md) — reusable test configs
 - [Configuration Reference](/docs/usage/configuration.md) — paths and env vars

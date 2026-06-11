@@ -2,7 +2,7 @@
 
 How the CLI dynamically imports and validates step handlers from a worker repo.
 
-## Loading Process
+## Loading Procedure
 
 `loadSteps(stepsPath)` in `src/utils/steps-loader.js`:
 

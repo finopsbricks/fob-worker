@@ -35,7 +35,7 @@ Because the CLI loads `initTemplates` from the same `@fob/lib-worker` module ins
 
 ## Where Templates Appear
 
-Templates appear in step configs inside process definitions:
+Templates appear in step configs inside station definitions:
 
 ```json
 {
@@ -51,5 +51,5 @@ They are resolved before the step handler receives the config.
 
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
-- [Process Files Layout](/docs/architecture/process-files-layout.md)
+- [Station Files Layout](/docs/architecture/station-files-layout.md)
 - [Running Steps Locally](/docs/usage/running-steps.md)

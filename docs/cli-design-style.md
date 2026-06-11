@@ -2,6 +2,8 @@
 
 Design principles and conventions for `@fob/cli`. Consult this when adding new commands.
 
+> The orchestrator API and database still use the term "process". The CLI's user-facing vocabulary is "station". URL paths, JSON field names, and the legacy `.orchestrator/processes/` directory keep the old wording — everything the user types or reads says "station".
+
 ## Core Pattern
 
 ```
@@ -16,7 +18,9 @@ Resources are top-level nouns representing the thing you're working with.
 
 ```bash
 fob steps ...
-fob processes ...
+fob stations ...
+fob lines ...
+fob workpieces ...
 fob work-records ...
 fob items ...
 fob supporting-docs ...
@@ -33,16 +37,16 @@ Actions are verbs that operate on a resource. Standard actions:
 
 | Action | Purpose | Example |
 |--------|---------|---------|
-| `list` | List all instances | `fob processes list` |
-| `show` | Show one instance in detail (definitional) | `fob processes show <id>` |
+| `list` | List all instances | `fob stations list` |
+| `show` | Show one instance in detail (definitional) | `fob stations show <id>` |
 | `status` | Snapshot of live operational state | `fob lines status VM` |
 | `watch` | Live tail; append-style streaming | `fob workpieces watch <id>` |
 | `create` | Create a new instance | `fob tags create <name>` |
-| `edit` | Modify an existing instance | `fob processes edit <id> --add-tag x` |
+| `edit` | Modify an existing instance | `fob stations edit <id> --add-tag x` |
 | `delete` | Remove an instance | `fob tags delete <id>` |
-| `pull` | Download from orchestrator to local | `fob processes pull <id>` |
-| `push` | Upload from local to orchestrator | `fob processes push <id>` |
-| `run` | Execute (locally or remote) | `fob steps run <slug>`, `fob processes run <id>` |
+| `pull` | Download from orchestrator to local | `fob stations pull <id>` |
+| `push` | Upload from local to orchestrator | `fob stations push <id>` |
+| `run` | Execute (locally or remote) | `fob steps run <slug>`, `fob stations run <id>` |
 
 Not every resource needs every action. Only add what's useful.
 
@@ -82,19 +86,19 @@ When an entity has relationships to other entities (tags, assignments, etc.), ma
 
 ```bash
 # Correct — follows gh CLI pattern
-fob processes edit <id> --add-tag high-priority
-fob processes edit <id> --remove-tag monthly
-fob processes edit <id> --add-tag urgent --remove-tag low-priority
+fob stations edit <id> --add-tag high-priority
+fob stations edit <id> --remove-tag monthly
+fob stations edit <id> --add-tag urgent --remove-tag low-priority
 
 # Wrong — creates a new action just for the relationship
-fob processes tag <id> high-priority
-fob processes untag <id> monthly
+fob stations tag <id> high-priority
+fob stations untag <id> monthly
 
 # Wrong — puts target before action, breaks resource-action order
-fob processes <id> tag high-priority
+fob stations <id> tag high-priority
 
 # Wrong — overloads unrelated resource with filtering
-fob tags list --process <id>
+fob tags list --station <id>
 ```
 
 **Why flags on `edit`?**
@@ -107,7 +111,7 @@ fob tags list --process <id>
 Repeatable flags for multiple values:
 
 ```bash
-fob processes edit <id> --add-tag a --add-tag b --remove-tag c
+fob stations edit <id> --add-tag a --add-tag b --remove-tag c
 ```
 
 ## Standalone Resource CRUD vs. Relationship Management
@@ -123,10 +127,10 @@ fob tags delete <id>                             # Delete a tag
 
 **2. Linking a resource to an entity** — flags on the entity's `edit`:
 ```bash
-fob processes edit <id> --add-tag high-priority  # Link tag to process
+fob stations edit <id> --add-tag high-priority   # Link tag to station
 ```
 
-These are separate because they do different things. `fob tags create` creates the tag definition. `fob processes edit --add-tag` creates the association.
+These are separate because they do different things. `fob tags create` creates the tag definition. `fob stations edit --add-tag` creates the association.
 
 ## Options
 
@@ -134,14 +138,14 @@ Options use double-dash convention with short aliases where useful:
 
 ```bash
 --help, -h          # Show help
---all               # Apply to all (e.g., fob processes pull --all)
+--all               # Apply to all (e.g., fob stations pull --all)
 --color '#hex'      # Tag color
 --description '...' # Description text
 --add-tag <name>    # Add a tag (repeatable)
 --remove-tag <name> # Remove a tag (repeatable)
 --limit <n>         # Pagination limit
 --status <s>        # Filter by status
---process <id>      # Filter by process
+--station <id>      # Filter by station
 ```
 
 **Boolean flags** — no value needed: `--all`, `--empty`
@@ -154,8 +158,8 @@ Every level of the command hierarchy shows contextual help:
 
 ```bash
 fob                        # Shows all resources
-fob processes              # Shows all actions for processes
-fob processes edit         # Shows usage and flags for edit
+fob stations               # Shows all actions for stations
+fob stations edit          # Shows usage and flags for edit
 ```
 
 ## Naming Conventions
@@ -184,35 +188,51 @@ fob
 ├── steps
 │   ├── list                              List available step handlers
 │   └── run <slug>                        Run a step locally
-│       ├── --process <id>                Use config from process
+│       ├── --station <id>                Use config from station
 │       ├── --scenario <name>             Use config from scenario file
 │       ├── --empty                       Use empty config
 │       └── --item <id>                   Fetch item from orchestrator for item_snapshot
-├── processes
-│   ├── list                              List processes from orchestrator
+├── stations
+│   ├── list                              List stations from orchestrator
 │   │   ├── --tag <name>                  Filter by tag
 │   │   └── --json                        Output raw JSON
-│   ├── show <id>                         Show formatted process details
+│   ├── show <id>                         Show formatted station details
 │   │   ├── --work-records                Include recent work records
 │   │   ├── --items                       Include linked items
 │   │   ├── --all                         Include all linked entities
 │   │   └── --json                        Output raw JSON
-│   ├── run <id>                          Trigger a remote process execution
-│   │   └── --item <id>                   Item to run the process on
-│   ├── edit <id>                         Modify a process
+│   ├── status <short_code>               Snapshot: per-bin workpiece-id drilldown
+│   ├── run <id>                          Trigger a remote station execution
+│   │   └── --item <id>                   Item to run the station on
+│   ├── edit <id>                         Modify a station
 │   │   ├── --short-code <code>           Set short code
 │   │   ├── --add-tag <name>              Add tag (repeatable)
 │   │   └── --remove-tag <name>           Remove tag (repeatable)
-│   ├── pull <id>                         Pull process to local file
-│   │   └── --all                         Pull all processes
+│   ├── pull <id>                         Pull station to local file
+│   │   └── --all                         Pull all stations
 │   ├── push <id>                         Push local file to orchestrator
-│   │   └── --all                         Push all local processes
+│   │   ├── --all                         Push all local stations
+│   │   └── --force                       Create with the given id (cross-env promotion)
 │   └── update-step-metadata              Sync step names from code
+├── lines
+│   ├── list                              Group local stations by line (definitional)
+│   ├── show <line>                       Stations in dependency order + conveyor topology
+│   └── status [line]                     Snapshot: bin counts (omit for cross-line summary)
+├── workpieces
+│   ├── list                              Snapshot of workpieces on disk
+│   │   ├── --line <line>                 Scope to one line
+│   │   ├── --bin <STATION/BIN>           Scope to one bin
+│   │   ├── --match <substring>           Filter by id substring
+│   │   └── --json                        Output raw JSON
+│   ├── show <id-or-substring>            Deep view of one workpiece (auto-dashboard on >1 match)
+│   └── watch [id]                        Live tail
+│       ├── --line / --bin / --match      Scope (mutually exclusive)
+│       └── --interval <s>                Poll interval (default 2)
 ├── work-records
 │   ├── list                              List recent work records
 │   │   ├── --limit <n>                   Max results
 │   │   ├── --status <s>                  Filter by status
-│   │   ├── --process <id>                Filter by process
+│   │   ├── --station <id>                Filter by station
 │   │   ├── --tag <name>                  Filter by tag
 │   │   └── --json                        Output raw JSON
 │   ├── show <id>                         Show formatted work record details
@@ -222,9 +242,10 @@ fob
 │   │   ├── --activity                    Include activity log
 │   │   ├── --all                         Include all sections
 │   │   └── --json                        Output raw JSON
-│   └── edit <id>                         Modify a work record
-│       ├── --add-tag <name>              Add tag (repeatable)
-│       └── --remove-tag <name>           Remove tag (repeatable)
+│   ├── edit <id>                         Modify a work record
+│   │   ├── --add-tag <name>              Add tag (repeatable)
+│   │   └── --remove-tag <name>           Remove tag (repeatable)
+│   └── cancel <id>                       Cancel a running/pending work record
 ├── items
 │   ├── list                              List items
 │   │   ├── --type <type>                 Filter by item type
@@ -232,7 +253,7 @@ fob
 │   │   ├── --tag <name>                  Filter by tag
 │   │   └── --json                        Output raw JSON
 │   ├── show <id>                         Show formatted item details
-│   │   ├── --processes                   Include configured processes
+│   │   ├── --stations                    Include configured stations
 │   │   ├── --work-records                Include execution history
 │   │   ├── --all                         Include all linked entities
 │   │   └── --json                        Output raw JSON

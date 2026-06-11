@@ -9,8 +9,8 @@ When running `fob steps run <slug>` without flags, an interactive picker appears
 ```
 Select config for alex/send_email:
 
- ❯ Process: data_freshness_report (NKB2zLGHbJxN)
-   Process: alert_on_anomaly (abc123)
+ ❯ Station: data_freshness_report (NKB2zLGHbJxN)
+   Station: alert_on_anomaly (abc123)
    ─────────────────────────────
    Scenario: happy-path
    Scenario: missing-recipient
@@ -21,7 +21,7 @@ Select config for alex/send_email:
 ```
 
 Options come from:
-1. Process definitions pulled to `.orchestrator/processes/` that contain this step
+1. Station definitions pulled to `.orchestrator/stations/` (or legacy `.orchestrator/processes/`) that contain this step
 2. Scenario files in `.orchestrator/scenarios/<step-slug>/`
 3. Empty config (always available)
 
@@ -58,5 +58,5 @@ Each local run constructs a synthetic task matching the orchestrator's structure
 
 - [Command Reference](/docs/usage/commands.md)
 - [Scenarios](/docs/usage/scenarios.md)
-- [Process Sync](/docs/usage/process-sync.md)
+- [Station Sync](/docs/usage/station-sync.md)
 - [Task Construction](/docs/architecture/task-construction.md)

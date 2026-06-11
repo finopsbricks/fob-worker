@@ -23,9 +23,12 @@ The yargs command tree, shell completion, and `withSeparator()` wrapper live in 
 src/cli/
   index.js              # Command tree and completion
   steps/                # list.js, run.js
-  processes/            # list.js, show.js, edit.js, pull.js, push.js, update-step-metadata.js
-  items/                # edit.js
-  work-records/         # list.js, show.js, edit.js
+  stations/             # list.js, show.js, status.js, run.js, edit.js, pull.js, push.js, update-step-metadata.js
+  lines/                # list.js, show.js, status.js
+  workpieces/           # list.js, show.js, watch.js
+  items/                # list.js, show.js, edit.js
+  work-records/         # list.js, show.js, edit.js, cancel.js
+  supporting-docs/      # show.js
   tags/                 # list.js, create.js, edit.js, delete.js
   shared/               # edit-tags.js (shared tag editing logic)
 ```
@@ -38,8 +41,9 @@ src/cli/
 | `steps-loader.js` | Dynamically import worker's step registry |
 | `lib-worker-loader.js` | Load `@fob/lib-worker` from the worker's `node_modules/` at runtime |
 | `output.js` | Read/write step outputs in `temp/` |
-| `orchestrator.js` | HTTP calls to the orchestrator API |
-| `process-files.js` | Read/write process and scenario files in `.orchestrator/` |
+| `orchestrator.js` | HTTP calls to the orchestrator API (keeps `/api/v1/processes/*` paths — the API contract) |
+| `station-files.js` | Read/write station and scenario files in `.orchestrator/` |
+| `line-state.js` | Live line/bin state derived from `temp/stations/` |
 | `tags.js` | Tag name↔ID resolution (ensureTag, resolveTagNames) |
 
 ## External Dependencies
@@ -61,20 +65,20 @@ src/cli/
 |---------|---------|------|
 | `fob steps list` | `listStepsHandler()` | `steps/list.js` |
 | `fob steps run` | `runStepHandler()` | `steps/run.js` |
-| `fob processes list` | `listProcessesHandler()` | `processes/list.js` |
-| `fob processes show` | `showProcessHandler()` | `processes/show.js` |
-| `fob processes edit` | `editProcessHandler()` | `processes/edit.js` |
-| `fob processes pull` | `pullProcessesHandler()` | `processes/pull.js` |
-| `fob processes push` | `pushProcessesHandler()` | `processes/push.js` |
-| `fob processes update-step-metadata` | `updateStepMetadataHandler()` | `processes/update-step-metadata.js` |
-| `fob items edit` | `editItemHandler()` | `items/edit.js` |
-| `fob work-records list` | `listWorkRecordsHandler()` | `work-records/list.js` |
-| `fob work-records show` | `showWorkRecordHandler()` | `work-records/show.js` |
-| `fob work-records edit` | `editWorkRecordHandler()` | `work-records/edit.js` |
-| `fob tags list` | `listTagsHandler()` | `tags/list.js` |
-| `fob tags create` | `createTagHandler()` | `tags/create.js` |
-| `fob tags edit` | `editTagHandler()` | `tags/edit.js` |
-| `fob tags delete` | `deleteTagHandler()` | `tags/delete.js` |
+| `fob stations list` | `listStationsHandler()` | `stations/list.js` |
+| `fob stations show` | `showStationHandler()` | `stations/show.js` |
+| `fob stations status` | `statusStationHandler()` | `stations/status.js` |
+| `fob stations run` | `runStationHandler()` | `stations/run.js` |
+| `fob stations edit` | `editStationHandler()` | `stations/edit.js` |
+| `fob stations pull` | `pullStationsHandler()` | `stations/pull.js` |
+| `fob stations push` | `pushStationsHandler()` | `stations/push.js` |
+| `fob stations update-step-metadata` | `updateStepMetadataHandler()` | `stations/update-step-metadata.js` |
+| `fob lines list/show/status` | `listLinesHandler()` / `showLineHandler()` / `statusLineHandler()` | `lines/*.js` |
+| `fob workpieces list/show/watch` | `listWorkpiecesHandler()` / `showWorkpieceHandler()` / `watchHandler()` | `workpieces/*.js` |
+| `fob items list/show/edit` | `listItemsHandler()` / `showItemHandler()` / `editItemHandler()` | `items/*.js` |
+| `fob work-records list/show/edit/cancel` | `listWorkRecordsHandler()` / `showWorkRecordHandler()` / `editWorkRecordHandler()` / `cancelWorkRecordHandler()` | `work-records/*.js` |
+| `fob supporting-docs show` | `showSupportingDocHandler()` | `supporting-docs/show.js` |
+| `fob tags list/create/edit/delete` | `listTagsHandler()` / `createTagHandler()` / `editTagHandler()` / `deleteTagHandler()` | `tags/*.js` |
 | `fob worker status` | `workerStatusHandler()` | `worker/status.js` |
 | `fob config show` | `showConfigHandler()` | `config/show.js` |
 
