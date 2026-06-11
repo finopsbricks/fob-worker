@@ -1,6 +1,6 @@
 # Process → Station Vocabulary Transition
 
-## Status: IN PROGRESS (~95%) — Phases 1–4 done; only release (Phase 5) remains
+## Status: IN PROGRESS (~99%) — Phases 1–5 done. WIP can be deleted after the next release commit (`/code:release`).
 
 Hard rename of the CLI's vocabulary from "process" to "station" to match the architecture's new factory-floor metaphor. The orchestrator database and HTTP API still use "process" and are out of scope — HTTP path literals in `src/utils/orchestrator.js` stay as `/api/v1/processes/*`, but every JS symbol and user-facing string in the CLI becomes `station`.
 
@@ -99,10 +99,10 @@ That means much of the threading is done. The remaining work is collapsing the d
 ### Phase 4: Outstanding WIP cleanup ✅
 - [x] Restated `docs/wip/fob-cli-v8-process-delete.md` as `docs/wip/fob-cli-v9-station-delete.md` with station vocabulary throughout (API/DB references kept as `process` since the orchestrator hasn't migrated)
 
-### Phase 5: Release ❌
-- [ ] Update CHANGELOG.md — breaking change (`fob processes` removed)
-- [ ] Bump major version (this is a breaking CLI surface change)
-- [ ] Delete this WIP file when shipped
+### Phase 5: Release 🔄
+- [x] Update CHANGELOG.md `[Unreleased]` — breaking changes recorded (`fob processes` removed, `--process`/`--processes` flags renamed, source layout moved)
+- [ ] Bump version (suggest `/code:release` — pre-1.0 convention here is minor bump for breaking changes, matching 0.7→0.8)
+- [ ] Delete this WIP file in the release commit
 
 ## Related Files
 
