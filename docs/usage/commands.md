@@ -29,7 +29,23 @@ fob stations push <filename>                # Create new station (e.g. my_statio
 fob stations push --all                     # Push all — updates existing, creates new
 fob stations push <id> --force              # Create with the given id (cross-env promotion)
 fob stations update-step-metadata           # Sync step names from code to station files
+fob stations delete <id>                    # Interactive delete: preview, archive/cascade choice
+fob stations delete <id> --archive          # Archive without prompt (preserves history)
+fob stations delete <id> --force-delete     # Skip the action prompt; cascade if work records exist
+fob stations delete <id> --force-delete -y  # Also skip the type-the-short-code guard
 ```
+
+### Delete vs. Archive
+
+`fob stations delete <id>` walks you through the destructive workflow safely:
+
+1. **Preview** — prints the station's identity, line, location, schedule, work-record count + last-run + recent 3, and whether a local `src/steps/` folder matches (signals what will be orphaned in code).
+2. **Confirmation:**
+   - With **0 work records** → single `y/N` confirm → DELETE.
+   - With **>0 work records** → choose **Archive** (preserve history, hide from default list, block execution), **Cascade delete** (destroy the station AND every linked work record + step queue row + supporting document — irreversible), or **Cancel**.
+3. **Guard** — cascade requires typing the station's `short_code` before the API call goes out. Skipped with `--yes`.
+
+Archive is the safer retirement path. Cascade is reserved for stub cleanup or genuine data deletion.
 
 **File naming:** Existing stations are stored as `id__name.json` (e.g., `fvVNrEH6kFW1__verify_statement.json`). New stations use just `name.json` — after pushing, the file is renamed to include the server-assigned ID. Files live in `.orchestrator/stations/`.
 

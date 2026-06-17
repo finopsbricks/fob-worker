@@ -1,8 +1,8 @@
 # Station Sync
 
-Workflow for pulling station definitions from the orchestrator, editing locally, and pushing back.
+Workflow for pulling station definitions from the orchestrator, editing locally, pushing back, and retiring them.
 
-> The orchestrator API and database still use the term "process" — URL paths and JSON field names keep that wording. The CLI's user-facing vocabulary is "station".
+> The canonical orchestrator API surface is `/api/v1/stations/*`. The `/api/v1/processes/*` paths remain functional as deprecation aliases.
 
 ## Prerequisites
 
@@ -27,6 +27,33 @@ fob stations push fvVNrEH6kFW1
 # or push all
 fob stations push --all
 ```
+
+## Retiring a Station
+
+When a station is no longer needed, `fob stations delete` walks through the destructive workflow:
+
+```bash
+fob stations delete <id-or-short-code>
+```
+
+The interactive flow:
+
+1. Prints a preview: identity, line, location, work-record count (with the last 3), schedule + next run, and whether a local `src/steps/` folder is matched.
+2. If the station has **no work records**, prompts a single `y/N` confirm and DELETEs.
+3. If the station has **work records**, offers three choices:
+   - **Archive (preserve history)** — `POST /api/v1/stations/:id/archive`. Hides the station from the default `list`, blocks execution (scheduler + `/run`), keeps every work record, step queue row, and supporting document queryable.
+   - **Cascade delete (destructive)** — `DELETE /api/v1/stations/:id?cascade=true`. Permanently destroys the station AND every linked work record + step queue row + supporting document. Asks you to type the `short_code` before sending the request.
+   - **Cancel** — exit without changes.
+
+Non-interactive flags for scripts:
+
+```bash
+fob stations delete <id> --archive          # Archive directly
+fob stations delete <id> --force-delete     # Cascade-delete (still prompts for short_code)
+fob stations delete <id> --force-delete -y  # Skip the short_code guard too
+```
+
+Archive is reversible — see the orchestrator's [unarchive endpoint](https://orchestrator.finopsbricks.com/docs/api/endpoints/processes/unarchive). Note that unarchiving does **not** automatically re-enable a previously-active schedule; you opt in explicitly with `fob stations edit` or `PUT`.
 
 ## Syncing Step Metadata from Code
 
