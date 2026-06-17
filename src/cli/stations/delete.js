@@ -135,17 +135,8 @@ async function runInteractive(station, recentRecords, workRecordCount) {
   }
 
   if (choice === 'archive') {
-    try {
-      await archiveStation(station.id);
-      console.log(`Archived station ${station.short_code || station.id}.`);
-    } catch (e) {
-      if (/404/.test(e.message)) {
-        console.error('Archive support is not yet available on the orchestrator.');
-        console.error('See worker-alex/docs/wip/fob-stations-delete.md (Phase 2) for the pending change.');
-        process.exit(1);
-      }
-      throw e;
-    }
+    await archiveStation(station.id);
+    console.log(`Archived station ${station.short_code || station.id}.`);
     return;
   }
 
@@ -155,17 +146,8 @@ async function runInteractive(station, recentRecords, workRecordCount) {
       console.log('Cancelled — text did not match.');
       return;
     }
-    try {
-      await deleteStation(station.id, { cascade: true });
-      console.log(`Deleted station ${station.short_code || station.id} and ${workRecordCount} work record(s).`);
-    } catch (e) {
-      if (/CONSTRAINT_ERROR|associated work record/.test(e.message)) {
-        console.error('Cascade-delete support is not yet available on the orchestrator.');
-        console.error('See worker-alex/docs/wip/fob-stations-delete.md (Phase 2) for the pending change.');
-        process.exit(1);
-      }
-      throw e;
-    }
+    await deleteStation(station.id, { cascade: true });
+    console.log(`Deleted station ${station.short_code || station.id} and ${workRecordCount} work record(s).`);
   }
 }
 
@@ -187,17 +169,9 @@ export async function deleteStationHandler(argv) {
 
     // Flag-driven non-interactive paths
     if (archive) {
-      try {
-        await archiveStation(station.id);
-        console.log(`Archived station ${station.short_code || station.id}.`);
-        return;
-      } catch (e) {
-        if (/404/.test(e.message)) {
-          console.error('Archive support is not yet available on the orchestrator.');
-          process.exit(1);
-        }
-        throw e;
-      }
+      await archiveStation(station.id);
+      console.log(`Archived station ${station.short_code || station.id}.`);
+      return;
     }
 
     if (forceDelete) {
@@ -209,17 +183,9 @@ export async function deleteStationHandler(argv) {
           return;
         }
       }
-      try {
-        await deleteStation(station.id, { cascade });
-        console.log(`Deleted station ${station.short_code || station.id}${cascade ? ` and ${workRecordCount} work record(s)` : ''}.`);
-        return;
-      } catch (e) {
-        if (cascade && /CONSTRAINT_ERROR|associated work record/.test(e.message)) {
-          console.error('Cascade-delete support is not yet available on the orchestrator.');
-          process.exit(1);
-        }
-        throw e;
-      }
+      await deleteStation(station.id, { cascade });
+      console.log(`Deleted station ${station.short_code || station.id}${cascade ? ` and ${workRecordCount} work record(s)` : ''}.`);
+      return;
     }
 
     await runInteractive(station, recentRecords, workRecordCount);

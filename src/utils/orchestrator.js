@@ -169,22 +169,23 @@ export async function deleteStation(id, options = {}) {
 
 /**
  * Archive a station — preserves history, hides from default list, blocks execution.
- * Orchestrator support is pending; will fail with 404 until POST /processes/:id/archive lands.
+ * Hits the canonical /stations/* surface; no legacy /processes/* alias exists for
+ * this endpoint (archive is net-new in the Process→Station rename Phase 2 follow-up).
  * @param {string} id - Station ID
  */
 export async function archiveStation(id) {
-  return apiRequest(`/api/v1/processes/${id}/archive`, {
+  return apiRequest(`/api/v1/stations/${id}/archive`, {
     method: 'POST',
   });
 }
 
 /**
  * Unarchive a station — undoes archiveStation.
- * Orchestrator support is pending.
+ * Hits the canonical /stations/* surface; no legacy /processes/* alias exists.
  * @param {string} id - Station ID
  */
 export async function unarchiveStation(id) {
-  return apiRequest(`/api/v1/processes/${id}/unarchive`, {
+  return apiRequest(`/api/v1/stations/${id}/unarchive`, {
     method: 'POST',
   });
 }
