@@ -30,6 +30,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.10.1",
     "dotenv": "^16.6.1",
     "yargs": "^17.7.2"
   },

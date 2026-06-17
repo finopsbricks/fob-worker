@@ -148,6 +148,48 @@ export async function updateStation(id, data) {
 }
 
 /**
+ * Delete a station by ID. Returns 204 on success; throws on any other status.
+ * Pass `cascade: true` to also delete linked work records and dependent rows.
+ * @param {string} id - Station ID
+ * @param {object} [options]
+ * @param {boolean} [options.cascade] - Also delete linked work records (orchestrator support pending)
+ */
+export async function deleteStation(id, options = {}) {
+  const { url, headers } = getApiConfig();
+  const query = options.cascade ? '?cascade=true' : '';
+  const response = await fetch(`${url}/api/v1/processes/${id}${query}`, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Orchestrator API error (${response.status}): ${text}`);
+  }
+}
+
+/**
+ * Archive a station — preserves history, hides from default list, blocks execution.
+ * Orchestrator support is pending; will fail with 404 until POST /processes/:id/archive lands.
+ * @param {string} id - Station ID
+ */
+export async function archiveStation(id) {
+  return apiRequest(`/api/v1/processes/${id}/archive`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Unarchive a station — undoes archiveStation.
+ * Orchestrator support is pending.
+ * @param {string} id - Station ID
+ */
+export async function unarchiveStation(id) {
+  return apiRequest(`/api/v1/processes/${id}/unarchive`, {
+    method: 'POST',
+  });
+}
+
+/**
  * List work records
  * @param {object} [options]
  * @param {number} [options.limit]

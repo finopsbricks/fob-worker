@@ -24,6 +24,7 @@ import { createTagHandler } from './tags/create.js';
 import { deleteTagHandler } from './tags/delete.js';
 import { editTagHandler } from './tags/edit.js';
 import { editStationHandler } from './stations/edit.js';
+import { deleteStationHandler } from './stations/delete.js';
 import { listLinesHandler } from './lines/list.js';
 import { showLineHandler } from './lines/show.js';
 import { statusLineHandler } from './lines/status.js';
@@ -165,7 +166,27 @@ function buildStationSubcommands(yargs) {
       {},
       withSeparator(updateStepMetadataHandler),
     )
-    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, update-step-metadata');
+    .command(
+      'delete [id]',
+      'Delete a station (interactive: preview, confirm, choose archive/cascade)',
+      (yargs) => {
+        return yargs
+          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
+          .option('archive', { describe: 'Archive instead of delete (preserves history)', type: 'boolean' })
+          .option('force-delete', { describe: 'Skip the choose-action prompt; cascade if work records exist', type: 'boolean' })
+          .option('yes', { alias: 'y', describe: 'Skip the type-the-short-code guard (still respects --archive)', type: 'boolean' });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error('Usage: fob stations delete <id|short_code> [--archive | --force-delete]');
+          console.error('Run "fob stations list" to see available stations.');
+          process.exit(1);
+        }
+        return withSeparator(deleteStationHandler)(argv);
+      },
+    )
+    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, delete, update-step-metadata');
 }
 
 /**
@@ -609,7 +630,7 @@ export function run(args) {
       // Stations action level completions (fob stations <tab>)
       if (args[0] === 'stations') {
         if (args.length === 1) {
-          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'update-step-metadata'];
+          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'delete', 'update-step-metadata'];
         }
         return [];
       }
