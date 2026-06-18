@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { select, input, confirm } from '@inquirer/prompts';
 import {
@@ -7,6 +7,7 @@ import {
   deleteStation,
   archiveStation,
 } from '../../utils/orchestrator.js';
+import { findStationFile } from '../../utils/station-files.js';
 import { formatHeader, formatField, formatTable, formatSection, formatDate } from '../../utils/format.js';
 
 const PREVIEW_RECORDS = 3;
@@ -31,6 +32,29 @@ function findLocalStepsFolder(station) {
     }
   }
   return null;
+}
+
+/**
+ * After a successful remote delete, remove the corresponding local
+ * `.orchestrator/stations/{prefix}__*.json` files (by id and by short_code,
+ * since either prefix form may be on disk). Best-effort; logs what it removed.
+ */
+function removeLocalStationFiles(station) {
+  const removed = [];
+  for (const identifier of [station.id, station.short_code].filter(Boolean)) {
+    const localPath = findStationFile(identifier);
+    if (localPath && !removed.includes(localPath)) {
+      try {
+        unlinkSync(localPath);
+        removed.push(localPath);
+      } catch (e) {
+        console.error(`Warning: failed to remove ${localPath}: ${e.message}`);
+      }
+    }
+  }
+  if (removed.length > 0) {
+    console.log(`Removed local file(s): ${removed.join(', ')}`);
+  }
 }
 
 function printPreview(station, recentRecords, workRecordCount, localFolders) {
@@ -105,6 +129,7 @@ async function runInteractive(station, recentRecords, workRecordCount) {
     }
     await deleteStation(station.id);
     console.log(`Deleted station ${station.short_code || station.id}.`);
+    removeLocalStationFiles(station);
     return;
   }
 
@@ -148,6 +173,7 @@ async function runInteractive(station, recentRecords, workRecordCount) {
     }
     await deleteStation(station.id, { cascade: true });
     console.log(`Deleted station ${station.short_code || station.id} and ${workRecordCount} work record(s).`);
+    removeLocalStationFiles(station);
   }
 }
 
@@ -185,6 +211,7 @@ export async function deleteStationHandler(argv) {
       }
       await deleteStation(station.id, { cascade });
       console.log(`Deleted station ${station.short_code || station.id}${cascade ? ` and ${workRecordCount} work record(s)` : ''}.`);
+      removeLocalStationFiles(station);
       return;
     }
 

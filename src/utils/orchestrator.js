@@ -108,10 +108,14 @@ export async function checkConnection() {
 
 /**
  * List stations
+ * @param {object} [options]
+ * @param {string} [options.tag] - Filter by tag name
+ * @param {boolean} [options.includeArchived] - Include archived stations (default: excluded)
  */
 export async function listStations(options = {}) {
   const params = new URLSearchParams();
   if (options.tag) params.set('tag', options.tag);
+  if (options.includeArchived) params.set('include_archived', 'true');
   const query = params.toString();
   return apiRequest(`/api/v1/processes${query ? `?${query}` : ''}`);
 }

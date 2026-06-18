@@ -25,6 +25,7 @@ import { deleteTagHandler } from './tags/delete.js';
 import { editTagHandler } from './tags/edit.js';
 import { editStationHandler } from './stations/edit.js';
 import { deleteStationHandler } from './stations/delete.js';
+import { unarchiveStationHandler } from './stations/unarchive.js';
 import { listLinesHandler } from './lines/list.js';
 import { showLineHandler } from './lines/show.js';
 import { statusLineHandler } from './lines/status.js';
@@ -60,6 +61,7 @@ function buildStationSubcommands(yargs) {
       (yargs) => {
         return yargs
           .option('tag', { describe: 'Filter by tag name', type: 'string' })
+          .option('include-archived', { describe: 'Include archived stations', type: 'boolean' })
           .option('json', { describe: 'Output raw JSON', type: 'boolean' });
       },
       withSeparator(listStationsHandler),
@@ -186,7 +188,23 @@ function buildStationSubcommands(yargs) {
         return withSeparator(deleteStationHandler)(argv);
       },
     )
-    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, delete, update-step-metadata');
+    .command(
+      'unarchive [id]',
+      'Restore an archived station (does not auto-re-enable schedule)',
+      (yargs) => {
+        return yargs.positional('id', { describe: 'Station ID or short_code', type: 'string' });
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error('Usage: fob stations unarchive <id|short_code>');
+          console.error('Run "fob stations list --include-archived" to see archived stations.');
+          process.exit(1);
+        }
+        return withSeparator(unarchiveStationHandler)(argv);
+      },
+    )
+    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, delete, unarchive, update-step-metadata');
 }
 
 /**
@@ -630,7 +648,7 @@ export function run(args) {
       // Stations action level completions (fob stations <tab>)
       if (args[0] === 'stations') {
         if (args.length === 1) {
-          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'delete', 'update-step-metadata'];
+          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'delete', 'unarchive', 'update-step-metadata'];
         }
         return [];
       }

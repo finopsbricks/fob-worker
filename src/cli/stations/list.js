@@ -1,7 +1,7 @@
 import { listStations } from '../../utils/orchestrator.js';
 
 export async function listStationsHandler(argv) {
-  const { tag, json } = argv || {};
+  const { tag, json, includeArchived } = argv || {};
 
   if (tag) {
     console.log(`Filter: tag=${tag}`);
@@ -9,7 +9,7 @@ export async function listStationsHandler(argv) {
   }
 
   try {
-    const response = await listStations({ tag });
+    const response = await listStations({ tag, includeArchived });
     const stations = response.data || [];
 
     if (stations.length === 0) {
@@ -22,13 +22,16 @@ export async function listStationsHandler(argv) {
       return;
     }
 
+    const showArchivedColumn = includeArchived && stations.some(s => s.archived_at);
+
     // Calculate column widths
     const codeWidth = Math.max(4, ...stations.map(s => (s.short_code || '').length));
     const idWidth = Math.max(4, ...stations.map(s => s.id.length));
     const nameWidth = Math.max(4, ...stations.map(s => (s.name || '').length));
 
     // Header
-    const header = `${'CODE'.padEnd(codeWidth)}  ${'ID'.padEnd(idWidth)}  ${'NAME'.padEnd(nameWidth)}  STEPS`;
+    let header = `${'CODE'.padEnd(codeWidth)}  ${'ID'.padEnd(idWidth)}  ${'NAME'.padEnd(nameWidth)}  STEPS`;
+    if (showArchivedColumn) header += '  ARCHIVED';
     console.log(header);
     console.log('-'.repeat(header.length));
 
@@ -38,11 +41,13 @@ export async function listStationsHandler(argv) {
       const id = station.id.padEnd(idWidth);
       const name = (station.name || '-').padEnd(nameWidth);
       const steps = station.steps ? station.steps.length : 0;
-      console.log(`${code}  ${id}  ${name}  ${steps}`);
+      let row = `${code}  ${id}  ${name}  ${steps}`;
+      if (showArchivedColumn) row += `  ${station.archived_at ? 'yes' : '-'}`;
+      console.log(row);
     }
 
     console.log('');
-    console.log(`Total: ${stations.length} stations`);
+    console.log(`Total: ${stations.length} stations${includeArchived ? ' (including archived)' : ''}`);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
