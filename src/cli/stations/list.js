@@ -1,16 +1,20 @@
 import { listStations } from '../../utils/orchestrator.js';
 
 export async function listStationsHandler(argv) {
-  const { tag, json, includeArchived } = argv || {};
+  const { tag, line, json, includeArchived } = argv || {};
 
-  if (tag) {
-    console.log(`Filter: tag=${tag}`);
+  const filters = [];
+  if (tag) filters.push(`tag=${tag}`);
+  if (line) filters.push(`line=${line}`);
+  if (filters.length > 0) {
+    console.log(`Filter: ${filters.join(', ')}`);
     console.log('');
   }
 
   try {
     const response = await listStations({ tag, includeArchived });
-    const stations = response.data || [];
+    let stations = response.data || [];
+    if (line) stations = stations.filter(s => s.line === line);
 
     if (stations.length === 0) {
       console.log('No stations found');

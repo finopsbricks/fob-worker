@@ -61,6 +61,7 @@ function buildStationSubcommands(yargs) {
       (yargs) => {
         return yargs
           .option('tag', { describe: 'Filter by tag name', type: 'string' })
+          .option('line', { describe: 'Filter by line slug (e.g. VM, BR)', type: 'string' })
           .option('include-archived', { describe: 'Include archived stations', type: 'boolean' })
           .option('json', { describe: 'Output raw JSON', type: 'boolean' });
       },

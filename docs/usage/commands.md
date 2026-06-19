@@ -17,6 +17,7 @@ fob steps run <slug> --empty                # Run with empty config
 ```bash
 fob stations list                           # List stations from orchestrator
 fob stations list --tag <name>              # Filter by tag
+fob stations list --line <slug>              # Filter by line (e.g. VM, BR)
 fob stations show <id>                      # Show station definition
 fob stations status <short_code>            # Snapshot: per-bin workpiece-id drilldown for one station
 fob stations edit <id> --add-tag <name>     # Add tag to station

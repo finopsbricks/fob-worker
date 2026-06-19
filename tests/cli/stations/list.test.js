@@ -59,6 +59,27 @@ describe('listStationsHandler()', () => {
     expect(out.stdout).toContain('No stations found');
   });
 
+  it('should filter stations by line slug when --line is given', async () => {
+    // Arrange
+    mockListStations.mockResolvedValue({
+      data: [
+        { id: 'st-abc', name: 'Monthly Billing', line: 'VM', steps: [{}] },
+        { id: 'st-xyz', name: 'Onboarding', line: 'BR', steps: [{}] },
+        { id: 'st-def', name: 'AR Aging', line: 'VM', steps: [{}] },
+      ],
+    });
+
+    // Act
+    await listStationsHandler({ line: 'VM' });
+
+    // Assert
+    expect(out.stdout).toContain('Filter: line=VM');
+    expect(out.stdout).toContain('st-abc');
+    expect(out.stdout).toContain('st-def');
+    expect(out.stdout).not.toContain('st-xyz');
+    expect(out.stdout).toContain('Total: 2 stations');
+  });
+
   it('should exit 1 with the error message on network failure', async () => {
     // Arrange
     mockListStations.mockRejectedValue(new Error('ECONNREFUSED'));
