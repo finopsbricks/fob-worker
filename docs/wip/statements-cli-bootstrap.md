@@ -1,6 +1,6 @@
 # Statements CLI Bootstrap
 
-**Status:** IN PROGRESS (~50%)
+**Status:** IN PROGRESS (~85%)
 **Created:** 2026-06-22
 
 A simple, independent CLI for the statements app (system of record). Read-only v1, org-level API key auth, multi-org switching. Lives in a sibling repo to avoid coupling with this orchestrator CLI.
@@ -56,17 +56,25 @@ These are deferred until concrete need emerges.
 - [x] `safe()` wrapper at the yargs layer so API/network errors exit cleanly (no stack trace unless `FOBS_DEBUG=1`)
 - [x] 6 tests on `apiGet()` covering auth headers, param serialization, 401/5xx/non-JSON responses, missing current-org
 
-### Phase 3: Remaining read commands ❌
-- [ ] `transactions list/show` (filters: `--account`, `--from`, `--to`)
-- [ ] `statements list/show`
-- [ ] `rules list/show`
-- [ ] `reports show <name>`
+### Phase 3: Remaining read commands ✅
+- [x] `transactions list/show` (filters: `--account`, `--from`, `--to`, `--search`)
+- [x] `statements list/show` (filters: `--account`, `--period-from`, `--period-to`, `--file-type`, `--parser-type`, `--include-archived`)
+- [x] `rules list/show` (filter: `--enabled`; show pretty-prints `conditions` + `actions` JSON)
+- [x] `reports show <name>` with `choices` validation (10 report names: expense/cashflow/income/asset/liability/transfer/balance/overview/inflow_outflow/data-coverage); JSON output (custom shape, not paginated)
+- [x] `formatPaginationHint()` extracted to format.js; accounts/list.js refactored to use it
+- [x] Live-tested against statements.finopsbricks.com (alex2526 org): 17,932 transactions, 298 statements, 49 rules, balance/overview reports
 
 ### Phase 4: Docs ❌
-- [ ] `README.md` — quick start
+- [ ] `README.md` — flesh out beyond quick start
 - [ ] `docs/usage/installation.md`
-- [ ] `docs/usage/configuration.md` — config file format
+- [ ] `docs/usage/configuration.md` — config file format, `~/.fobs/config.yml` schema, `FOBS_CONFIG_DIR` override
 - [ ] `docs/usage/commands.md` — full command reference
+
+## Polish ideas (not blocking)
+
+- API returns amounts in paise (×100 of rupees). Consider a default formatter that divides by 100 and shows `₹` — or a `--paise` flag to opt out. Today the CLI prints raw integers from the API.
+- `transactions show` displays `Created: —` because the API omits `created_at` on transactions. Either drop the row or expose it via `--json` only.
+- Some `statements list` rows show `—` for ACCOUNT and PERIOD START/END (statements that failed to parse account binding). A `--status parsed|failed` filter could be useful.
 
 ## Related Files
 
