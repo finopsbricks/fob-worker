@@ -1,6 +1,6 @@
 # Statements CLI Bootstrap
 
-**Status:** IN PROGRESS (~25%)
+**Status:** IN PROGRESS (~50%)
 **Created:** 2026-06-22
 
 A simple, independent CLI for the statements app (system of record). Read-only v1, org-level API key auth, multi-org switching. Lives in a sibling repo to avoid coupling with this orchestrator CLI.
@@ -48,11 +48,13 @@ These are deferred until concrete need emerges.
 - [x] Jest setup mirroring this CLI's `jest.config.cjs` — 13 unit tests for the config module, all passing
 - [x] End-to-end smoke test across all four commands (add → list → use → remove)
 
-### Phase 2: HTTP layer + first resource ❌
-- [ ] `src/utils/http.js` — fetch with `api-key`/`api-secret` headers, base URL from current org
-- [ ] `src/utils/format.js` — copy table/field/json helpers from this CLI
-- [ ] `src/cli/accounts/list.js` — `GET /api/v1/accounts`
-- [ ] `src/cli/accounts/show.js` — `GET /api/v1/accounts/:id`
+### Phase 2: HTTP layer + first resource ✅
+- [x] `src/utils/http.js` — `apiGet()` with `api-key`/`api-secret` headers, base URL from current org, search-param serialization, `ApiError` with code+status
+- [x] `src/utils/format.js` — table/field/date helpers (done in Phase 1)
+- [x] `src/cli/accounts/list.js` — `GET /api/v1/accounts` with `--category`, `--include-archived`, `--page`, `--limit`, `--json`; pagination hint when more pages exist
+- [x] `src/cli/accounts/show.js` — `GET /api/v1/accounts/:id` with `--json`
+- [x] `safe()` wrapper at the yargs layer so API/network errors exit cleanly (no stack trace unless `FOBS_DEBUG=1`)
+- [x] 6 tests on `apiGet()` covering auth headers, param serialization, 401/5xx/non-JSON responses, missing current-org
 
 ### Phase 3: Remaining read commands ❌
 - [ ] `transactions list/show` (filters: `--account`, `--from`, `--to`)
