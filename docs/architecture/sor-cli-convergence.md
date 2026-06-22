@@ -1,48 +1,53 @@
-# SOR CLI Separation
+# SOR CLI Convergence
 
-System-of-record CLIs are separate packages from the orchestrator CLI. No shared core (yet).
+A single CLI (`fobs`) serves all FinOpsBricks system-of-record apps. The orchestrator CLI (`fob`) stays separate for now, pending a convergence assessment.
 
 ## Context
 
-This CLI (`fob`) serves the orchestrator and the workers that connect to it. Several system-of-record apps (statements, billing, recordings) also need CLI access for inspection and operator workflows. See [System-of-Record App Inventory](../../../handbooks/platform-handbook/architecture/system-of-record-app-inventory.md).
+An earlier iteration of this doc (see this file's git history under the `sor-cli-separation.md` name) recorded the opposite decision: one separate CLI package per SOR app. That decision was reversed shortly after, before any second SOR CLI was built. The reasoning below replaces it.
 
 ## Decision
 
-Each system-of-record CLI is an independent package, sibling to this one. The orchestrator CLI is not extended with SOR commands. No `@fob/cli-core` package is extracted.
+- `fobs` is the single CLI for all SOR apps (statements, billing, recordings, ...). New SOR apps register in [`src/utils/apps.js`](../../../cli-statements/src/utils/apps.js) in the `cli-statements` repo. (The repo name is now historical — it grew beyond statements; renaming is tracked as a follow-up.)
+- Command signature: `fobs <app> <resource> <action> [target] [options]`. Short codes (3-letter, matching API key prefixes) are accepted as aliases. See [Command Signature](../../../cli-statements/docs/architecture/command-signature.md).
+- Each org has per-app credentials. See [Credential Model](../../../cli-statements/docs/architecture/credential-model.md).
+- This orchestrator CLI (`fob`) stays as-is. Its absorption into `fobs orchestrator` is tracked as a follow-up.
 
-The first SOR CLI is `cli-statements/` (`fobs` binary) at `/Users/alex/ec2code/finopsbricks/cli-statements/`.
+## Why convergence won
 
-## Why separate
+- **Credentials are already per-org-per-app.** A user adding three apps to one org needs three credential blobs no matter how the CLI is packaged. Putting them in three separate binaries doesn't reduce the burden — it just adds three install paths and three help trees.
+- **No PAT needed.** Most customers have 1–3 orgs. Implementation partners with many orgs *prefer* per-org-per-user keys (better security boundary, easier rotation). There's no scenario where a "user-wide token" would simplify life enough to justify building a central token service.
+- **Audit attribution works without a PAT.** The operational convention is one key per individual; server logs record which `api_key.id` issued each request. See [Credential Model](../../../cli-statements/docs/architecture/credential-model.md).
+- **Shared scaffolding stays shared without an artificial package boundary.** `format.js`, `http.js`, `config.js` serve every app's commands directly — no `@fob/cli-core` extraction needed.
+- **One install, one config file, one help tree.** Lower cognitive load.
 
-This CLI is coupled to a worker repo's runtime context:
-- Reads `./.env` from `process.cwd()` via dotenv
-- Requires `./src/steps/index.js` and a populated `./temp/`
-- Dynamically loads `@fob/lib-worker` from the cwd's `node_modules/` — see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md)
+## Why orchestrator stays separate (for now)
 
-SOR CLIs are remote API clients. They do not run inside a worker repo, do not need `lib-worker`, do not load steps. Sharing a binary or a credential-resolution path would conflate two unrelated execution contexts.
+The orchestrator CLI has two flavors of commands:
 
-## Why no shared core yet
+| Flavor | Example | Worker repo required? |
+|---|---|---|
+| API client | `fob stations list` | No (just calls the orchestrator API) |
+| Worker-context | `fob steps run my_step` | Yes — needs `./src/steps/`, `@fob/lib-worker`, `./temp/` |
 
-The duplication is small (yargs scaffolding, table/field formatters, JSON-mode plumbing) and the SOR apps don't yet share enough API shape to justify a `@fob/cli-core` extraction. Premature extraction would lock in abstractions before two real consumers exist.
-
-Re-evaluate when:
-- A second SOR CLI exists (e.g. `cli-billing`) and visible duplication accumulates
-- Or the central auth service gains PATs, at which point a shared auth/HTTP layer becomes worth extracting
+Folding the orchestrator CLI into `fobs` is possible: API-client commands move under `fobs orchestrator <resource>` and read creds from `~/.fobs/`; worker-context commands additionally check for a worker repo. But it's a larger refactor than the SOR convergence and the win is smaller — the worker-context commands are the main reason `fob` exists today. Tracked as a follow-up; not blocked on anything.
 
 ## Trade-offs
 
-| Aspect | Independent CLIs (chosen) | Shared core | Single CLI for all |
-|---|---|---|---|
-| Coupling | None | Shared scaffolding | Worker context bleeds into SOR commands |
-| Duplication | Small | Eliminated | Eliminated |
-| Cognitive load | One binary = one purpose | Two binaries, one shared concept | One binary, two auth models |
-| Migration cost later | Refactor when 2nd appears | Done upfront | Hard to split if needed |
-
-Independent CLIs were chosen because v1 of any SOR CLI is small enough that duplication is cheaper than premature abstraction.
+| Aspect | Single SOR CLI (chosen) | Separate per-SOR CLIs (rejected) |
+|---|---|---|
+| Install steps | One | One per app |
+| Help discoverability | `fobs --help` lists all apps | Each binary lists only its own |
+| Cross-app workflows | Same binary, same session | Two binaries, two configs |
+| Add new SOR app | One line in registry + a handler subtree | New repo + new install + duplicated scaffolding |
+| Worker-context coupling | Doesn't apply to SOR apps | N/A |
 
 ## Related Notes
 
+- [Command Signature](../../../cli-statements/docs/architecture/command-signature.md)
+- [App Registry](../../../cli-statements/docs/architecture/app-registry.md)
+- [Credential Model](../../../cli-statements/docs/architecture/credential-model.md)
 - [Auth Design](/docs/architecture/auth.md) — this CLI's auth model
-- [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md) — why this CLI is worker-coupled
+- [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md) — why this CLI is still worker-coupled
 - [System-of-Record App Inventory](../../../handbooks/platform-handbook/architecture/system-of-record-app-inventory.md)
 - [API Key Scoping](../../../handbooks/platform-handbook/security/api-key-scoping.md)
