@@ -57,8 +57,8 @@ export async function listWorkpiecesHandler(argv) {
     const set = new Set();
     for (const station of ls.stations) {
       for (const bin of ALL_BINS) {
-        const s = ls.bins[station][bin];
-        if (s) for (const id of s) set.add(id);
+        const map = ls.bins[station][bin];
+        if (map) for (const id of map.keys()) set.add(id);
       }
     }
     ids = [...set];
@@ -69,8 +69,8 @@ export async function listWorkpiecesHandler(argv) {
     for (const ls of Object.values(lines)) {
       for (const station of ls.stations) {
         for (const bin of ALL_BINS) {
-          const s = ls.bins[station][bin];
-          if (s) for (const id of s) set.add(id);
+          const map = ls.bins[station][bin];
+          if (map) for (const id of map.keys()) set.add(id);
         }
       }
     }
@@ -87,8 +87,8 @@ export async function listWorkpiecesHandler(argv) {
     const lineIds = new Set();
     for (const station of ls.stations) {
       for (const bin of ALL_BINS) {
-        const s = ls.bins[station][bin];
-        if (s) for (const id of s) lineIds.add(id);
+        const map = ls.bins[station][bin];
+        if (map) for (const id of map.keys()) lineIds.add(id);
       }
     }
     ids = ids.filter((id) => lineIds.has(id));
@@ -133,12 +133,18 @@ export async function listWorkpiecesHandler(argv) {
 }
 
 function positionShort(pos) {
-  if (pos.anomaly) return `${pos.station}/done (anomaly)`;
+  // Show the sub-bin segment when the workpiece lives under one
+  // (e.g. HI3/output/invoices). The id itself is the last segment of
+  // pos.subpath and is already shown as the row's WORKPIECE column.
+  const sub = pos.subpath && pos.subpath.includes('/')
+    ? '/' + pos.subpath.slice(0, pos.subpath.lastIndexOf('/'))
+    : '';
+  if (pos.anomaly) return `${pos.station}/done${sub} (anomaly)`;
   let suffix = '';
   if (pos.bin === 'failed') suffix = ' (stuck)';
   else if (pos.bin === 'output' && pos.terminal) suffix = ' (finished)';
   else if (pos.bin === 'doing') suffix = ' (active)';
-  return `${pos.station}/${pos.bin}${suffix}`;
+  return `${pos.station}/${pos.bin}${sub}${suffix}`;
 }
 
 function formatLastEventCompact(events) {

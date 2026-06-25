@@ -12,6 +12,7 @@ import {
   workpieceDir,
   workpieceLink,
   summarizeLine,
+  scanBinWorkpieces,
 } from '../../src/utils/line-state.js';
 
 // ============================================================================
@@ -465,7 +466,7 @@ describe('summarizeLine()', () => {
 });
 
 describe('workpieceDir()', () => {
-  it('should join stations_root/station/bin/id', () => {
+  it('should join stations_root/station/bin/id when pos.subpath is missing', () => {
     // Arrange
     const pos = { line: 'VM', station: 'VM3', bin: 'failed', terminal: false };
 
@@ -474,5 +475,151 @@ describe('workpieceDir()', () => {
 
     // Assert
     expect(dir).toBe('/tmp/stations/VM3/failed/wp1');
+  });
+
+  it('should use pos.subpath when set (sub-bin layout)', () => {
+    // Arrange — workpiece at HI3/output/invoices/hi-1__NT-...
+    const pos = {
+      line: 'HI', station: 'HI3', bin: 'output', terminal: false,
+      subpath: 'invoices/hi-1__NT-00001-2025-26',
+    };
+
+    // Act
+    const dir = workpieceDir(pos, 'hi-1__NT-00001-2025-26', '/tmp/stations');
+
+    // Assert — sub-bin segment preserved
+    expect(dir).toBe('/tmp/stations/HI3/output/invoices/hi-1__NT-00001-2025-26');
+  });
+});
+
+// ============================================================================
+// scanBinWorkpieces — pointer.json marker scanner with sub-bin walk
+// ============================================================================
+
+describe('scanBinWorkpieces()', () => {
+  let tempDir;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-scan-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  /** Make a workpiece directory at `bin_dir/{subpath}/` with a pointer.json marker. */
+  function makeWp(bin_dir, subpath) {
+    const wp = path.join(bin_dir, subpath);
+    fs.mkdirSync(wp, { recursive: true });
+    fs.writeFileSync(path.join(wp, 'pointer.json'), '{}');
+    return wp;
+  }
+
+  it('should return an empty map when the bin directory does not exist', () => {
+    // Act
+    const result = scanBinWorkpieces(path.join(tempDir, 'missing'));
+
+    // Assert
+    expect(result.size).toBe(0);
+  });
+
+  it('should find flat workpieces (depth 1)', () => {
+    // Arrange — output/car-1/pointer.json, output/car-2/pointer.json
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'car-1');
+    makeWp(bin_dir, 'car-2');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert
+    expect([...result.keys()].sort()).toEqual(['car-1', 'car-2']);
+    expect(result.get('car-1')).toBe('car-1');
+    expect(result.get('car-2')).toBe('car-2');
+  });
+
+  it('should walk past organisational sub-bins to find workpieces (depth 2)', () => {
+    // Arrange — output/invoices/hi-1__NT-001/pointer.json (HI3 splitter pattern)
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'invoices/hi-1__NT-001');
+    makeWp(bin_dir, 'invoices/hi-1__NT-002');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert
+    expect([...result.keys()].sort()).toEqual(['hi-1__NT-001', 'hi-1__NT-002']);
+    expect(result.get('hi-1__NT-001')).toBe('invoices/hi-1__NT-001');
+  });
+
+  it('should mix flat and sub-bin workpieces in the same bin', () => {
+    // Arrange — output/hi-1/ (bundle audit) AND output/invoices/hi-1__NT-001/
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'hi-1');
+    makeWp(bin_dir, 'invoices/hi-1__NT-001');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert — both surface; the sub-bin path is preserved for the child
+    expect([...result.keys()].sort()).toEqual(['hi-1', 'hi-1__NT-001']);
+    expect(result.get('hi-1')).toBe('hi-1');
+    expect(result.get('hi-1__NT-001')).toBe('invoices/hi-1__NT-001');
+  });
+
+  it('should support CD2-style classification sub-bins (output/PO, output/MSA)', () => {
+    // Arrange
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'PO/po-7');
+    makeWp(bin_dir, 'MSA/msa-3');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert
+    expect([...result.keys()].sort()).toEqual(['msa-3', 'po-7']);
+    expect(result.get('po-7')).toBe('PO/po-7');
+    expect(result.get('msa-3')).toBe('MSA/msa-3');
+  });
+
+  it('should treat a directory containing pointer.json as a workpiece and not descend further', () => {
+    // Arrange — workpiece at output/hi-1/ with a nested subfolder pages/
+    // that should NOT be treated as a workpiece even if it has stuff in it
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'hi-1');
+    fs.mkdirSync(path.join(bin_dir, 'hi-1', 'pages'), { recursive: true });
+    fs.writeFileSync(path.join(bin_dir, 'hi-1', 'pages', 'page0001.pdf'), '');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert — only hi-1, not pages/
+    expect([...result.keys()]).toEqual(['hi-1']);
+  });
+
+  it('should ignore directories without pointer.json (organisational only)', () => {
+    // Arrange — empty sub-bin
+    const bin_dir = path.join(tempDir, 'output');
+    fs.mkdirSync(path.join(bin_dir, 'invoices'), { recursive: true });
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert
+    expect(result.size).toBe(0);
+  });
+
+  it('should ignore dot-prefixed directories at every depth', () => {
+    // Arrange
+    const bin_dir = path.join(tempDir, 'output');
+    makeWp(bin_dir, 'hi-1');
+    makeWp(bin_dir, '.hidden');
+    makeWp(bin_dir, '.tmp/nested');
+
+    // Act
+    const result = scanBinWorkpieces(bin_dir);
+
+    // Assert
+    expect([...result.keys()]).toEqual(['hi-1']);
   });
 });

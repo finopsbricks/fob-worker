@@ -66,8 +66,8 @@ function renderLineDrilldown(ls, json) {
     for (const station of ls.stations) {
       out.stations[station] = {};
       for (const bin of [...LIVE_BINS, 'done']) {
-        const ids = ls.bins[station][bin];
-        out.stations[station][bin] = ids ? [...ids].sort() : null;
+        const map = ls.bins[station][bin];
+        out.stations[station][bin] = map ? [...map.keys()].sort() : null;
       }
     }
     out.summary = summarizeLine(ls);
@@ -80,7 +80,7 @@ function renderLineDrilldown(ls, json) {
   console.log(formatField('Terminal', ls.terminal, 12));
   console.log('');
 
-  const cell = (ids) => (ids === null ? '—' : String(ids.size));
+  const cell = (map) => (map === null ? '—' : String(map.size));
   const rows = ls.stations.map((station) => {
     const b = ls.bins[station];
     return [
@@ -96,8 +96,8 @@ function renderLineDrilldown(ls, json) {
   const totals = { input: 0, doing: 0, output: 0, failed: 0 };
   for (const station of ls.stations) {
     for (const bin of LIVE_BINS) {
-      const ids = ls.bins[station][bin];
-      if (ids) totals[bin] += ids.size;
+      const map = ls.bins[station][bin];
+      if (map) totals[bin] += map.size;
     }
   }
   rows.push([

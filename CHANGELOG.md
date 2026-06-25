@@ -8,8 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `scanBinWorkpieces(bin_dir)` in `src/utils/line-state.js` — walks a bin tree (up to `MAX_BIN_DEPTH` = 4) and treats any directory containing `pointer.json` as a workpiece. Lets workpieces live under typed sub-bins (`output/invoices/`, `output/PO/`, `output/MSA/`) while keeping the workpiece-id namespace flat.
+- `Position.subpath` — the path from a bin root to the workpiece directory. Equals the workpiece id for flat layouts; carries the sub-bin segment for nested layouts (e.g. `'invoices/hi-1__NT-001'`).
+- `collectIdsForBin()` now accepts an optional `STATION/BIN/SUBPATH` form (e.g. `HI3/output/invoices`) to narrow to a specific sub-bin.
 
 ### Changed
+- `LineState.bins[station][bin]` is now `Map<id, subpath>` instead of `Set<id>`. Consumers that iterate ids should use `.keys()`; `.size` and `.has()` keep working unchanged.
+- `workpieceDir()` uses `pos.subpath` when set so sub-bin layouts resolve correctly.
+- `fob workpieces list` and `fob stations status` show the sub-bin path when a workpiece lives under one (e.g. `HI3/output/invoices` in `POSITION`).
 
 ### Fixed
 

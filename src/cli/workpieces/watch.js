@@ -148,8 +148,8 @@ export async function watchHandler(argv) {
     const set = new Set();
     for (const station of ls.stations) {
       for (const bin of ALL_BINS) {
-        const s = ls.bins[station][bin];
-        if (s) for (const id of s) set.add(id);
+        const map = ls.bins[station][bin];
+        if (map) for (const id of map.keys()) set.add(id);
       }
     }
     ids = [...set];

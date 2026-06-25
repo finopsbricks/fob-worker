@@ -3,7 +3,8 @@
  *
  * Line topology is sourced from `.orchestrator/stations/*.json` (the `line` field
  * on each station is the authoritative line membership). Bin contents are read
- * from `temp/stations/{STATION}/{BIN}/{workpiece_id}/`.
+ * from `temp/stations/{STATION}/{BIN}/...` by walking the tree for `pointer.json`
+ * marker files — see `scanBinWorkpieces`.
  *
  * This module answers:
  *   - which lines exist (the distinct `line` values across local station JSONs)
@@ -16,6 +17,12 @@
  *   - Archive bin (receipt of a successful forward move): done — NOT a position
  *   - Position rule: walk stations terminal → source; at each, check
  *     output > doing > input > failed; first match wins. done ignored.
+ *
+ * Sub-bins: a workpiece is any directory containing `pointer.json`, at any depth
+ * up to MAX_BIN_DEPTH. Splitters and classifiers can organise children under
+ * typed sub-bins (e.g. `output/invoices/`, `output/PO/`, `output/MSA/`); the
+ * scanner walks past those organisational directories until it hits the
+ * pointer.json marker.
  */
 
 import fs from 'node:fs';
@@ -26,17 +33,19 @@ import { listLocalStations } from './station-files.js';
 const ALL_BINS = ['input', 'doing', 'output', 'failed', 'done'];
 const LIVE_BINS = ['input', 'doing', 'output', 'failed'];
 const LIVE_PRIORITY = ['output', 'doing', 'input', 'failed']; // most-advanced first
+const MAX_BIN_DEPTH = 4; // depth limit for sub-bin walks (output/invoices/hi-1/ = depth 2)
 
-export { ALL_BINS, LIVE_BINS, LIVE_PRIORITY };
+export { ALL_BINS, LIVE_BINS, LIVE_PRIORITY, MAX_BIN_DEPTH };
 
 /**
  * @typedef {object} LineState
  * @property {string} code - 2-letter line code (e.g. 'VM')
  * @property {string[]} stations - Station codes sorted by numeric suffix
  * @property {string} terminal - Highest-numbered station code
- * @property {Object<string, Object<string, Set<string>|null>>} bins -
- *   bins[station][bin] is a Set of workpiece ids, or null if the bin
- *   directory does not exist on disk.
+ * @property {Object<string, Object<string, Map<string, string>|null>>} bins -
+ *   bins[station][bin] is a Map of workpiece_id → path relative to the bin
+ *   (e.g. 'hi-1' for flat, 'invoices/hi-1__NT-...' for a sub-bin), or null
+ *   if the bin directory does not exist on disk.
  */
 
 /**
@@ -44,9 +53,65 @@ export { ALL_BINS, LIVE_BINS, LIVE_PRIORITY };
  * @property {string} line
  * @property {string} station
  * @property {string} bin
+ * @property {string} subpath - path relative to the bin (= workpiece_id for
+ *   flat layouts, prefixed with sub-bin segments for nested layouts)
  * @property {boolean} terminal - true if station is the line's terminal
  * @property {boolean} [anomaly] - true when only present in done (not live)
  */
+
+/**
+ * Walk a bin directory and find every workpiece — any directory containing a
+ * `pointer.json` marker. The marker is canonical (see
+ * `fde-handbook/patterns/structural/workpiece-anatomy.md`): a workpiece is
+ * uniquely identified by the directory carrying its pointer.json.
+ *
+ * Walks past organisational sub-bins (`output/invoices/`, `output/PO/`, etc.)
+ * — those directories do not carry a pointer.json themselves — until it
+ * reaches the workpiece marker. Bounded to MAX_BIN_DEPTH to keep pathological
+ * inputs cheap.
+ *
+ * @param {string} bin_dir - absolute path to the bin (e.g. temp/stations/HI3/output)
+ * @returns {Map<string, string>} workpiece_id → path relative to bin_dir
+ *   (the basename equals the id; deeper paths preserve sub-bin segments)
+ */
+export function scanBinWorkpieces(bin_dir) {
+  /** @type {Map<string, string>} */
+  const found = new Map();
+  if (!fs.existsSync(bin_dir)) return found;
+
+  /**
+   * @param {string} dir
+   * @param {number} depth
+   * @param {string} relpath - path relative to bin_dir; '' at the bin itself
+   */
+  function walk(dir, depth, relpath) {
+    if (depth >= MAX_BIN_DEPTH) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('.')) continue;
+
+      const child_dir = path.join(dir, entry.name);
+      const child_rel = relpath ? `${relpath}/${entry.name}` : entry.name;
+
+      if (fs.existsSync(path.join(child_dir, 'pointer.json'))) {
+        // Workpiece — record and don't descend further (workpieces don't nest).
+        found.set(entry.name, child_rel);
+      } else {
+        // Organisational sub-bin — descend.
+        walk(child_dir, depth + 1, child_rel);
+      }
+    }
+  }
+
+  walk(bin_dir, 0, '');
+  return found;
+}
 
 /**
  * Default stations_root: `temp/stations/` relative to cwd. The CLI runs from
@@ -94,11 +159,7 @@ export function loadLineState({ stations_root = defaultStationsRoot() } = {}) {
       for (const bin of ALL_BINS) {
         const dir = path.join(stations_root, station, bin);
         if (!fs.existsSync(dir)) { bins[station][bin] = null; continue; }
-        const ids = fs
-          .readdirSync(dir, { withFileTypes: true })
-          .filter((e) => e.isDirectory())
-          .map((e) => e.name);
-        bins[station][bin] = new Set(ids);
+        bins[station][bin] = scanBinWorkpieces(dir);
       }
     }
 
@@ -200,8 +261,15 @@ export function resolvePosition(workpiece_id, lines) {
     for (let i = line.stations.length - 1; i >= 0; i--) {
       const station = line.stations[i];
       for (const bin of LIVE_PRIORITY) {
-        if (line.bins[station][bin]?.has(workpiece_id)) {
-          return { line: line.code, station, bin, terminal: station === line.terminal };
+        const map = line.bins[station][bin];
+        if (map?.has(workpiece_id)) {
+          return {
+            line: line.code,
+            station,
+            bin,
+            subpath: map.get(workpiece_id),
+            terminal: station === line.terminal,
+          };
         }
       }
     }
@@ -210,11 +278,13 @@ export function resolvePosition(workpiece_id, lines) {
   for (const line of Object.values(lines)) {
     for (let i = line.stations.length - 1; i >= 0; i--) {
       const station = line.stations[i];
-      if (line.bins[station].done?.has(workpiece_id)) {
+      const map = line.bins[station].done;
+      if (map?.has(workpiece_id)) {
         return {
           line: line.code,
           station,
           bin: 'done',
+          subpath: map.get(workpiece_id),
           terminal: station === line.terminal,
           anomaly: true,
         };
@@ -237,9 +307,9 @@ export function findWorkpieceMatches(query, lines) {
   for (const line of Object.values(lines)) {
     for (const station of line.stations) {
       for (const bin of ALL_BINS) {
-        const set = line.bins[station][bin];
-        if (!set) continue;
-        for (const id of set) if (id.includes(query)) ids.add(id);
+        const map = line.bins[station][bin];
+        if (!map) continue;
+        for (const id of map.keys()) if (id.includes(query)) ids.add(id);
       }
     }
   }
@@ -252,9 +322,15 @@ export function findWorkpieceMatches(query, lines) {
 }
 
 /**
- * Collect every workpiece id currently sitting in a specific bin.
+ * Collect every workpiece id currently sitting in a specific bin (or sub-bin).
  *
- * @param {string} bin_spec - STATION/BIN form, e.g. 'VM3/failed'
+ * Accepts either:
+ *   - `STATION/BIN` — e.g. `VM3/failed` — returns every workpiece anywhere
+ *     under the bin, including sub-bin layouts (`output/invoices/...`).
+ *   - `STATION/BIN/SUBPATH` — e.g. `HI3/output/invoices` — narrows to
+ *     workpieces whose path-from-bin starts with the given sub-bin segment.
+ *
+ * @param {string} bin_spec
  * @param {Object<string, LineState>} lines
  * @returns {{ok: true, ids: string[]} | {ok: false, error: string}}
  */
@@ -262,14 +338,14 @@ export function collectIdsForBin(bin_spec, lines) {
   // Station code is whatever short_code shape the JSON uses (AP3b, VO1x, P10,
   // TR1, …). Don't bake assumptions about prefix length or numeric suffix into
   // the regex — defer existence checking to the loaded line state below.
-  const m = bin_spec.match(/^([^/]+)\/(input|doing|output|done|failed)$/);
+  const m = bin_spec.match(/^([^/]+)\/(input|doing|output|done|failed)(?:\/(.+))?$/);
   if (!m) {
     return {
       ok: false,
-      error: `Invalid bin spec "${bin_spec}". Use STATION/BIN (e.g. AP3b/failed).`,
+      error: `Invalid bin spec "${bin_spec}". Use STATION/BIN or STATION/BIN/SUBPATH (e.g. AP3b/failed, HI3/output/invoices).`,
     };
   }
-  const [, station, bin] = m;
+  const [, station, bin, subpath_filter] = m;
   let line_found = null;
   for (const line of Object.values(lines)) {
     if (line.stations.includes(station)) { line_found = line; break; }
@@ -277,8 +353,15 @@ export function collectIdsForBin(bin_spec, lines) {
   if (!line_found) {
     return { ok: false, error: `Station "${station}" not found on disk.` };
   }
-  const ids = line_found.bins[station][bin];
-  return { ok: true, ids: ids ? [...ids] : [] };
+  const map = line_found.bins[station][bin];
+  if (!map) return { ok: true, ids: [] };
+  if (!subpath_filter) return { ok: true, ids: [...map.keys()] };
+  const filter_prefix = subpath_filter.replace(/\/+$/, '') + '/';
+  const ids = [];
+  for (const [id, sub] of map) {
+    if (sub === subpath_filter || sub.startsWith(filter_prefix)) ids.push(id);
+  }
+  return { ok: true, ids };
 }
 
 /**
@@ -303,6 +386,9 @@ export function readWorkpieceLog(workpiece_dir) {
 
 /**
  * Build the absolute path to a workpiece directory given a resolved position.
+ * Uses `pos.subpath` (the path relative to the bin) so sub-bin layouts resolve
+ * correctly. Falls back to the workpiece_id if subpath is missing — supports
+ * callers that hand-roll Position objects without setting subpath.
  *
  * @param {Position} pos
  * @param {string} workpiece_id
@@ -310,7 +396,8 @@ export function readWorkpieceLog(workpiece_dir) {
  * @returns {string}
  */
 export function workpieceDir(pos, workpiece_id, stations_root = defaultStationsRoot()) {
-  return path.join(stations_root, pos.station, pos.bin, workpiece_id);
+  const subpath = pos.subpath || workpiece_id;
+  return path.join(stations_root, pos.station, pos.bin, subpath);
 }
 
 /**
@@ -343,9 +430,9 @@ export function summarizeLine(line) {
     const bins = line.bins[station];
     const is_terminal = station === line.terminal;
     for (const bin of LIVE_BINS) {
-      const ids = bins[bin];
-      if (!ids) continue;
-      const n = ids.size;
+      const map = bins[bin];
+      if (!map) continue;
+      const n = map.size;
       if (bin === 'failed') {
         stuck += n;
         if (n > 0) stuck_locations.push(`${n} at ${station}/failed`);

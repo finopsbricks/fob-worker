@@ -31,8 +31,8 @@ export async function statusStationHandler(argv) {
   if (json) {
     const out = { station: id, line: stationLine.code, terminal: id === stationLine.terminal, bins: {} };
     for (const bin of [...LIVE_BINS, 'done']) {
-      const ids = bins[bin];
-      out.bins[bin] = ids ? [...ids].sort() : null;
+      const map = bins[bin];
+      out.bins[bin] = map ? [...map.keys()].sort() : null;
     }
     console.log(JSON.stringify(out, null, 2));
     return;
@@ -43,15 +43,20 @@ export async function statusStationHandler(argv) {
   console.log('');
 
   for (const bin of [...LIVE_BINS, 'done']) {
-    const ids = bins[bin];
+    const map = bins[bin];
     const label = bin === 'done' ? '(done)' : bin;
-    if (ids === null) {
+    if (map === null) {
       console.log(`${label.padEnd(8)} —`);
       continue;
     }
-    const sorted = [...ids].sort();
+    const sorted = [...map.keys()].sort();
     console.log(`${label.padEnd(8)} (${sorted.length})`);
-    for (const wpId of sorted) console.log(`         ${wpId}`);
+    // Show sub-bin path when a workpiece lives under one (e.g. invoices/hi-1__...).
+    for (const wpId of sorted) {
+      const sub = map.get(wpId);
+      const display = sub && sub !== wpId ? `${wpId}  (in ${sub.slice(0, sub.lastIndexOf('/'))}/)` : wpId;
+      console.log(`         ${display}`);
+    }
     if (sorted.length === 0) console.log('         —');
     console.log('');
   }
