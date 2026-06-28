@@ -1,5 +1,6 @@
 import { formatTable, formatHeader, formatField, formatSection } from '../../utils/format.js';
 import { loadLineState, summarizeLine, LIVE_BINS } from '../../utils/line-state.js';
+import { watchRender, DEFAULT_WATCH_INTERVAL_SECS } from '../../utils/watch-render.js';
 
 /**
  * `fob lines status [code]` — operational snapshot of live bin state.
@@ -10,28 +11,50 @@ import { loadLineState, summarizeLine, LIVE_BINS } from '../../utils/line-state.
  * With a code: station × live-bin table for that one line; the `done`
  * bin is shown in parens and excluded from live totals (it's a receipt
  * of a successful forward move, not a current position).
+ *
+ * `--watch [--interval=N]` re-renders on an interval (clear-screen between
+ * frames). Mutually exclusive with `--json` (a one-shot snapshot format).
  */
 export async function statusLineHandler(argv) {
-  const { line: lineArg, json } = argv || {};
-  const lines = loadLineState();
-
-  if (Object.keys(lines).length === 0) {
-    if (json) console.log(JSON.stringify({}, null, 2));
-    else console.log('No lines found under temp/stations/.');
-    return;
-  }
-
-  if (!lineArg) {
-    renderLineSummary(lines, json);
-    return;
-  }
-
-  const ls = lines[lineArg];
-  if (!ls) {
-    console.error(`Line "${lineArg}" not found. Available: ${Object.keys(lines).sort().join(', ')}`);
+  const { line: lineArg, json, watch, interval } = argv || {};
+  if (watch && json) {
+    console.error('--watch and --json are mutually exclusive (watch is a TTY redraw; json is a one-shot snapshot).');
     process.exit(1);
   }
-  renderLineDrilldown(ls, json);
+  const interval_secs = typeof interval === 'number' ? interval : DEFAULT_WATCH_INTERVAL_SECS;
+
+  const renderOnce = () => {
+    const lines = loadLineState();
+
+    if (Object.keys(lines).length === 0) {
+      if (json) console.log(JSON.stringify({}, null, 2));
+      else console.log('No lines found under temp/stations/.');
+      return;
+    }
+
+    if (!lineArg) {
+      renderLineSummary(lines, json);
+      return;
+    }
+
+    const ls = lines[lineArg];
+    if (!ls) {
+      // In watch mode the line may appear later, so don't exit — surface and retry.
+      if (watch) {
+        console.log(`Line "${lineArg}" not found. Available: ${Object.keys(lines).sort().join(', ') || '(none)'}`);
+        return;
+      }
+      console.error(`Line "${lineArg}" not found. Available: ${Object.keys(lines).sort().join(', ')}`);
+      process.exit(1);
+    }
+    renderLineDrilldown(ls, json);
+  };
+
+  if (watch) {
+    await watchRender({ render: renderOnce, interval_secs });
+    return;
+  }
+  renderOnce();
 }
 
 function renderLineSummary(lines, json) {

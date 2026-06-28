@@ -94,7 +94,9 @@ function buildStationSubcommands(yargs) {
       (yargs) => {
         return yargs
           .positional('id', { describe: 'Station short_code (e.g. VM3)', type: 'string' })
-          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+          .option('json', { describe: 'Output raw JSON', type: 'boolean' })
+          .option('watch', { alias: 'w', describe: 'Re-render on an interval (clear-screen between frames). Mutually exclusive with --json.', type: 'boolean' })
+          .option('interval', { describe: 'Watch refresh interval in seconds (default 1)', type: 'number' });
       },
       (argv) => {
         if (argv.getYargsCompletions) return;
@@ -249,7 +251,9 @@ export function run(args) {
           (yargs) => {
             return yargs
               .positional('line', { describe: 'Line code to drill into (omit for cross-line summary)', type: 'string' })
-              .option('json', { describe: 'Output raw JSON', type: 'boolean' });
+              .option('json', { describe: 'Output raw JSON', type: 'boolean' })
+              .option('watch', { alias: 'w', describe: 'Re-render on an interval (clear-screen between frames). Mutually exclusive with --json.', type: 'boolean' })
+              .option('interval', { describe: 'Watch refresh interval in seconds (default 1)', type: 'number' });
           },
           withSeparator(statusLineHandler),
         )
