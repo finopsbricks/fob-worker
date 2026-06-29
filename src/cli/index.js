@@ -114,12 +114,17 @@ function buildStationSubcommands(yargs) {
       (yargs) => {
         return yargs
           .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('item', { describe: 'Item ID to run the station on', type: 'string' });
+          .option('item', { describe: 'Item ID to run the station on', type: 'string' })
+          .option('scenario', { describe: 'Apply step_overrides from .orchestrator/scenarios/stations/<short_code>/<name>.json', type: 'string' })
+          .epilogue(
+            'Pass step_overrides directly as flags: --today_override=2026-06-05.\n' +
+            'CLI flags win over --scenario on conflicts. Override keys must not collide with id/item/scenario.'
+          );
       },
       (argv) => {
         if (argv.getYargsCompletions) return;
         if (!argv.id) {
-          console.error('Usage: fob stations run <id|short_code> --item <item-id>');
+          console.error('Usage: fob stations run <id|short_code> [--item <item-id>] [--scenario <name>] [--<key>=<value> ...]');
           process.exit(1);
         }
         return withSeparator(runStationHandler)(argv);

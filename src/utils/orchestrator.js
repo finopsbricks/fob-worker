@@ -312,10 +312,14 @@ export async function getItem(id) {
  * Trigger a station run
  * @param {string} stationId - Station ID or short_code
  * @param {string} [itemId] - Item ID (required if station has applies_to)
+ * @param {Object<string, any>} [stepOverrides] - Per-run config overrides shallow-merged into every step's config server-side
  */
-export async function runStation(stationId, itemId) {
+export async function runStation(stationId, itemId, stepOverrides) {
   const body = {};
   if (itemId) body.item_id = itemId;
+  if (stepOverrides && Object.keys(stepOverrides).length > 0) {
+    body.step_overrides = stepOverrides;
+  }
   return apiRequest(`/api/v1/processes/${stationId}/run`, {
     method: 'POST',
     body: JSON.stringify(body),

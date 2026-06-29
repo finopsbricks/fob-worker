@@ -351,3 +351,43 @@ export function saveScenario(stepSlug, scenarioName, config) {
   fs.writeFileSync(filepath, JSON.stringify(config, null, 2));
   return filepath;
 }
+
+// ============================================================================
+// Station Scenarios
+// ============================================================================
+//
+// Station scenarios are flat key→value JSONs of step-config overrides applied
+// to a whole station run via `fob stations run <id> --scenario <name>`. They
+// live under `.orchestrator/scenarios/stations/<short_code>/<name>.json`, keyed
+// by short_code (stable + human-readable). The orchestrator shallow-merges
+// every key into every step's config — zod on the worker strips keys a step
+// does not declare.
+
+function getScenarioDirForStation(stationShortCode) {
+  return path.join(SCENARIOS_DIR, 'stations', stationShortCode);
+}
+
+/**
+ * List all scenarios for a station.
+ * @param {string} stationShortCode
+ * @returns {string[]} Scenario names without .json extension
+ */
+export function listStationScenarios(stationShortCode) {
+  const scenarioDir = getScenarioDirForStation(stationShortCode);
+  if (!fs.existsSync(scenarioDir)) return [];
+  return fs.readdirSync(scenarioDir)
+    .filter(f => f.endsWith('.json'))
+    .map(f => f.replace('.json', ''));
+}
+
+/**
+ * Load a station scenario (flat key→value map).
+ * @param {string} stationShortCode
+ * @param {string} scenarioName - Without .json
+ * @returns {object|null} Scenario object or null if not found
+ */
+export function loadStationScenario(stationShortCode, scenarioName) {
+  const filepath = path.join(getScenarioDirForStation(stationShortCode), `${scenarioName}.json`);
+  if (!fs.existsSync(filepath)) return null;
+  return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+}
