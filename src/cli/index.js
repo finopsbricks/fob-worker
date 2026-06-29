@@ -29,7 +29,9 @@ import { unarchiveStationHandler } from './stations/unarchive.js';
 import { listLinesHandler } from './lines/list.js';
 import { showLineHandler } from './lines/show.js';
 import { statusLineHandler } from './lines/status.js';
+import { emptyBinsLineHandler } from './lines/empty-bins.js';
 import { statusStationHandler } from './stations/status.js';
+import { emptyBinsStationHandler } from './stations/empty-bins.js';
 import { listWorkpiecesHandler } from './workpieces/list.js';
 import { showWorkpieceHandler } from './workpieces/show.js';
 import { watchHandler } from './workpieces/watch.js';
@@ -47,6 +49,23 @@ function withSeparator(handler) {
     await handler(argv);
     console.log('='.repeat(60));
   };
+}
+
+/**
+ * Bin-selector flags shared by `fob stations empty-bins` and `fob lines empty-bins`.
+ * Kept in one place so the two commands stay in sync if we add more bins later.
+ */
+function withBinSelectorFlags(yargs) {
+  return yargs
+    .option('all', { describe: 'Wipe all 5 bins AND the intake-registry (full reset)', type: 'boolean' })
+    .option('all-bins', { describe: 'Wipe all 5 bins; leave the intake-registry intact', type: 'boolean' })
+    .option('input', { describe: 'Empty the input bin', type: 'boolean' })
+    .option('doing', { describe: 'Empty the doing bin', type: 'boolean' })
+    .option('output', { describe: 'Empty the output bin', type: 'boolean' })
+    .option('failed', { describe: 'Empty the failed bin', type: 'boolean' })
+    .option('done', { describe: 'Empty the done (archive) bin', type: 'boolean' })
+    .option('intake-registry', { describe: 'Delete intake-registry.jsonl (line-head allocation log)', type: 'boolean' })
+    .option('yes', { alias: 'y', describe: 'Skip the confirmation prompt', type: 'boolean' });
 }
 
 /**
@@ -106,6 +125,24 @@ function buildStationSubcommands(yargs) {
           process.exit(1);
         }
         return withSeparator(statusStationHandler)(argv);
+      },
+    )
+    .command(
+      'empty-bins [id]',
+      'Wipe selected bin directories under temp/stations/<STATION>/ (destructive)',
+      (yargs) => {
+        return withBinSelectorFlags(
+          yargs.positional('id', { describe: 'Station short_code (e.g. IG0)', type: 'string' })
+        );
+      },
+      (argv) => {
+        if (argv.getYargsCompletions) return;
+        if (!argv.id) {
+          console.error('Usage: fob stations empty-bins <short_code> [--all | --input | --doing | --output | --failed | --done] [--yes]');
+          console.error('Run "fob stations status <short_code>" to preview bin contents first.');
+          process.exit(1);
+        }
+        return withSeparator(emptyBinsStationHandler)(argv);
       },
     )
     .command(
@@ -212,7 +249,7 @@ function buildStationSubcommands(yargs) {
         return withSeparator(unarchiveStationHandler)(argv);
       },
     )
-    .demandCommand(1, 'Specify an action: list, show, status, run, pull, push, edit, delete, unarchive, update-step-metadata');
+    .demandCommand(1, 'Specify an action: list, show, status, empty-bins, run, pull, push, edit, delete, unarchive, update-step-metadata');
 }
 
 /**
@@ -262,7 +299,25 @@ export function run(args) {
           },
           withSeparator(statusLineHandler),
         )
-        .demandCommand(1, 'Specify an action: list, show, status');
+        .command(
+          'empty-bins [line]',
+          'Wipe selected bin directories across every station in a line (destructive)',
+          (yargs) => {
+            return withBinSelectorFlags(
+              yargs.positional('line', { describe: 'Line code (e.g. IG, HI)', type: 'string' })
+            );
+          },
+          (argv) => {
+            if (argv.getYargsCompletions) return;
+            if (!argv.line) {
+              console.error('Usage: fob lines empty-bins <line> [--all | --input | --doing | --output | --failed | --done] [--yes]');
+              console.error('Run "fob lines status <line>" to preview bin contents first.');
+              process.exit(1);
+            }
+            return withSeparator(emptyBinsLineHandler)(argv);
+          },
+        )
+        .demandCommand(1, 'Specify an action: list, show, status, empty-bins');
     })
     .command('stations', 'Work with orchestrator stations', (yargs) =>
       buildStationSubcommands(yargs),
@@ -658,7 +713,7 @@ export function run(args) {
       // Stations action level completions (fob stations <tab>)
       if (args[0] === 'stations') {
         if (args.length === 1) {
-          return ['list', 'show', 'status', 'run', 'pull', 'push', 'edit', 'delete', 'unarchive', 'update-step-metadata'];
+          return ['list', 'show', 'status', 'empty-bins', 'run', 'pull', 'push', 'edit', 'delete', 'unarchive', 'update-step-metadata'];
         }
         return [];
       }
@@ -666,7 +721,7 @@ export function run(args) {
       // Lines action level completions (fob lines <tab>)
       if (args[0] === 'lines') {
         if (args.length === 1) {
-          return ['list', 'show', 'status'];
+          return ['list', 'show', 'status', 'empty-bins'];
         }
         return [];
       }
