@@ -1,14 +1,14 @@
 # Rename cli → cli-fob: fix references across the monorepo
 
-## Status: IN PROGRESS (~20%)
+## Status: COMPLETE
 
 The GitHub repo, local directory, and git remote for this CLI have already been
 renamed from `finopsbricks/cli` (dir `cli/cli`) to `finopsbricks/cli-fob` (dir
 `cli/cli-fob`). The binary name (`fob`) and npm scope are unaffected. What's
 left is fixing every reference to the old name/path/URL — inside this repo and
 across the rest of the monorepo — that documentation, handbooks, and other
-repos still carry. Full sweep results below; open scope questions are at the
-bottom and need answers before Phase 2+ starts.
+repos still carry. All 6 phases are done; see "Final Verification" at the
+bottom for the closing sweep.
 
 ---
 
@@ -68,49 +68,56 @@ Completed/historical `docs/wip/*.md` files (`fob-cli.md`, `fob-cli-v2.md`,
 `fob-cli-v3.md`, `cli-task-structure-mismatch.md`, `process-push-create-fix.md`)
 are left as-is — dated snapshots, not updated.
 
-### Phase 2: `handbooks/fde-handbook` ❌
-- [ ] `implementation/how-things-work/station-push-chain.md` — 10 lines (120, 123, 128, 135, 145, 161, 169, 266, 272, 273), all `**File:** \`/Users/alex/ec2code/finopsbricks/cli/...\`` path refs
-- [ ] `implementation/how-things-work/station-run-cli.md` — 3 lines (143, 146, 152), same style
-- [ ] `implementation/step-patterns/step-debugging.md:11-12` — `git clone .../cli.git` + `cd cli`
+### Phase 2: `handbooks/fde-handbook` ✅
+- [x] `implementation/how-things-work/station-push-chain.md` — 10 path refs updated
+- [x] `implementation/how-things-work/station-run-cli.md` — 3 path refs updated
+- [x] `implementation/step-patterns/step-debugging.md:11-12` — clone URL + `cd cli-fob` updated
+- Commit: `582fe82`
 
-### Phase 3: `workers/*` repos ❌
-- [ ] `workers/worker-agilitas/docs/worker-orchestrator-runbook.md:24` — `@fob/cli` → `@fob/cli-fob`
-- [ ] `workers/worker-alex/CLAUDE.md:48` — `https://github.com/finopsbricks/cli` → `.../cli-fob`
-- [ ] `workers/worker-alex/docs/wip/fob-stations-delete.md:214` — absolute path ref (check if this WIP is still active)
-- [ ] `workers/worker-newnowapps/CLAUDE.md:16` — relative path `../cli` → `../cli-fob`; `@fob/cli` → `@fob/cli-fob`
-- [ ] `workers/worker-newnowapps/docs/WIP/station-nomenclature-migration-plan.md:45` — `github.com/finopsbricks/cli` → `cli-fob`
-- [ ] `workers/worker-nowapps/docs/wip/old/cli-push-create-support.md` — lines 33, 229-232 (in a `docs/wip/old/` archive folder — likely skip, see open question)
-- [ ] `workers/sankalp/worker-nowapps/docs/wip/old/cli-push-create-support.md` — duplicate of above, same call
-- [ ] `workers/worker-nowapps/docs/todos/fob-processes-push-ergonomics.md:120` — prose "CLI repo"
-- [ ] `workers/sankalp/worker-nowapps/docs/todos/fob-processes-push-ergonomics.md:120` — duplicate of above
+### Phase 3: `workers/*` repos ✅
+- [x] `workers/worker-agilitas/docs/worker-orchestrator-runbook.md:24` — `@fob/cli` → `@fob/cli-fob` — commit `1a3524c`
+- [x] `workers/worker-alex/CLAUDE.md:48` — URL updated
+- [x] `workers/worker-alex/docs/wip/fob-stations-delete.md:214` — active (~90%), path updated — commit `ab51878`
+- [x] `workers/worker-newnowapps/CLAUDE.md:16` — relative path + package name updated
+- [x] `workers/worker-newnowapps/docs/WIP/station-nomenclature-migration-plan.md:45` — URL updated — commit `ebf28b6`
+- [ ] `workers/worker-nowapps/docs/wip/old/cli-push-create-support.md` — archive folder, left as-is per decision
+- [ ] `workers/sankalp/worker-nowapps/docs/wip/old/cli-push-create-support.md` — same, left as-is
+- [ ] `workers/worker-nowapps/docs/todos/fob-processes-push-ergonomics.md:120` — re-checked: generic prose "the CLI repo", no literal old name/URL/path present — nothing to replace
+- [ ] `workers/sankalp/worker-nowapps/docs/todos/fob-processes-push-ergonomics.md:120` — same, nothing to replace (this is a separate clone of the same `worker-nowapps` remote, not a symlink)
 
-### Phase 4: `team/*` docs ❌
-- [ ] `team/repo-inventory.md:60` — repo table row: name, GitHub URL, directory
-- [ ] `team/scope-of-work/worker-framework-modernization.md:20` — table entry `cli` → `cli-fob`; `@fob/cli` → `@fob/cli-fob`
-- [ ] `team/roles/fde.md:23` — `@fob/cli` → `@fob/cli-fob`
-- [ ] `team/people/sankalp.md:31` — `@fob/cli` → `@fob/cli-fob`
-- [ ] `team/teams/platform.md:10` — `@fob/cli` → `@fob/cli-fob`
+### Phase 4: `team/*` docs ✅
+- [x] `team/repo-inventory.md:60` — repo table row updated
+- [x] `team/scope-of-work/worker-framework-modernization.md:20` — table entry updated
+- [x] `team/roles/fde.md:23` — updated
+- [x] `team/people/sankalp.md:31` — updated
+- [x] `team/teams/platform.md:10` — updated
+- Commit: `cc511d1`
 
-### Phase 5: Misc repos ❌
-- [ ] `vscode-helper/docs/wip/finopsbricks-vscode-helper.md:83` — absolute path precedent reference
-- [ ] `apps/fob-watch/docs/windows-setup.md:153` — `@fob/cli` → `@fob/cli-fob`, check for path/URL alongside package name
-- [ ] `delivery/.claude/settings.local.json:28` — permission entry, old binary path (local-only, not git-tracked upstream — low priority)
-- [ ] `apps/fob-watch/.claude/settings.local.json:10` — permission entry, old docs path (local-only — low priority)
-- [ ] `/Users/alex/ec2code/finopsbricks/.claude/settings.local.json:18-19` — root monorepo permission allowlist entries
+### Phase 5: Misc repos ✅
+- [x] `vscode-helper/docs/wip/finopsbricks-vscode-helper.md:83` — path updated — commit `1eca2cb`
+- [x] `apps/fob-watch/docs/windows-setup.md:153,154,159,165,183,201` — `@fob/cli` → `@fob/cli-fob`, Windows folder path `finopsbricks - repos\cli` → `...\cli-fob`, and "the `cli` repo" prose → "the `cli-fob` repo" — commit `1a21876`
+- [x] `/Users/alex/ec2code/finopsbricks/.claude/settings.local.json:18-19` — root monorepo permission allowlist entries updated (not a git repo — no commit, local-only file)
+- [ ] `delivery/.claude/settings.local.json:28` — file no longer exists at check time (gitignored local file, unrelated concurrent change on this machine) — skipped, no action possible
+- [ ] `apps/fob-watch/.claude/settings.local.json:10` — gitignored, untracked local file — left as-is (low priority, not visible to anyone else)
 
-### Phase 6: `cli-fobs` sibling repo ❌
+### Phase 6: `cli-fobs` sibling repo ✅
 Separate repo (`@fob/fobs`, remote `finopsbricks/cli-fobs`) that explicitly
 documents worker-context commands as living in `@fob/cli` and links to it.
-Its own package name also renames: `@fob/fobs` → `@fob/cli-fobs` (bin `fobs`
+Its own package name also renamed: `@fob/fobs` → `@fob/cli-fobs` (bin `fobs`
 unchanged).
-- [ ] `package.json` — `"name": "@fob/fobs"` → `"@fob/cli-fobs"`
-- [ ] `package-lock.json` — regenerate (`npm install --package-lock-only`)
-- [ ] `README.md:1,3,60` — title `# @fob/fobs` → `# @fob/cli-fobs`; `[\`@fob/cli\`](../cli/)` → `[\`@fob/cli-fob\`](../cli-fob/)`
-- [ ] `docs/usage/commands.md:442` — `[\`@fob/cli\`](https://github.com/finopsbricks/cli)` → `[\`@fob/cli-fob\`](https://github.com/finopsbricks/cli-fob)`
-- [ ] `docs/usage/installation.md:56` — `npm unlink -g @fob/fobs` → `@fob/cli-fobs`
-- [ ] `src/cli/orchestrator/index.js:5,7` — code comments referencing `@fob/cli` repo and `docs/architecture/sor-cli-convergence.md in the @fob/cli repo` → `@fob/cli-fob`
-- [ ] `src/cli/orchestrator/stations/delete.js:9` — comment, `@fob/cli` → `@fob/cli-fob`
-- [ ] `src/utils/apps.js:21` — description string, `@fob/cli` → `@fob/cli-fob`
+- [x] `package.json` — name + `repository.url` updated
+- [x] `package-lock.json` — regenerated
+- [x] `README.md` — title, worker-context CLI links, **and** its own clone
+      instructions (`git@github.com:finopsbricks/fobs.git` / `cd fobs`) — a
+      pre-existing staleness predating even this rename (the repo's remote is
+      `finopsbricks/cli-fobs`, not `finopsbricks/fobs`), found and fixed while
+      already in this file
+- [x] `docs/usage/commands.md:442` — link updated
+- [x] `docs/usage/installation.md` — clone URL, `cd fobs` (3x) → `cd cli-fobs`, `npm unlink -g` — same pre-existing `finopsbricks/fobs` staleness fixed here too
+- [x] `src/cli/orchestrator/index.js:5,7` — comments updated
+- [x] `src/cli/orchestrator/stations/delete.js:9` — comment updated
+- [x] `src/utils/apps.js:21` — description string updated
+- Commit: `038bc74`
 
 ---
 
@@ -150,6 +157,41 @@ unchanged).
 3. **`cli-fobs` sibling repo** — included, own commit (folded into Phase 6).
 4. **Commits** — commit per repo as each phase completes, straight to that
    repo's current branch (no pre-commit branching, per CLAUDE.md convention).
+
+## Final Verification
+
+Ran a monorepo-wide `grep -rn` for `@fob/cli\b|@fob/fobs\b|finopsbricks/cli\.git|finopsbricks/cli\b|finopsbricks/fobs\b`
+after all 6 phases, excluding `node_modules`/`.git`/`.next`/`.swc`/`temp`.
+Remaining hits are all accounted for:
+- **Already-fixed false positives** — `\b` matches before the `/` in paths
+  like `finopsbricks/cli/cli-fob/...`, so already-correct paths still trip
+  the raw pattern. Confirmed each one reads `cli/cli-fob` or `cli/cli-fobs`.
+- **Intentionally untouched** — completed/historical WIP files (`fob-cli.md`,
+  `fob-cli-v2.md`, `fob-cli-v3.md`, `cli-task-structure-mismatch.md`,
+  `process-push-create-fix.md`, `docs/wip/old/cli-push-create-support.md` ×2,
+  `apps/statements.finopsbricks.com/docs/wip/public-docs-cleanup.md`), this
+  WIP tracking file itself, and `docs/architecture/sor-cli-convergence.md`'s
+  `@fob/cli-core` (unrelated hypothetical name).
+- **Pre-existing, out-of-scope staleness** — root `.claude/settings.local.json`
+  has two `finopsbricks/fobs` (no `cli-` prefix) permission entries that never
+  pointed at a real directory; left alone as unrelated dead config.
+
+**Bonus fixes found while sweeping** (pre-existing staleness unrelated to
+today's rename, fixed opportunistically since already touching the files):
+- `cli-fobs` itself had `git@github.com:finopsbricks/fobs.git` / `cd fobs` in
+  its own `README.md` and `docs/usage/installation.md` — the repo's actual
+  remote has always been `finopsbricks/cli-fobs`, not `finopsbricks/fobs`.
+- `apps/statements.finopsbricks.com/docs/wip/{api-list-filter-extensions,parity-statements,cli-api-ui-feature-parity}.md` linked to the same never-valid `finopsbricks/fobs` URL.
+- Local-only (gitignored, no commit) `.claude/settings.local.json` fixes in
+  `ops/delivery/` and `apps/fob-watch/`, and the root
+  `/Users/alex/ec2code/finopsbricks/.claude/settings.local.json`.
+
+**Note:** midway through this pass, `team/`, `delivery/`, `devops/`,
+`bookkeeping/`, `icp-discovery/`, `prd/` moved under a new `ops/` directory,
+and `vscode-helper/` moved under `vscode/` — an unrelated concurrent change
+on this machine, not part of this task. Verified all commits made against
+the old paths (`team/...`, `vscode-helper/...`) landed correctly — these
+were directory moves preserving git history, not new clones.
 
 ## Related Files
 
