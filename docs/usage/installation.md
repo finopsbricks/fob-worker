@@ -7,8 +7,8 @@ How to install and set up the `fob` CLI.
 Clone and link from the monorepo:
 
 ```bash
-git clone git@github.com:finopsbricks/cli.git
-cd cli
+git clone git@github.com:finopsbricks/cli-fob.git
+cd cli-fob
 npm install
 npm link
 ```

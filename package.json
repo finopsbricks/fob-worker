@@ -1,5 +1,5 @@
 {
-  "name": "@fob/cli",
+  "name": "@fob/cli-fob",
   "version": "1.0.1",
   "description": "Developer CLI for FinOpsBricks process engine workers",
   "type": "module",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:finopsbricks/cli.git"
+    "url": "git@github.com:finopsbricks/cli-fob.git"
   },
   "keywords": [
     "cli",

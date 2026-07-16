@@ -31,7 +31,7 @@ Two changes across two repos:
 
 ### 2. CLI: Add `--force` flag to `processes push`
 
-**Repo**: `/Users/alex/ec2code/finopsbricks/cli`
+**Repo**: `/Users/alex/ec2code/finopsbricks/cli/cli-fob`
 **Files**: `src/cli/index.js`, `src/cli/processes/push.js`
 
 - Add `--force` / `-f` option to `push` command

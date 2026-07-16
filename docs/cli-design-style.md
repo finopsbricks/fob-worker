@@ -1,6 +1,6 @@
 # CLI Design Style Guide
 
-Design principles and conventions for `@fob/cli`. Consult this when adding new commands.
+Design principles and conventions for `@fob/cli-fob`. Consult this when adding new commands.
 
 > The orchestrator API and database still use the term "process". The CLI's user-facing vocabulary is "station". URL paths and JSON field names keep the old wording — everything the user types or reads says "station".
 

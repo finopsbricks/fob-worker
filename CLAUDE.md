@@ -4,7 +4,7 @@ Guidance for Claude Code when working with this package.
 
 ## Overview
 
-`@fob/cli` is a developer CLI for FinOpsBricks workers. It provides commands for local step debugging without duplicating code across worker repos.
+`@fob/cli-fob` is a developer CLI for FinOpsBricks workers. It provides commands for local step debugging without duplicating code across worker repos.
 
 ### Related Repositories
 

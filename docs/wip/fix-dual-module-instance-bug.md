@@ -184,14 +184,14 @@ Run from **remaining workers** (Phase 6 rollout):
 
 ## Related Files
 
-### CLI repo (`@fob/cli`) — modified
+### CLI repo (`@fob/cli-fob`) — modified
 
 - `src/utils/lib-worker-loader.js` — **new** — async loader + sync cached getter for worker's lib-worker
 - `src/cli/steps/run.js` — replaced static `@fob/lib-worker` import with `loadLibWorker()`
 - `src/utils/steps-loader.js` — replaced static `@fob/lib-worker` import with `getLibWorker()`
 - `package.json` — removed `@fob/lib-worker` from dependencies
 
-### CLI repo (`@fob/cli`) — docs to update (Phases 7–8)
+### CLI repo (`@fob/cli-fob`) — docs to update (Phases 7–8)
 
 - `docs/architecture/template-resolution.md` — documents old static import pattern
 - `docs/architecture/steps-loading.md` — documents old `isStepDefinition` import
