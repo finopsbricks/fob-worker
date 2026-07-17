@@ -16,7 +16,13 @@ import { pushStationsHandler } from './stations/push.js';
 import { updateStepMetadataHandler } from './stations/update-step-metadata.js';
 import { listWorkRecordsHandler } from './work-records/list.js';
 import { showWorkRecordHandler } from './work-records/show.js';
-import { workerStatusHandler } from './worker/status.js';
+import { orchestratorStatusHandler } from './orchestrator/status.js';
+import { listWorkersHandler } from './workers/list.js';
+import { startWorkerHandler } from './workers/start.js';
+import { stopWorkerHandler } from './workers/stop.js';
+import { restartWorkerHandler } from './workers/restart.js';
+import { logsWorkerHandler } from './workers/logs.js';
+import { monitWorkersHandler } from './workers/monit.js';
 import { listStepsHandler } from './steps/list.js';
 import { runStepHandler } from './steps/run.js';
 import { listTagsHandler } from './tags/list.js';
@@ -664,11 +670,47 @@ export function run(args) {
         )
         .demandCommand(1, 'Specify an action: list, create, edit, delete');
     })
-    .command('worker', 'Worker management', (yargs) => {
+    .command('orchestrator', 'Orchestrator connectivity', (yargs) => {
       return yargs
-        .usage('$0 worker <action>')
-        .command('status', 'Check connection to orchestrator', {}, withSeparator(workerStatusHandler))
+        .usage('$0 orchestrator <action>')
+        .command('status', 'Check connection to orchestrator', {}, withSeparator(orchestratorStatusHandler))
         .demandCommand(1, 'Specify an action: status');
+    })
+    .command('workers', 'Manage local worker processes (this machine)', (yargs) => {
+      return yargs
+        .usage('$0 workers <action>')
+        .command(
+          'list',
+          'List locally running fob workers',
+          (yargs) => yargs.option('json', { describe: 'Output raw JSON', type: 'boolean' }),
+          withSeparator(listWorkersHandler),
+        )
+        .command(
+          'start [target]',
+          'Start a worker under pm2',
+          (yargs) => yargs.positional('target', { describe: 'Path to worker repo (default: cwd)', type: 'string' }),
+          withSeparator(startWorkerHandler),
+        )
+        .command(
+          'stop [target]',
+          'Stop a pm2-managed worker',
+          (yargs) => yargs.positional('target', { describe: 'pm2 name or worker dirname (default: cwd)', type: 'string' }),
+          withSeparator(stopWorkerHandler),
+        )
+        .command(
+          'restart [target]',
+          'Restart a pm2-managed worker',
+          (yargs) => yargs.positional('target', { describe: 'pm2 name or worker dirname (default: cwd)', type: 'string' }),
+          withSeparator(restartWorkerHandler),
+        )
+        .command(
+          'logs [target]',
+          'Tail logs for a pm2-managed worker',
+          (yargs) => yargs.positional('target', { describe: 'pm2 name or worker dirname (default: cwd)', type: 'string' }),
+          logsWorkerHandler,
+        )
+        .command('monit', 'Interactive pm2 process monitor (CPU/RAM)', {}, monitWorkersHandler)
+        .demandCommand(1, 'Specify an action: list, start, stop, restart, logs, monit');
     })
     .command('config', 'Show CLI configuration', (yargs) => {
       return yargs
@@ -682,7 +724,7 @@ export function run(args) {
 
       // Resource level completions (fob <tab>)
       if (args.length === 0) {
-        return ['lines', 'stations', 'steps', 'workpieces', 'work-records', 'supporting-docs', 'tags', 'worker', 'config'];
+        return ['lines', 'stations', 'steps', 'workpieces', 'work-records', 'supporting-docs', 'tags', 'orchestrator', 'workers', 'config'];
       }
 
       // Config action level completions (fob config <tab>)
@@ -758,17 +800,25 @@ export function run(args) {
         return [];
       }
 
-      // Worker action level completions (fob worker <tab>)
-      if (args[0] === 'worker') {
+      // Orchestrator action level completions (fob orchestrator <tab>)
+      if (args[0] === 'orchestrator') {
         if (args.length === 1) {
           return ['status'];
         }
         return [];
       }
 
+      // Workers action level completions (fob workers <tab>)
+      if (args[0] === 'workers') {
+        if (args.length === 1) {
+          return ['list', 'start', 'stop', 'restart', 'logs', 'monit'];
+        }
+        return [];
+      }
+
       return [];
     })
-    .demandCommand(1, 'Specify a resource: lines, stations, steps, workpieces, work-records, supporting-docs, tags, worker, config')
+    .demandCommand(1, 'Specify a resource: lines, stations, steps, workpieces, work-records, supporting-docs, tags, orchestrator, workers, config')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')

@@ -30,6 +30,8 @@ src/cli/
   work-records/         # list.js, show.js, edit.js, cancel.js
   supporting-docs/      # show.js
   tags/                 # list.js, create.js, edit.js, delete.js
+  orchestrator/         # status.js
+  workers/              # list.js, start.js, stop.js, restart.js, logs.js, monit.js
   shared/               # edit-tags.js (shared tag editing logic)
 ```
 
@@ -44,6 +46,7 @@ src/cli/
 | `orchestrator.js` | HTTP calls to the orchestrator API (keeps `/api/v1/processes/*` paths — the API contract) |
 | `station-files.js` | Read/write station and scenario files in `.orchestrator/` |
 | `line-state.js` | Live line/bin state derived from `temp/stations/` |
+| `worker-processes.js` | Detect locally-running fob workers (direct or pm2-managed), via `ps`/`lsof`/`pm2 jlist` |
 | `tags.js` | Tag name↔ID resolution (ensureTag, resolveTagNames) |
 
 ## External Dependencies
@@ -79,7 +82,13 @@ src/cli/
 | `fob work-records list/show/edit/cancel` | `listWorkRecordsHandler()` / `showWorkRecordHandler()` / `editWorkRecordHandler()` / `cancelWorkRecordHandler()` | `work-records/*.js` |
 | `fob supporting-docs show` | `showSupportingDocHandler()` | `supporting-docs/show.js` |
 | `fob tags list/create/edit/delete` | `listTagsHandler()` / `createTagHandler()` / `editTagHandler()` / `deleteTagHandler()` | `tags/*.js` |
-| `fob worker status` | `workerStatusHandler()` | `worker/status.js` |
+| `fob orchestrator status` | `orchestratorStatusHandler()` | `orchestrator/status.js` |
+| `fob workers list` | `listWorkersHandler()` | `workers/list.js` |
+| `fob workers start` | `startWorkerHandler()` | `workers/start.js` |
+| `fob workers stop` | `stopWorkerHandler()` | `workers/stop.js` |
+| `fob workers restart` | `restartWorkerHandler()` | `workers/restart.js` |
+| `fob workers logs` | `logsWorkerHandler()` | `workers/logs.js` |
+| `fob workers monit` | `monitWorkersHandler()` | `workers/monit.js` |
 | `fob config show` | `showConfigHandler()` | `config/show.js` |
 
 ## Related Notes

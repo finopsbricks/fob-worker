@@ -26,7 +26,8 @@ fob items ...
 fob supporting-docs ...
 fob tags ...
 fob config ...
-fob worker ...
+fob orchestrator ...
+fob workers ...
 ```
 
 Typing `fob <resource>` shows all available actions for that resource.
@@ -62,7 +63,7 @@ Precedent: `gh run watch`, `kubectl get --watch`, `systemctl status`, `git statu
 
 ### Reserved verbs
 
-- **`monit`** — reserved for a future interactive TUI (pm2-style). Do not use for one-shot snapshots; that's what `status` is for.
+- **`monit`** — reserved for an interactive TUI (pm2-style). Do not use for one-shot snapshots; that's what `status` is for. Implemented on `fob workers monit` (execs `pm2 monit` directly).
 
 ## Explicit Actions — No Inference
 
@@ -276,8 +277,16 @@ fob
 │   └── delete <id>                       Delete a tag
 ├── config
 │   └── show                              Show current configuration
-├── worker
+├── orchestrator
 │   └── status                            Check orchestrator connection
+├── workers
+│   ├── list                              List locally running fob workers (this machine)
+│   │   └── --json                        Output raw JSON
+│   ├── start [target]                    Start a worker under pm2 (target: path, default cwd)
+│   ├── stop [target]                     Stop a pm2-managed worker (target: pm2 name or dirname, default cwd)
+│   ├── restart [target]                  Restart a pm2-managed worker (same target resolution)
+│   ├── logs [target]                     Tail logs for a pm2-managed worker (execs `pm2 logs`)
+│   └── monit                             Interactive pm2 process monitor (execs `pm2 monit`)
 └── completion                            Output shell completion script
 ```
 

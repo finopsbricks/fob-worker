@@ -6,7 +6,7 @@ Workflow for pulling station definitions from the orchestrator, editing locally,
 
 ## Prerequisites
 
-Orchestrator credentials must be set in `.env`. Check connectivity first with `fob worker status`.
+Orchestrator credentials must be set in `.env`. Check connectivity first with `fob orchestrator status`.
 
 ## Typical Workflow
 

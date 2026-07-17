@@ -120,11 +120,29 @@ fob tags edit <id> --description '...'      # Change tag description
 fob tags delete <id>                        # Delete a tag
 ```
 
-## Worker
+## Orchestrator
 
 ```bash
-fob worker status                           # Check connection to orchestrator
+fob orchestrator status                     # Check connection to orchestrator
 ```
+
+## Workers
+
+Manage locally-running fob worker processes on this machine (as opposed to `orchestrator`, which is about the remote API).
+
+```bash
+fob workers list                            # Snapshot of all locally-running fob workers (direct or pm2-managed)
+fob workers list --json                     # Same, as raw JSON
+fob workers start                           # Start the worker in the current directory under pm2
+fob workers start <path>                    # Start a worker repo at a given path under pm2
+fob workers stop                            # Stop the current directory's pm2-managed worker
+fob workers stop <name>                     # Stop a pm2-managed worker by pm2 name or directory name
+fob workers restart [name]                  # Restart a pm2-managed worker (same target resolution as stop)
+fob workers logs [name]                     # Live-tail a pm2-managed worker's logs
+fob workers monit                           # Interactive pm2 process monitor (CPU/RAM)
+```
+
+`start` always registers the worker under pm2 — a worker running directly (`node src/index.js`, no pm2) is one started by hand outside this tooling, and `stop`/`restart`/`logs` intentionally refuse to touch it; use `fob workers list` to find its pid and `kill` it manually.
 
 ## Config
 

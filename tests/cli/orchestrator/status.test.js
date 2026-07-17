@@ -9,13 +9,13 @@ jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
   getOrchestratorConfig: mockGetOrchestratorConfig,
 }));
 
-const { workerStatusHandler } = await import('../../../src/cli/worker/status.js');
+const { orchestratorStatusHandler } = await import('../../../src/cli/orchestrator/status.js');
 
 // ============================================================================
-// workerStatusHandler()
+// orchestratorStatusHandler()
 // ============================================================================
 
-describe('workerStatusHandler()', () => {
+describe('orchestratorStatusHandler()', () => {
   let out;
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('workerStatusHandler()', () => {
     mockCheckConnection.mockResolvedValue({ connected: true, status: 200 });
 
     // Act
-    await workerStatusHandler();
+    await orchestratorStatusHandler();
 
     // Assert
     expect(out.stdout).toContain('Status: Connected');
@@ -50,7 +50,7 @@ describe('workerStatusHandler()', () => {
     mockCheckConnection.mockResolvedValue({ connected: false, error: 'ECONNREFUSED' });
 
     // Act
-    await workerStatusHandler();
+    await orchestratorStatusHandler();
 
     // Assert
     expect(out.stdout).toContain('Status: Not connected');
@@ -62,7 +62,7 @@ describe('workerStatusHandler()', () => {
     mockCheckConnection.mockResolvedValue({ connected: false, status: 401 });
 
     // Act
-    await workerStatusHandler();
+    await orchestratorStatusHandler();
 
     // Assert
     expect(out.stdout).toContain('Status: Not connected');

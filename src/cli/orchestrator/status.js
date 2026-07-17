@@ -1,6 +1,6 @@
 import { checkConnection } from '../../utils/orchestrator.js';
 
-export async function workerStatusHandler() {
+export async function orchestratorStatusHandler() {
   console.log('Checking connection...');
 
   const result = await checkConnection();

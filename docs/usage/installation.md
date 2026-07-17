@@ -34,7 +34,7 @@ source <(fob completion)
 
 After restarting your shell:
 ```bash
-fob <tab>                  # → steps, config, stations, lines, workpieces, items, work-records, tags, worker
+fob <tab>                  # → steps, config, stations, lines, workpieces, items, work-records, tags, orchestrator, workers
 fob steps <tab>            # → list, run
 fob steps run <tab>        # → step slugs from current worker
 fob stations <tab>         # → list, show, status, run, pull, push, edit, update-step-metadata

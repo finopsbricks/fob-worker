@@ -48,7 +48,7 @@ source <(fob completion)
 ```
 
 Tab completion works for:
-- `fob <tab>` → resources (lines, stations, steps, workpieces, work-records, supporting-docs, tags, worker, config)
+- `fob <tab>` → resources (lines, stations, steps, workpieces, work-records, supporting-docs, tags, orchestrator, workers, config)
 - `fob lines <tab>` → actions (list, show, status)
 - `fob stations <tab>` → actions (list, show, status, run, pull, push, edit, update-step-metadata)
 - `fob steps <tab>` → actions (list, run)
@@ -73,6 +73,8 @@ src/
     work-records/         # list.js, show.js, edit.js, cancel.js
     supporting-docs/      # show.js
     tags/                 # list.js, create.js, edit.js, delete.js
+    orchestrator/         # status.js
+    workers/              # list.js, start.js, stop.js, restart.js, logs.js, monit.js
     shared/               # edit-tags.js (shared tag editing logic)
   utils/
     config.js             # Convention-based path resolution
@@ -83,6 +85,7 @@ src/
     format.js             # Shared formatting helpers for CLI output
     station-files.js      # Read/write .orchestrator/stations/
     line-state.js         # Live line/bin state from temp/stations/
+    worker-processes.js   # Detect locally-running fob workers (direct or pm2-managed)
     tags.js               # Tag name↔ID resolution helpers
 docs/
   architecture/           # Internal design notes (for maintainers)

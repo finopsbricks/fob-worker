@@ -30,9 +30,9 @@ The orchestrator CLI's commands divide cleanly by execution context:
 | API client | `fobs orc stations list` | `fobs` | `~/.fobs/config.yml` (`orchestrator` app) |
 | Worker-context | `fob steps run my_step` | `fob` (this repo) | the worker repo's `./.env` |
 
-**API-client commands** include: stations list/show/edit/delete/unarchive, work-records list/show/edit/cancel, tags list/create/edit/delete, worker status, supporting-docs show. These call the orchestrator API and have no filesystem dependencies, so they live in `fobs` under `fobs orchestrator <resource>` (alias `fobs orc <resource>`).
+**API-client commands** include: stations list/show/edit/delete/unarchive, work-records list/show/edit/cancel, tags list/create/edit/delete, orchestrator status, supporting-docs show. These call the orchestrator API and have no filesystem dependencies, so they live in `fobs` under `fobs orchestrator <resource>` (alias `fobs orc <resource>`).
 
-**Worker-context commands** include: steps list/run, stations pull/push, stations update-step-metadata, lines list/show/status, workpieces list/show/watch, config show. These read or write `./src/steps/`, `./.orchestrator/stations/`, or `./temp/`, and load `@fob/lib-worker` from the cwd. They stay in `fob` (this repo).
+**Worker-context commands** include: steps list/run, stations pull/push, stations update-step-metadata, lines list/show/status, workpieces list/show/watch, config show, workers list/start/stop/restart/logs/monit. These read or write `./src/steps/`, `./.orchestrator/stations/`, `./temp/`, or manage local worker processes (`ps`/`lsof`/`pm2`), and/or load `@fob/lib-worker` from the cwd. They stay in `fob` (this repo).
 
 This is the only CLI that retains the worker-context coupling — see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md).
 
