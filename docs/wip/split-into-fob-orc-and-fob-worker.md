@@ -113,11 +113,19 @@ New repo `finopsbricks/cli/fob-orc`, built to the CLI standard (copy the fob-stm
 - [x] **Client tests DONE** — `tests/resources/stations.test.js` (mock `fetch`, 9 cases): unwrap,
       envelope, pagination, POST bodies, `/stations/*` vs `/processes/*`, per-client cred binding,
       `station`→`process` mapping. Suite 9/9 green.
-- [ ] `fob-orc` CLI: yargs tree, `safe()`, `format.js`, `config profiles` → `~/.fob/fob-orc/config.yml`
-      (0600). Handlers presentation-only. **← NEXT**
-- [ ] Port the orchestrator-plane commands + bridges (see classification). Bridges (`pull`/`push`)
-      add local station-file cache I/O in the CLI layer (client stays pure-remote).
-- [ ] CLI tests; help tree walks; no-creds → clean exit 1.
+- [x] **CLI skeleton + config + stations vertical slice DONE** (2026-07-26, commit `2b676f3`).
+      yargs 3-level tree, `safe()`, `clientFor()`, `format.js`; `config profiles`
+      (add/list/use/remove/current) → `~/.fob/fob-orc/config.yml` (0600), no whoami-refresh
+      (orchestrator has no identity endpoint). Stations commands (presentation-only): `list`, `show`,
+      `run`, `archive`, `unarchive`, `delete`. Verified: help tree walks; config flow; no-creds → exit
+      1; unknown resource → exit 1; typecheck 0 errors; tests 9/9.
+- [ ] **Remaining resources** (presentation-only handlers over the client): `work-records`
+      (list/show/cancel/edit-tags), `tags` (list/create/edit/delete), `supporting-docs` (show/download),
+      `orchestrator status` (→ `checkConnection`). **← NEXT**
+- [ ] **Bridges** `stations edit` + `pull`/`push`: port cli-fob's `station-files.js` local cache util;
+      `pull` = client.list/get → local files, `push` = local files → client.create/update. `stations run`
+      gains `--scenario` (reads local scenario files) once that util lands.
+- [ ] CLI tests for the ported handlers; full help tree walk.
 
 ### Phase 2: Convert `cli-fob` → `fob-worker` (local plane) ❌
 - [ ] Rename repo/binary to `fob-worker`; strip the orchestrator-plane commands (now in `fob-orc`).
