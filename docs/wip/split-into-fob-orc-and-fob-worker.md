@@ -159,14 +159,23 @@ Done 2026-07-26 (new repo `cli/fob`, commit `0a38d3c`).
       Verified: exit-code propagation (child 7→7), miss→1, list→0; tests 7/7. `fob orc/worker/stm/email`
       all dispatch to their standalone binaries with no version coupling.
 
-### Rollout / housekeeping (post-build, mostly outward actions)
-- [ ] Publish `@fob/orc`, `@fob/worker`, and `fob` (GitHub repos / releases), like `@fob/stm`.
-- [ ] Rename the GitHub `finopsbricks/cli-fob` repo → `fob-worker` (local dir already renamed).
-- [ ] `npm link` (or install) the four binaries so `fob` discovers `orc`/`worker`/`stm`/`email` on PATH.
-- [ ] Migrate worker repos' tooling from `fob …` (old hybrid) to `fob worker …` / `fob-worker …`; the
-      old `fob` binary (cli-fob) is superseded by the dispatcher + `fob-worker`.
-- [ ] Optional: sweep historical docs (handbooks, worker docs, ops) that reference the old `cli/cli-fob`
-      path / `fob stations|work-records|tags` commands — now `fob-orc …`.
+### Rollout / housekeeping ✅ (done 2026-07-26)
+- [x] **Published** all four as private `finopsbricks` GitHub repos: `fob-orc` (release `v0.1.0`),
+      `fob` (release `v1.0.0`), plus `fob-worker` and `fob-stm` pushed. Mirrors the `@fob/stm` precedent.
+- [x] **Renamed** the GitHub repo `finopsbricks/cli-fob` → `fob-worker` (`gh repo rename`); local remote
+      updated; 6 commits pushed.
+- [x] **Linked** the family: `npm link` for `fob`/`fob-orc`/`fob-worker` (+ existing `fob-stm`/`fob-email`).
+      Cleaned up the stale `@fob/cli-fob` global link + its dangling `fob` bin so `fob` now resolves to
+      the dispatcher. Verified the real shell `fob` dispatches to `orc`/`worker`/`stm` end-to-end
+      (nested subcommands + `fob bogus`→exit 1).
+- [x] **Worker migration** — *no tooling migration needed*: no worker declares `@fob/cli-fob` as a
+      dependency and none call it in npm scripts (the CLI was used globally via `npm link`, so re-linking
+      completed it). Updated the two active guidance docs that named wrong commands: worker-agilitas
+      runbook (`fob worker steps` / `fob orc stations`, committed+pushed `9d2e830`) and worker-newnowapps
+      `CLAUDE.md` (`d5bb387`).
+- [ ] *Left as historical (low value):* `worker-alex/docs/wip/fob-stations-delete.md` (a completed WIP —
+      the `stations delete` feature it describes now lives in `fob-orc`) and handbook/ops references to the
+      old `fob stations|work-records` commands. Not worth churning; they're records of past state.
 
 ## Related Files
 
