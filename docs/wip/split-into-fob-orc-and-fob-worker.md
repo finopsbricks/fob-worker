@@ -1,6 +1,6 @@
 # Split `cli-fob` into `fob-orc` (orchestrator client) + `fob-worker` (local tool)
 
-## Status: IN PROGRESS — **Phase 1 DONE** (`@fob/orc` client + full `fob-orc` CLI, incl. bridges); Phase 2 (`cli-fob` → `fob-worker`) next. Started 2026-07-26.
+## Status: COMPLETE (2026-07-26) — all 3 phases done. `fob-orc` built (client + CLI), `cli-fob` converted to `fob-worker` (dir renamed, `workers`→`procs`, orchestrator commands stripped), and the git-style `fob` dispatcher shipped. Remaining housekeeping: publish `@fob/orc`/`@fob/worker`/`fob`; rename the GitHub `cli-fob` repo → `fob-worker`; migrate worker repos' tooling to the dispatcher (see below).
 
 `cli-fob` is two tools wearing one binary. Every command sits cleanly on one of two **data
 planes**: a remote **orchestrator control plane** (canonical station/process definitions,
@@ -135,25 +135,48 @@ New repo `finopsbricks/cli/fob-orc`, built to the CLI standard (copy the fob-stm
       (both dep + tag conversions). Full 9-action help tree walks; typecheck 0 errors; tests 15/15
       (added a mocked-orchestrator + temp-cwd bridge test).
 
-### Phase 2: Convert `cli-fob` → `fob-worker` (local plane) ❌
-- [ ] Rename repo/binary to `fob-worker`; strip the orchestrator-plane commands (now in `fob-orc`).
-- [ ] Rename the pm2 resource `workers` → `procs`.
-- [ ] Keep steps / lines / workpieces / procs / local-`stations` / `config show`. Wire `steps run --item`
-      to `@fob/orc` (per open question).
-- [ ] `.env` worker-context variant retained; update help/completion tree.
+### Phase 2: Convert `cli-fob` → `fob-worker` (local plane) ✅
+Done 2026-07-26 (commit `bdd346b`); local dir renamed `cli/cli-fob` → `cli/fob-worker`.
+- [x] Renamed package `@fob/cli-fob` → `@fob/worker`; binary `fob` → `fob-worker` (v2.0.0).
+- [x] Stripped the orchestrator-plane commands (now in `fob-orc`): stations
+      list/show/edit/pull/push/run/delete/unarchive, work-records, tags, supporting-docs,
+      orchestrator status; deleted `utils/orchestrator.js` + `utils/tags.js`.
+- [x] Renamed the pm2 resource `workers` → `procs` (source + tests + completion).
+- [x] `steps run` dropped `--item`/`getItem` (item deprecated) — **zero orchestrator API code left**
+      in fob-worker (open-question resolution: no `@fob/orc` dependency after all).
+- [x] Kept steps / lines / workpieces / procs / local-`stations` (status/empty-bins/update-step-metadata)
+      / `config show`. Rewrote the yargs tree + completion + `scriptName`; `.env` worker-context retained.
+- [x] Pruned removed-handler tests; moved `workers`→`procs` tests. Verified: help tree walks; `procs
+      list` works; `steps run` 8/8; **the split added zero new test failures** (baseline already had 38
+      failing tests in pre-existing/thin handler suites; unchanged).
 
-### Phase 3: `fob` dispatcher (= parent WIP Phase 4) ❌
-- [ ] Turn `fob` into the git-style launcher (no built-ins): resolve `fob-<tool>` on `$PATH`, exec with
-      inherited stdio, forward argv untouched, propagate exit code. Bare `fob` lists discovered wrappers.
+### Phase 3: `fob` dispatcher (= parent WIP Phase 4) ✅
+Done 2026-07-26 (new repo `cli/fob`, commit `0a38d3c`).
+- [x] Git-style launcher, **no built-ins**: `fob <tool> …` resolves `fob-<tool>` on `$PATH` and execs it
+      transparently (inherited stdio, argv forwarded untouched, exit code propagated). Bare `fob` / `fob
+      help` list discovered tools; unknown tool → `fob: '<tool>' is not a fob command` (exit 1).
+- [x] Pure dispatch logic in `src/dispatch.js` (discoverTools/resolveTool/plan); bin does the spawn.
+      Verified: exit-code propagation (child 7→7), miss→1, list→0; tests 7/7. `fob orc/worker/stm/email`
+      all dispatch to their standalone binaries with no version coupling.
+
+### Rollout / housekeeping (post-build, mostly outward actions)
+- [ ] Publish `@fob/orc`, `@fob/worker`, and `fob` (GitHub repos / releases), like `@fob/stm`.
+- [ ] Rename the GitHub `finopsbricks/cli-fob` repo → `fob-worker` (local dir already renamed).
+- [ ] `npm link` (or install) the four binaries so `fob` discovers `orc`/`worker`/`stm`/`email` on PATH.
+- [ ] Migrate worker repos' tooling from `fob …` (old hybrid) to `fob worker …` / `fob-worker …`; the
+      old `fob` binary (cli-fob) is superseded by the dispatcher + `fob-worker`.
+- [ ] Optional: sweep historical docs (handbooks, worker docs, ops) that reference the old `cli/cli-fob`
+      path / `fob stations|work-records|tags` commands — now `fob-orc …`.
 
 ## Related Files
 
-**Being created:**
+**Created:**
 - `cli/fob-orc/**` — new orchestrator 2-in-1 (client `@fob/orc` + `fob-orc` CLI)
+- `cli/fob/**` — the git-style `fob` dispatcher
 
-**Being transformed:**
-- `cli/cli-fob/**` → `fob-worker` (local plane; `workers`→`procs`; orchestrator commands removed)
-- `cli/cli-fob/src/utils/orchestrator.js` — the client surface lifted into `@fob/orc`
+**Transformed:**
+- `cli/fob-worker/**` (was `cli/cli-fob/`) — local plane; `workers`→`procs`; orchestrator commands removed
+- the old `cli/cli-fob/src/utils/orchestrator.js` — client surface lifted into `@fob/orc`
 
 ## Related Notes
 
