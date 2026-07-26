@@ -119,13 +119,16 @@ New repo `finopsbricks/cli/fob-orc`, built to the CLI standard (copy the fob-stm
       (orchestrator has no identity endpoint). Stations commands (presentation-only): `list`, `show`,
       `run`, `archive`, `unarchive`, `delete`. Verified: help tree walks; config flow; no-creds → exit
       1; unknown resource → exit 1; typecheck 0 errors; tests 9/9.
-- [ ] **Remaining resources** (presentation-only handlers over the client): `work-records`
-      (list/show/cancel/edit-tags), `tags` (list/create/edit/delete), `supporting-docs` (show/download),
-      `orchestrator status` (→ `checkConnection`). **← NEXT**
+- [x] **Remaining resources DONE** (2026-07-26, commit `aeca9af`). Presentation-only handlers over
+      the client: `work-records` (list/show with --report/--steps/--supporting-docs/--activity/--all,
+      cancel, edit-tags via a shared `editEntityTags` helper), `tags` (list/create/edit/delete),
+      `supporting-docs` (show + `--save` download via the client's `downloadStream`), and a top-level
+      **`fob-orc status`** → `checkConnection` (an `orchestrator` resource would be redundant — the tool
+      IS the orchestrator). Verified: full help tree walks; all no-creds paths → exit 1; typecheck 0
+      errors; tests 13/13 (added tags `resolveNames`/`ensure` coverage).
 - [ ] **Bridges** `stations edit` + `pull`/`push`: port cli-fob's `station-files.js` local cache util;
       `pull` = client.list/get → local files, `push` = local files → client.create/update. `stations run`
-      gains `--scenario` (reads local scenario files) once that util lands.
-- [ ] CLI tests for the ported handlers; full help tree walk.
+      gains `--scenario` (reads local scenario files) once that util lands. **← NEXT (last of Phase 1)**
 
 ### Phase 2: Convert `cli-fob` → `fob-worker` (local plane) ❌
 - [ ] Rename repo/binary to `fob-worker`; strip the orchestrator-plane commands (now in `fob-orc`).
