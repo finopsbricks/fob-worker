@@ -7,7 +7,7 @@ jest.unstable_mockModule('child_process', () => ({
   execFileSync: mockExecFileSync,
 }));
 
-const { monitWorkersHandler } = await import('../../../src/cli/workers/monit.js');
+const { monitWorkersHandler } = await import('../../../src/cli/procs/monit.js');
 
 describe('monitWorkersHandler()', () => {
   let out;

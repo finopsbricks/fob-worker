@@ -7,7 +7,7 @@ jest.unstable_mockModule('../../../src/utils/worker-processes.js', () => ({
   listRunningWorkers: mockListRunningWorkers,
 }));
 
-const { listWorkersHandler } = await import('../../../src/cli/workers/list.js');
+const { listWorkersHandler } = await import('../../../src/cli/procs/list.js');
 
 describe('listWorkersHandler()', () => {
   let out;

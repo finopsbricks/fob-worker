@@ -17,7 +17,6 @@ const mockFindStationsWithStep = jest.fn();
 const mockListScenarios = jest.fn();
 const mockLoadScenario = jest.fn();
 const mockInteractivePicker = jest.fn();
-const mockGetItem = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/config.js', () => ({
   loadConfig: mockLoadConfig,
@@ -48,10 +47,6 @@ jest.unstable_mockModule('../../../src/utils/station-files.js', () => ({
 
 jest.unstable_mockModule('../../../src/utils/picker.js', () => ({
   interactivePicker: mockInteractivePicker,
-}));
-
-jest.unstable_mockModule('../../../src/utils/orchestrator.js', () => ({
-  getItem: mockGetItem,
 }));
 
 const { runStepHandler } = await import('../../../src/cli/steps/run.js');

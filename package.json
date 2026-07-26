@@ -1,10 +1,10 @@
 {
-  "name": "@fob/cli-fob",
-  "version": "1.0.1",
-  "description": "Developer CLI for FinOpsBricks process engine workers",
+  "name": "@fob/worker",
+  "version": "2.0.0",
+  "description": "Local worker-plane CLI for FinOpsBricks: step execution, run-state, and pm2 processes (the fob-orc CLI owns the orchestrator plane)",
   "type": "module",
   "bin": {
-    "fob": "./bin/fob.js"
+    "fob-worker": "./bin/fob-worker.js"
   },
   "exports": {
     ".": "./src/index.js"

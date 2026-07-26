@@ -12,7 +12,7 @@ jest.unstable_mockModule('child_process', () => ({
   execFileSync: mockExecFileSync,
 }));
 
-const { stopWorkerHandler, requirePm2Target } = await import('../../../src/cli/workers/stop.js');
+const { stopWorkerHandler, requirePm2Target } = await import('../../../src/cli/procs/stop.js');
 
 describe('requirePm2Target()', () => {
   let out;

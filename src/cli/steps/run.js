@@ -5,10 +5,9 @@ import { loadSteps, getHandler } from '../../utils/steps-loader.js';
 import { saveStepOutput, loadAllStepOutputs } from '../../utils/output.js';
 import { loadStation, getStepConfigFromStation, findStationsWithStep, listScenarios, loadScenario } from '../../utils/station-files.js';
 import { interactivePicker } from '../../utils/picker.js';
-import { getItem } from '../../utils/orchestrator.js';
 
 export async function runStepHandler(argv) {
-  const { slug, station: stationId, scenario: scenarioName, empty: useEmpty, item: itemId } = argv;
+  const { slug, station: stationId, scenario: scenarioName, empty: useEmpty } = argv;
 
   const config = loadConfig();
   ensureTempDir(config.tempDir);
@@ -125,22 +124,9 @@ export async function runStepHandler(argv) {
     }
   }
 
-  // Fetch item from orchestrator if --item provided
-  let itemSnapshot = null;
-  if (itemId) {
-    try {
-      const itemResponse = await getItem(itemId);
-      itemSnapshot = itemResponse.data;
-    } catch (error) {
-      console.error(`Failed to fetch item ${itemId}: ${error.message}`);
-      process.exit(1);
-    }
-  }
-
   // Display run info
   console.log(`Step: ${slug}`);
   console.log(`Config: ${configSource}`);
-  if (itemSnapshot) console.log(`Item: ${itemSnapshot.name || itemId} (${itemId})`);
   console.log(`Steps: ${path.relative(process.cwd(), config.stepsDir)}/`);
   console.log(`Temp: ${path.relative(process.cwd(), config.tempDir)}`);
 
@@ -160,7 +146,7 @@ export async function runStepHandler(argv) {
     },
     work_record: {
       id: `local-wr-${Date.now()}`,
-      item_snapshot: itemSnapshot,
+      item_snapshot: null,
       step_outputs: step_outputs,
     },
     org_id: process.env.WORKER_LOCATION || 'local',

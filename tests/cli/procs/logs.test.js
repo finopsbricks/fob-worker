@@ -12,7 +12,7 @@ jest.unstable_mockModule('child_process', () => ({
   execFileSync: mockExecFileSync,
 }));
 
-const { logsWorkerHandler } = await import('../../../src/cli/workers/logs.js');
+const { logsWorkerHandler } = await import('../../../src/cli/procs/logs.js');
 
 describe('logsWorkerHandler()', () => {
   let out;

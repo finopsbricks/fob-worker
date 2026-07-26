@@ -1,37 +1,28 @@
 /**
- * CLI entry point using yargs
+ * CLI entry point using yargs — the LOCAL worker plane.
  *
- * Pattern: fob <resource> <action> [target] [options]
+ * Pattern: fob-worker <resource> <action> [target] [options]
+ *
+ * This is the machine-local half of the old `fob` CLI: step execution, local
+ * run-state (temp/stations/ → lines/workpieces/bins), and pm2 processes. The
+ * orchestrator control plane (canonical station defs, work records, tags,
+ * supporting docs) now lives in the sibling `fob-orc` CLI / `@fob/orc` client.
+ * Reachable via the `fob` dispatcher as `fob worker <resource> <action>`.
  */
 
 import yargs from 'yargs';
 import 'dotenv/config';
 
 import { showConfigHandler } from './config/show.js';
-import { listStationsHandler } from './stations/list.js';
-import { showStationHandler } from './stations/show.js';
-import { runStationHandler } from './stations/run.js';
-import { pullStationsHandler } from './stations/pull.js';
-import { pushStationsHandler } from './stations/push.js';
 import { updateStepMetadataHandler } from './stations/update-step-metadata.js';
-import { listWorkRecordsHandler } from './work-records/list.js';
-import { showWorkRecordHandler } from './work-records/show.js';
-import { orchestratorStatusHandler } from './orchestrator/status.js';
-import { listWorkersHandler } from './workers/list.js';
-import { startWorkerHandler } from './workers/start.js';
-import { stopWorkerHandler } from './workers/stop.js';
-import { restartWorkerHandler } from './workers/restart.js';
-import { logsWorkerHandler } from './workers/logs.js';
-import { monitWorkersHandler } from './workers/monit.js';
+import { listWorkersHandler } from './procs/list.js';
+import { startWorkerHandler } from './procs/start.js';
+import { stopWorkerHandler } from './procs/stop.js';
+import { restartWorkerHandler } from './procs/restart.js';
+import { logsWorkerHandler } from './procs/logs.js';
+import { monitWorkersHandler } from './procs/monit.js';
 import { listStepsHandler } from './steps/list.js';
 import { runStepHandler } from './steps/run.js';
-import { listTagsHandler } from './tags/list.js';
-import { createTagHandler } from './tags/create.js';
-import { deleteTagHandler } from './tags/delete.js';
-import { editTagHandler } from './tags/edit.js';
-import { editStationHandler } from './stations/edit.js';
-import { deleteStationHandler } from './stations/delete.js';
-import { unarchiveStationHandler } from './stations/unarchive.js';
 import { listLinesHandler } from './lines/list.js';
 import { showLineHandler } from './lines/show.js';
 import { statusLineHandler } from './lines/status.js';
@@ -41,16 +32,10 @@ import { emptyBinsStationHandler } from './stations/empty-bins.js';
 import { listWorkpiecesHandler } from './workpieces/list.js';
 import { showWorkpieceHandler } from './workpieces/show.js';
 import { watchHandler } from './workpieces/watch.js';
-import { editWorkRecordHandler } from './work-records/edit.js';
-import { cancelWorkRecordHandler } from './work-records/cancel.js';
-import { showSupportingDocHandler } from './supporting-docs/show.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
 function withSeparator(handler) {
   return async (argv) => {
-    // console.log('='.repeat(60));
-    // console.log('test');
-    // console.log(process.env.ORCHESTRATOR_URL);
     console.log('='.repeat(60));
     await handler(argv);
     console.log('='.repeat(60));
@@ -58,8 +43,8 @@ function withSeparator(handler) {
 }
 
 /**
- * Bin-selector flags shared by `fob stations empty-bins` and `fob lines empty-bins`.
- * Kept in one place so the two commands stay in sync if we add more bins later.
+ * Bin-selector flags shared by `fob-worker stations empty-bins` and
+ * `fob-worker lines empty-bins`. Kept in one place so the two stay in sync.
  */
 function withBinSelectorFlags(yargs) {
   return yargs
@@ -75,44 +60,12 @@ function withBinSelectorFlags(yargs) {
 }
 
 /**
- * Build the subcommand tree for `fob stations`.
+ * Build the subcommand tree for `fob-worker stations` — LOCAL run-state only.
+ * (Canonical station definitions live in `fob-orc stations`.)
  */
 function buildStationSubcommands(yargs) {
   return yargs
     .usage('$0 stations <action> [options]')
-    .command(
-      'list',
-      'List stations from orchestrator',
-      (yargs) => {
-        return yargs
-          .option('tag', { describe: 'Filter by tag name', type: 'string' })
-          .option('line', { describe: 'Filter by line slug (e.g. VM, BR)', type: 'string' })
-          .option('include-archived', { describe: 'Include archived stations', type: 'boolean' })
-          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
-      },
-      withSeparator(listStationsHandler),
-    )
-    .command(
-      'show [id]',
-      'Show station definition (config from .orchestrator/)',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('work-records', { describe: 'Include recent work records', type: 'boolean' })
-          .option('all', { describe: 'Include all linked entities', type: 'boolean' })
-          .option('json', { describe: 'Output raw JSON', type: 'boolean' });
-      },
-      (argv) => {
-        if (argv.getYargsCompletions) return;
-        if (!argv.id) {
-          console.error('Usage: fob stations show <id|short_code>');
-          console.error('Run "fob stations list" to see available stations.');
-          console.error('For live bin state, use "fob stations status <short_code>".');
-          process.exit(1);
-        }
-        return withSeparator(showStationHandler)(argv);
-      },
-    )
     .command(
       'status [id]',
       'Snapshot of live bin state for one station (reads temp/stations/)',
@@ -126,8 +79,8 @@ function buildStationSubcommands(yargs) {
       (argv) => {
         if (argv.getYargsCompletions) return;
         if (!argv.id) {
-          console.error('Usage: fob stations status <short_code>');
-          console.error('Pass the station short_code (e.g. VM3). Run "fob lines status" to see active lines.');
+          console.error('Usage: fob-worker stations status <short_code>');
+          console.error('Pass the station short_code (e.g. VM3). Run "fob-worker lines status" to see active lines.');
           process.exit(1);
         }
         return withSeparator(statusStationHandler)(argv);
@@ -144,118 +97,20 @@ function buildStationSubcommands(yargs) {
       (argv) => {
         if (argv.getYargsCompletions) return;
         if (!argv.id) {
-          console.error('Usage: fob stations empty-bins <short_code> [--all | --input | --doing | --output | --failed | --done] [--yes]');
-          console.error('Run "fob stations status <short_code>" to preview bin contents first.');
+          console.error('Usage: fob-worker stations empty-bins <short_code> [--all | --input | --doing | --output | --failed | --done] [--yes]');
+          console.error('Run "fob-worker stations status <short_code>" to preview bin contents first.');
           process.exit(1);
         }
         return withSeparator(emptyBinsStationHandler)(argv);
       },
     )
     .command(
-      'run [id]',
-      'Trigger a remote station execution',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('item', { describe: 'Item ID to run the station on', type: 'string' })
-          .option('scenario', { describe: 'Apply step_overrides from .orchestrator/scenarios/stations/<short_code>/<name>.json', type: 'string' })
-          .epilogue(
-            'Pass step_overrides directly as flags: --today_override=2026-06-05.\n' +
-            'CLI flags win over --scenario on conflicts. Override keys must not collide with id/item/scenario.'
-          );
-      },
-      (argv) => {
-        if (argv.getYargsCompletions) return;
-        if (!argv.id) {
-          console.error('Usage: fob stations run <id|short_code> [--item <item-id>] [--scenario <name>] [--<key>=<value> ...]');
-          process.exit(1);
-        }
-        return withSeparator(runStationHandler)(argv);
-      },
-    )
-    .command(
-      'pull [id]',
-      'Pull stations from orchestrator to local files',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('all', { alias: 'a', describe: 'Pull all stations', type: 'boolean' });
-      },
-      withSeparator(pullStationsHandler),
-    )
-    .command(
-      'push [id]',
-      'Push local stations to orchestrator (creates new or updates existing)',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID (existing) or filename (new)', type: 'string' })
-          .option('all', { alias: 'a', describe: 'Push all local stations (creates new + updates existing)', type: 'boolean' })
-          .option('force', { alias: 'f', describe: "Create station if it doesn't exist remotely (upsert)", type: 'boolean' });
-      },
-      withSeparator(pushStationsHandler),
-    )
-    .command(
-      'edit [id]',
-      'Edit station properties (e.g., tags, short_code)',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('short-code', { describe: 'Set the station short_code (e.g., P1, P9b)', type: 'string' })
-          .option('add-tag', { describe: 'Add tag by name (repeatable)', type: 'string', array: true })
-          .option('remove-tag', { describe: 'Remove tag by name (repeatable)', type: 'string', array: true });
-      },
-      (argv) => {
-        if (argv.getYargsCompletions) return;
-        if (!argv.id) {
-          console.error('Usage: fob stations edit <id|short_code> --short-code P1 --add-tag <name>');
-          process.exit(1);
-        }
-        return withSeparator(editStationHandler)(argv);
-      },
-    )
-    .command(
       'update-step-metadata',
-      'Update step name/description in local stations from code',
+      'Update step name/description in local station files from code',
       {},
       withSeparator(updateStepMetadataHandler),
     )
-    .command(
-      'delete [id]',
-      'Delete a station (interactive: preview, confirm, choose archive/cascade)',
-      (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station ID or short_code', type: 'string' })
-          .option('archive', { describe: 'Archive instead of delete (preserves history)', type: 'boolean' })
-          .option('force-delete', { describe: 'Skip the choose-action prompt; cascade if work records exist', type: 'boolean' })
-          .option('yes', { alias: 'y', describe: 'Skip the type-the-short-code guard (still respects --archive)', type: 'boolean' });
-      },
-      (argv) => {
-        if (argv.getYargsCompletions) return;
-        if (!argv.id) {
-          console.error('Usage: fob stations delete <id|short_code> [--archive | --force-delete]');
-          console.error('Run "fob stations list" to see available stations.');
-          process.exit(1);
-        }
-        return withSeparator(deleteStationHandler)(argv);
-      },
-    )
-    .command(
-      'unarchive [id]',
-      'Restore an archived station (does not auto-re-enable schedule)',
-      (yargs) => {
-        return yargs.positional('id', { describe: 'Station ID or short_code', type: 'string' });
-      },
-      (argv) => {
-        if (argv.getYargsCompletions) return;
-        if (!argv.id) {
-          console.error('Usage: fob stations unarchive <id|short_code>');
-          console.error('Run "fob stations list --include-archived" to see archived stations.');
-          process.exit(1);
-        }
-        return withSeparator(unarchiveStationHandler)(argv);
-      },
-    )
-    .demandCommand(1, 'Specify an action: list, show, status, empty-bins, run, pull, push, edit, delete, unarchive, update-step-metadata');
+    .demandCommand(1, 'Specify an action: status, empty-bins, update-step-metadata');
 }
 
 /**
@@ -263,7 +118,7 @@ function buildStationSubcommands(yargs) {
  */
 export function run(args) {
   const cli = yargs(args)
-    .scriptName('fob')
+    .scriptName('fob-worker')
     .usage('$0 <resource> <action> [options]')
     .command('lines', 'Inspect assembly lines (config + live state)', (yargs) => {
       return yargs
@@ -285,9 +140,9 @@ export function run(args) {
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.line) {
-              console.error('Usage: fob lines show <line>');
-              console.error('Run "fob lines list" to see available lines.');
-              console.error('For live bin state, use "fob lines status <line>".');
+              console.error('Usage: fob-worker lines show <line>');
+              console.error('Run "fob-worker lines list" to see available lines.');
+              console.error('For live bin state, use "fob-worker lines status <line>".');
               process.exit(1);
             }
             return withSeparator(showLineHandler)(argv);
@@ -316,8 +171,8 @@ export function run(args) {
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.line) {
-              console.error('Usage: fob lines empty-bins <line> [--all | --input | --doing | --output | --failed | --done] [--yes]');
-              console.error('Run "fob lines status <line>" to preview bin contents first.');
+              console.error('Usage: fob-worker lines empty-bins <line> [--all | --input | --doing | --output | --failed | --done] [--yes]');
+              console.error('Run "fob-worker lines status <line>" to preview bin contents first.');
               process.exit(1);
             }
             return withSeparator(emptyBinsLineHandler)(argv);
@@ -325,7 +180,7 @@ export function run(args) {
         )
         .demandCommand(1, 'Specify an action: list, show, status, empty-bins');
     })
-    .command('stations', 'Work with orchestrator stations', (yargs) =>
+    .command('stations', 'Inspect local station run-state (temp/stations/)', (yargs) =>
       buildStationSubcommands(yargs),
     )
     .command('steps', 'Work with step handlers', (yargs) => {
@@ -354,20 +209,14 @@ export function run(args) {
                 alias: 'e',
                 describe: 'Use empty config (no picker)',
                 type: 'boolean',
-              })
-              .option('item', {
-                alias: 'i',
-                describe: 'Fetch item from orchestrator to populate item_snapshot',
-                type: 'string',
               });
           },
           (argv) => {
-            // Skip if in completion mode
             if (argv.getYargsCompletions) return;
 
             if (!argv.slug) {
-              console.error('Usage: fob steps run <slug>');
-              console.error('Run "fob steps list" to see available steps');
+              console.error('Usage: fob-worker steps run <slug>');
+              console.error('Run "fob-worker steps list" to see available steps');
               process.exit(1);
             }
             return withSeparator(runStepHandler)(argv);
@@ -399,9 +248,9 @@ export function run(args) {
           (argv) => {
             if (argv.getYargsCompletions) return;
             if (!argv.id) {
-              console.error('Usage: fob workpieces show <id-or-substring>');
-              console.error('Run "fob workpieces list" to see workpieces on disk.');
-              console.error('For live tail, use "fob workpieces watch <id>".');
+              console.error('Usage: fob-worker workpieces show <id-or-substring>');
+              console.error('Run "fob-worker workpieces list" to see workpieces on disk.');
+              console.error('For live tail, use "fob-worker workpieces watch <id>".');
               process.exit(1);
             }
             return withSeparator(showWorkpieceHandler)(argv);
@@ -422,263 +271,9 @@ export function run(args) {
         )
         .demandCommand(1, 'Specify an action: list, show, watch');
     })
-    .command('work-records', 'Work with orchestrator work records', (yargs) => {
+    .command('procs', 'Manage local worker processes on this machine (pm2)', (yargs) => {
       return yargs
-        .usage('$0 work-records <action> [options]')
-        .command(
-          'list',
-          'List recent work records',
-          (yargs) => {
-            return yargs
-              .option('limit', {
-                alias: 'l',
-                describe: 'Maximum number of records',
-                type: 'number',
-              })
-              .option('status', {
-                alias: 's',
-                describe: 'Filter by status',
-                type: 'string',
-              })
-              .option('station', {
-                describe: 'Filter by station ID',
-                type: 'string',
-              })
-              .option('tag', {
-                describe: 'Filter by tag name',
-                type: 'string',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
-          },
-          withSeparator(listWorkRecordsHandler)
-        )
-        .command(
-          'show [id]',
-          'Show work record details',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Work record ID',
-                type: 'string',
-              })
-              .option('report', {
-                describe: 'Include report',
-                type: 'boolean',
-              })
-              .option('supporting-docs', {
-                describe: 'List supporting documents',
-                type: 'boolean',
-              })
-              .option('steps', {
-                describe: 'Include step outputs',
-                type: 'boolean',
-              })
-              .option('activity', {
-                describe: 'Include activity log',
-                type: 'boolean',
-              })
-              .option('all', {
-                describe: 'Include all sections',
-                type: 'boolean',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob work-records show <id>');
-              console.error('Run "fob work-records list" to see recent records');
-              process.exit(1);
-            }
-            return withSeparator(showWorkRecordHandler)(argv);
-          }
-        )
-        .command(
-          'edit [id]',
-          'Edit work record properties (e.g., tags)',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Work record ID',
-                type: 'string',
-              })
-              .option('add-tag', {
-                describe: 'Add tag by name (repeatable)',
-                type: 'string',
-                array: true,
-              })
-              .option('remove-tag', {
-                describe: 'Remove tag by name (repeatable)',
-                type: 'string',
-                array: true,
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob work-records edit <id> --add-tag <name>');
-              process.exit(1);
-            }
-            return withSeparator(editWorkRecordHandler)(argv);
-          }
-        )
-        .command(
-          'cancel [id]',
-          'Cancel a running work record',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Work record ID',
-                type: 'string',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob work-records cancel <id>');
-              console.error('Run "fob work-records list" to see recent records');
-              process.exit(1);
-            }
-            return withSeparator(cancelWorkRecordHandler)(argv);
-          }
-        )
-        .demandCommand(1, 'Specify an action: list, show, edit, cancel');
-    })
-    .command('supporting-docs', 'Work with supporting documents', (yargs) => {
-      return yargs
-        .usage('$0 supporting-docs <action> [options]')
-        .command(
-          'show [id]',
-          'Show supporting document content',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Supporting document ID',
-                type: 'string',
-              })
-              .option('save', {
-                describe: 'Download binary file to this path',
-                type: 'string',
-              })
-              .option('json', {
-                describe: 'Output raw JSON',
-                type: 'boolean',
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob supporting-docs show <id>');
-              process.exit(1);
-            }
-            return withSeparator(showSupportingDocHandler)(argv);
-          }
-        )
-        .demandCommand(1, 'Specify an action: show');
-    })
-    .command('tags', 'Manage organization tags', (yargs) => {
-      return yargs
-        .usage('$0 tags <action> [options]')
-        .command('list', 'List all tags', {}, withSeparator(listTagsHandler))
-        .command(
-          'create [name]',
-          'Create a new tag',
-          (yargs) => {
-            return yargs
-              .positional('name', {
-                describe: 'Tag name',
-                type: 'string',
-              })
-              .option('color', {
-                describe: "Hex color (e.g., '#ef4444')",
-                type: 'string',
-              })
-              .option('description', {
-                describe: 'Tag description',
-                type: 'string',
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.name) {
-              console.error('Usage: fob tags create <name> [--color "#hex"] [--description "..."]');
-              process.exit(1);
-            }
-            return withSeparator(createTagHandler)(argv);
-          }
-        )
-        .command(
-          'edit [id]',
-          'Edit a tag',
-          (yargs) => {
-            return yargs
-              .positional('id', {
-                describe: 'Tag ID',
-                type: 'string',
-              })
-              .option('name', {
-                describe: 'New tag name',
-                type: 'string',
-              })
-              .option('color', {
-                describe: "Hex color (e.g., '#ef4444')",
-                type: 'string',
-              })
-              .option('description', {
-                describe: 'Tag description',
-                type: 'string',
-              });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob tags edit <id> [--name "..."] [--color "#hex"] [--description "..."]');
-              console.error('Run "fob tags list" to see available tags');
-              process.exit(1);
-            }
-            return withSeparator(editTagHandler)(argv);
-          }
-        )
-        .command(
-          'delete [id]',
-          'Delete a tag',
-          (yargs) => {
-            return yargs.positional('id', {
-              describe: 'Tag ID',
-              type: 'string',
-            });
-          },
-          (argv) => {
-            if (argv.getYargsCompletions) return;
-            if (!argv.id) {
-              console.error('Usage: fob tags delete <id>');
-              console.error('Run "fob tags list" to see available tags');
-              process.exit(1);
-            }
-            return withSeparator(deleteTagHandler)(argv);
-          }
-        )
-        .demandCommand(1, 'Specify an action: list, create, edit, delete');
-    })
-    .command('orchestrator', 'Orchestrator connectivity', (yargs) => {
-      return yargs
-        .usage('$0 orchestrator <action>')
-        .command('status', 'Check connection to orchestrator', {}, withSeparator(orchestratorStatusHandler))
-        .demandCommand(1, 'Specify an action: status');
-    })
-    .command('workers', 'Manage local worker processes (this machine)', (yargs) => {
-      return yargs
-        .usage('$0 workers <action>')
+        .usage('$0 procs <action>')
         .command(
           'list',
           'List locally running fob workers',
@@ -719,29 +314,24 @@ export function run(args) {
         .demandCommand(1, 'Specify an action: show');
     })
     .completion('completion', 'Generate shell completion script', function (current, argv) {
-      // argv._ includes the script name 'fob' as first element
+      // argv._ includes the script name as first element
       const args = argv._.slice(1).filter(a => a !== '');
 
-      // Resource level completions (fob <tab>)
+      // Resource level completions (fob-worker <tab>)
       if (args.length === 0) {
-        return ['lines', 'stations', 'steps', 'workpieces', 'work-records', 'supporting-docs', 'tags', 'orchestrator', 'workers', 'config'];
+        return ['lines', 'stations', 'steps', 'workpieces', 'procs', 'config'];
       }
 
-      // Config action level completions (fob config <tab>)
       if (args[0] === 'config') {
-        if (args.length === 1) {
-          return ['show'];
-        }
-        return [];
+        return args.length === 1 ? ['show'] : [];
       }
 
-      // Steps action level completions (fob steps <tab>)
+      // Steps action level completions (fob-worker steps <tab>)
       if (args[0] === 'steps') {
         if (args.length === 1) {
           return ['list', 'run'];
         }
-
-        // Step slug completions (fob steps run <tab>)
+        // Step slug completions (fob-worker steps run <tab>)
         if (args[1] === 'run') {
           return getStepSlugs().then(slugs => {
             if (args.length === 2) {
@@ -752,73 +342,29 @@ export function run(args) {
         }
       }
 
-      // Stations action level completions (fob stations <tab>)
+      // Stations action level completions (fob-worker stations <tab>)
       if (args[0] === 'stations') {
-        if (args.length === 1) {
-          return ['list', 'show', 'status', 'empty-bins', 'run', 'pull', 'push', 'edit', 'delete', 'unarchive', 'update-step-metadata'];
-        }
-        return [];
+        return args.length === 1 ? ['status', 'empty-bins', 'update-step-metadata'] : [];
       }
 
-      // Lines action level completions (fob lines <tab>)
+      // Lines action level completions (fob-worker lines <tab>)
       if (args[0] === 'lines') {
-        if (args.length === 1) {
-          return ['list', 'show', 'status', 'empty-bins'];
-        }
-        return [];
+        return args.length === 1 ? ['list', 'show', 'status', 'empty-bins'] : [];
       }
 
-      // Workpieces action level completions (fob workpieces <tab>)
+      // Workpieces action level completions (fob-worker workpieces <tab>)
       if (args[0] === 'workpieces') {
-        if (args.length === 1) {
-          return ['list', 'show', 'watch'];
-        }
-        return [];
+        return args.length === 1 ? ['list', 'show', 'watch'] : [];
       }
 
-      // Work-records action level completions (fob work-records <tab>)
-      if (args[0] === 'work-records') {
-        if (args.length === 1) {
-          return ['list', 'show', 'edit', 'cancel'];
-        }
-        return [];
-      }
-
-      // Supporting-docs action level completions (fob supporting-docs <tab>)
-      if (args[0] === 'supporting-docs') {
-        if (args.length === 1) {
-          return ['show'];
-        }
-        return [];
-      }
-
-      // Tags action level completions (fob tags <tab>)
-      if (args[0] === 'tags') {
-        if (args.length === 1) {
-          return ['list', 'create', 'edit', 'delete'];
-        }
-        return [];
-      }
-
-      // Orchestrator action level completions (fob orchestrator <tab>)
-      if (args[0] === 'orchestrator') {
-        if (args.length === 1) {
-          return ['status'];
-        }
-        return [];
-      }
-
-      // Workers action level completions (fob workers <tab>)
-      if (args[0] === 'workers') {
-        if (args.length === 1) {
-          return ['list', 'start', 'stop', 'restart', 'logs', 'monit'];
-        }
-        return [];
+      // Procs action level completions (fob-worker procs <tab>)
+      if (args[0] === 'procs') {
+        return args.length === 1 ? ['list', 'start', 'stop', 'restart', 'logs', 'monit'] : [];
       }
 
       return [];
     })
-    .demandCommand(1, 'Specify a resource: lines, stations, steps, workpieces, work-records, supporting-docs, tags, orchestrator, workers, config')
+    .demandCommand(1, 'Specify a resource: lines, stations, steps, workpieces, procs, config')
     .help()
     .alias('h', 'help')
     .alias('v', 'version')
