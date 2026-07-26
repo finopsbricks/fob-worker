@@ -1,6 +1,6 @@
 # Split `cli-fob` into `fob-orc` (orchestrator client) + `fob-worker` (local tool)
 
-## Status: IN PROGRESS — Phase 1 (extract `@fob/orc`) started 2026-07-26; design + naming decided
+## Status: IN PROGRESS — **Phase 1 DONE** (`@fob/orc` client + full `fob-orc` CLI, incl. bridges); Phase 2 (`cli-fob` → `fob-worker`) next. Started 2026-07-26.
 
 `cli-fob` is two tools wearing one binary. Every command sits cleanly on one of two **data
 planes**: a remote **orchestrator control plane** (canonical station/process definitions,
@@ -99,7 +99,7 @@ _(no `items` namespace — the item object is deprecated on the orchestrator; dr
 
 ## Implementation Phases
 
-### Phase 1: Extract `@fob/orc` (orchestrator 2-in-1) 🔄
+### Phase 1: Extract `@fob/orc` (orchestrator 2-in-1) ✅
 New repo `finopsbricks/cli/fob-orc`, built to the CLI standard (copy the fob-stm skeleton).
 - [x] **Client library DONE** (2026-07-26). `fobOrc(credentials)` factory + `src/resources/*`
       (`stations`, `work-records`, `tags`, `supporting-docs`) lifted from `orchestrator.js`.
@@ -126,9 +126,14 @@ New repo `finopsbricks/cli/fob-orc`, built to the CLI standard (copy the fob-stm
       **`fob-orc status`** → `checkConnection` (an `orchestrator` resource would be redundant — the tool
       IS the orchestrator). Verified: full help tree walks; all no-creds paths → exit 1; typecheck 0
       errors; tests 13/13 (added tags `resolveNames`/`ensure` coverage).
-- [ ] **Bridges** `stations edit` + `pull`/`push`: port cli-fob's `station-files.js` local cache util;
-      `pull` = client.list/get → local files, `push` = local files → client.create/update. `stations run`
-      gains `--scenario` (reads local scenario files) once that util lands. **← NEXT (last of Phase 1)**
+- [x] **Bridges DONE** (2026-07-26, commit `c1108d0`). Ported a trimmed `station-files.js` cache util;
+      `stations pull` (client → `.orchestrator/stations/`, deps id→short_code + tags→names), `push`
+      (local files → client create/update, deps short_code→id, id/created_at/org/tags stripped, tags
+      synced separately auto-creating missing; 404-on-update → `--force` create-with-same-id, using
+      `err.status` not message-parsing), `edit` (short_code + tags), and `run --scenario` (local
+      scenario merged with direct `--k=v` flags). Verified end-to-end: pull→push round-trip lossless
+      (both dep + tag conversions). Full 9-action help tree walks; typecheck 0 errors; tests 15/15
+      (added a mocked-orchestrator + temp-cwd bridge test).
 
 ### Phase 2: Convert `cli-fob` → `fob-worker` (local plane) ❌
 - [ ] Rename repo/binary to `fob-worker`; strip the orchestrator-plane commands (now in `fob-orc`).
