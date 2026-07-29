@@ -13,6 +13,8 @@
 import yargs from 'yargs';
 import 'dotenv/config';
 
+import { localOptions } from './_helpers.js';
+
 import { showConfigHandler } from './config/show.js';
 import { updateStepMetadataHandler } from './stations/update-step-metadata.js';
 import { listWorkersHandler } from './procs/list.js';
@@ -47,7 +49,7 @@ function withSeparator(handler) {
  * `fob-worker lines empty-bins`. Kept in one place so the two stay in sync.
  */
 function withBinSelectorFlags(yargs) {
-  return yargs
+  return localOptions(yargs)
     .option('all', { describe: 'Wipe all 5 bins AND the intake-registry (full reset)', type: 'boolean' })
     .option('all-bins', { describe: 'Wipe all 5 bins; leave the intake-registry intact', type: 'boolean' })
     .option('input', { describe: 'Empty the input bin', type: 'boolean' })
@@ -70,8 +72,9 @@ function buildStationSubcommands(yargs) {
       'status [id]',
       'Snapshot of live bin state for one station (reads temp/stations/)',
       (yargs) => {
-        return yargs
-          .positional('id', { describe: 'Station short_code (e.g. VM3)', type: 'string' })
+        return localOptions(
+          yargs.positional('id', { describe: 'Station short_code (e.g. VM3)', type: 'string' })
+        )
           .option('json', { describe: 'Output raw JSON', type: 'boolean' })
           .option('watch', { alias: 'w', describe: 'Re-render on an interval (clear-screen between frames). Mutually exclusive with --json.', type: 'boolean' })
           .option('interval', { describe: 'Watch refresh interval in seconds (default 1)', type: 'number' });
@@ -126,15 +129,16 @@ export function run(args) {
         .command(
           'list',
           'List lines grouped from local station files (definitional)',
-          (yargs) => yargs.option('json', { describe: 'Output raw JSON', type: 'boolean' }),
+          (yargs) => localOptions(yargs).option('json', { describe: 'Output raw JSON', type: 'boolean' }),
           withSeparator(listLinesHandler),
         )
         .command(
           'show [line]',
           'Show line config: stations in dependency order + conveyor topology (definitional)',
           (yargs) => {
-            return yargs
-              .positional('line', { describe: 'Line code (e.g. VM, P8)', type: 'string' })
+            return localOptions(
+              yargs.positional('line', { describe: 'Line code (e.g. VM, P8)', type: 'string' })
+            )
               .option('json', { describe: 'Output raw JSON', type: 'boolean' });
           },
           (argv) => {
@@ -152,8 +156,9 @@ export function run(args) {
           'status [line]',
           'Snapshot of live bin state (reads temp/stations/). No arg = per-line summary.',
           (yargs) => {
-            return yargs
-              .positional('line', { describe: 'Line code to drill into (omit for cross-line summary)', type: 'string' })
+            return localOptions(
+              yargs.positional('line', { describe: 'Line code to drill into (omit for cross-line summary)', type: 'string' })
+            )
               .option('json', { describe: 'Output raw JSON', type: 'boolean' })
               .option('watch', { alias: 'w', describe: 'Re-render on an interval (clear-screen between frames). Mutually exclusive with --json.', type: 'boolean' })
               .option('interval', { describe: 'Watch refresh interval in seconds (default 1)', type: 'number' });
@@ -191,11 +196,12 @@ export function run(args) {
           'run [slug]',
           'Run a step locally',
           (yargs) => {
-            return yargs
-              .positional('slug', {
+            return localOptions(
+              yargs.positional('slug', {
                 describe: 'Step slug (e.g., alex/fetch_account_freshness)',
                 type: 'string',
               })
+            )
               .option('station', {
                 describe: 'Use config from this station',
                 type: 'string',
@@ -230,7 +236,7 @@ export function run(args) {
         .command(
           'list',
           'Snapshot dashboard of workpieces on disk',
-          (yargs) => yargs
+          (yargs) => localOptions(yargs)
             .option('line', { describe: 'Scope to a single line (e.g. VM)', type: 'string' })
             .option('bin', { describe: 'Scope to a specific bin (STATION/BIN, e.g. VM3/failed)', type: 'string' })
             .option('match', { describe: 'Substring filter on workpiece id', type: 'string' })
@@ -241,8 +247,9 @@ export function run(args) {
           'show [id]',
           'Deep view of one workpiece (substring matching >1 promotes to dashboard)',
           (yargs) => {
-            return yargs
-              .positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
+            return localOptions(
+              yargs.positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
+            )
               .option('json', { describe: 'Output raw JSON', type: 'boolean' });
           },
           (argv) => {
@@ -260,8 +267,9 @@ export function run(args) {
           'watch [id]',
           'Live tail: bin transitions and new log events as they happen',
           (yargs) => {
-            return yargs
-              .positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
+            return localOptions(
+              yargs.positional('id', { describe: 'Workpiece id (exact or substring)', type: 'string' })
+            )
               .option('line', { describe: 'Scope to a single line (mutually exclusive with --bin/--match)', type: 'string' })
               .option('bin', { describe: 'Scope to a specific bin (STATION/BIN)', type: 'string' })
               .option('match', { describe: 'Substring filter on workpiece id', type: 'string' })
@@ -277,7 +285,7 @@ export function run(args) {
         .command(
           'list',
           'List locally running fob workers',
-          (yargs) => yargs.option('json', { describe: 'Output raw JSON', type: 'boolean' }),
+          (yargs) => localOptions(yargs).option('json', { describe: 'Output raw JSON', type: 'boolean' }),
           withSeparator(listWorkersHandler),
         )
         .command(
@@ -368,6 +376,10 @@ export function run(args) {
     .help()
     .alias('h', 'help')
     .alias('v', 'version')
+    // Global options (inherited by every command) render under their own
+    // heading; each command's own options stay under "Options:", shown first
+    // via localOptions() in the command builders.
+    .group(['help', 'version'], 'Global Options:')
     .wrap(null)
     .fail((msg, err, yargs) => {
       if (err) {

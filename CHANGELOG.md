@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `LineState.bins[station][bin]` is now `Map<id, subpath>` instead of `Set<id>`. Consumers that iterate ids should use `.keys()`; `.size` and `.has()` keep working unchanged.
 - `workpieceDir()` uses `pos.subpath` when set so sub-bin layouts resolve correctly.
 - `fob workpieces list` and `fob stations status` show the sub-bin path when a workpiece lives under one (e.g. `HI3/output/invoices` in `POSITION`).
+- Help output: each command's own options now render under `Options:` above a dedicated `Global Options:` group (`--help`, `--version`), instead of being interleaved. Help text only — no behavior change.
 
 ### Fixed
 
