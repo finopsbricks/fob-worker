@@ -2,6 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals
 
 const mockExecSync = jest.fn();
 const mockReadFileSync = jest.fn();
+const mockReadlinkSync = jest.fn();
 
 jest.unstable_mockModule('child_process', () => ({
   execSync: mockExecSync,
@@ -9,16 +10,20 @@ jest.unstable_mockModule('child_process', () => ({
 
 jest.unstable_mockModule('fs', () => ({
   readFileSync: mockReadFileSync,
+  readlinkSync: mockReadlinkSync,
 }));
 
 const { listRunningWorkers, getWorkerPackageInfo, resolveRunningWorker, isPm2Available } =
   await import('../../src/utils/worker-processes.js');
 
+// Column padding here is deliberate and must be preserved: `ps` right-aligns
+// the pid/ppid columns, and an earlier regex bug meant real (padded) output
+// never matched while unpadded fixtures still passed.
 const PS_SNAPSHOT = [
-  '100 1 Wed Jul 16 12:00:00 2026 01:00:00 node src/index.js',
-  '200 1 Wed Jul 16 12:00:00 2026 01:00:00 node node_modules/jest/bin/jest.js',
-  '300 1 Wed Jul 16 12:00:00 2026 01:00:00 node --watch src/index.js',
-  '400 1 Wed Jul 16 12:00:00 2026 01:00:00 npm run start',
+  '    100       1 Wed Jul 16 12:00:00 2026 01:00:00 node src/index.js',
+  '    200       1 Wed Jul 16 12:00:00 2026 01:00:00 node node_modules/jest/bin/jest.js',
+  '    300       1 Wed Jul 16 12:00:00 2026 01:00:00 node --watch src/index.js',
+  '    400  917511 Wed Jul 16 12:00:00 2026    11:44 npm run start',
 ].join('\n');
 
 const PM2_JLIST = JSON.stringify([
@@ -133,6 +138,23 @@ describe('listRunningWorkers()', () => {
     expect(rows.filter((r) => r.worker === 'worker-c')).toHaveLength(1);
   });
 
+  it('should parse space-padded ps columns into uptime/started', () => {
+    // Arrange
+    setUpHappyPathMocks();
+
+    // Act
+    const rows = listRunningWorkers();
+
+    // Assert — regression: padded pid columns once broke the ps regex,
+    // silently blanking these fields for every row.
+    expect(rows.find((r) => r.worker === 'worker-a')).toEqual(
+      expect.objectContaining({ uptime: '01:00:00', started: 'Wed Jul 16 12:00:00 2026' })
+    );
+    expect(rows.find((r) => r.worker === 'worker-c')).toEqual(
+      expect.objectContaining({ uptime: '11:44' })
+    );
+  });
+
   it('should sort rows by worker name then pid', () => {
     // Arrange
     setUpHappyPathMocks();
@@ -142,6 +164,77 @@ describe('listRunningWorkers()', () => {
 
     // Assert
     expect(rows.map((r) => r.worker)).toEqual(['worker-a', 'worker-c']);
+  });
+});
+
+describe('listRunningWorkers() on linux', () => {
+  const CWD_BY_PID = {
+    '/proc/100/cwd': '/workers/worker-a',
+    '/proc/200/cwd': '/workers/worker-a',
+    '/proc/300/cwd': '/workers/worker-b',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setPlatform('linux');
+    setUpHappyPathMocks();
+    mockReadlinkSync.mockImplementation((p) => {
+      const cwd = CWD_BY_PID[p];
+      if (!cwd) throw new Error('ENOENT');
+      return cwd;
+    });
+  });
+
+  afterEach(() => {
+    setPlatform(ORIGINAL_PLATFORM);
+  });
+
+  it('should detect workers instead of bailing out early', () => {
+    // Act
+    const rows = listRunningWorkers();
+
+    // Assert
+    expect(rows.map((r) => r.worker)).toEqual(['worker-a', 'worker-c']);
+  });
+
+  it('should resolve cwd via /proc/<pid>/cwd rather than lsof', () => {
+    // Act
+    const rows = listRunningWorkers();
+
+    // Assert
+    expect(rows.find((r) => r.worker === 'worker-a')?.cwd).toBe('/workers/worker-a');
+    expect(mockReadlinkSync).toHaveBeenCalledWith('/proc/100/cwd');
+    expect(mockExecSync).not.toHaveBeenCalledWith(
+      expect.stringContaining('-d cwd'),
+      expect.anything()
+    );
+  });
+
+  it('should skip a pid whose /proc entry is unreadable (another user, or exited)', () => {
+    // Arrange — pid 100's cwd link cannot be read
+    mockReadlinkSync.mockImplementation((p) => {
+      if (p === '/proc/100/cwd') throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+      const cwd = CWD_BY_PID[p];
+      if (!cwd) throw new Error('ENOENT');
+      return cwd;
+    });
+
+    // Act
+    const rows = listRunningWorkers();
+
+    // Assert — worker-a drops out, pm2-managed worker-c is unaffected
+    expect(rows.map((r) => r.worker)).toEqual(['worker-c']);
+  });
+
+  it('should still use lsof for the listening-port lookup', () => {
+    // Act
+    listRunningWorkers();
+
+    // Assert
+    expect(mockExecSync).toHaveBeenCalledWith(
+      expect.stringContaining('-sTCP:LISTEN'),
+      expect.anything()
+    );
   });
 });
 

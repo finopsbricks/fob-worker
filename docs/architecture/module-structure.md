@@ -46,7 +46,7 @@ src/cli/
 | `orchestrator.js` | HTTP calls to the orchestrator API (keeps `/api/v1/processes/*` paths — the API contract) |
 | `station-files.js` | Read/write station and scenario files in `.orchestrator/` |
 | `line-state.js` | Live line/bin state derived from `temp/stations/` |
-| `worker-processes.js` | Detect locally-running fob workers (direct or pm2-managed), via `ps`/`lsof`/`pm2 jlist` |
+| `worker-processes.js` | Detect locally-running fob workers (direct or pm2-managed), via `ps`/`lsof`/`pm2 jlist` (macOS + Linux; cwd via `/proc` on Linux) |
 | `tags.js` | Tag name↔ID resolution (ensureTag, resolveTagNames) |
 
 ## External Dependencies

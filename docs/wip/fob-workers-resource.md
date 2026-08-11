@@ -52,7 +52,8 @@ Canonical pm2 process name = **the worker repo's directory basename** — no `--
 
 ### Phase 2: Shared detection util ✅
 - [x] `src/utils/worker-processes.js` — port `ops/devops/scripts/list-running-workers.mjs`, add `cwd` to each row, extract `getWorkerPackageInfo(cwd)`, add `isPm2Available()`
-- [x] Platform guard: friendly message on non-macOS (unverified on other platforms)
+- [x] Platform guard: friendly message on non-macOS (unverified on other platforms) — **superseded 2026-08-11**, macOS + Linux both supported; see Open Questions
+- [x] **Second bug found + fixed 2026-08-11 (pre-existing, both platforms)**: the `ps` snapshot regex was anchored `^(\d+)`, but `ps` right-aligns the pid/ppid columns and pads them with spaces — so *no* real `ps` line ever matched and `procs` was always empty. On macOS this was invisible because the map is only consulted for the `uptime`/`started` columns, which silently rendered as `-`; detection itself leans on `pm2 jlist`/`lsof` and kept working. The unit-test fixtures hid it too: they were hand-written without column padding. Fixed with a leading `\s*`, fixtures re-padded to match real output, and a regression test asserting `uptime`/`started` actually populate.
 - [x] **Bug found + fixed during manual verification**: the ported script's `pm2AppFor()` ppid-walk + `proc.command.includes(info.main)` gate silently failed for workers started via `fob workers start` itself. Root cause: pm2 rewrites the OS process title when directly forking a `.js` script (for its own `pm2 monit`/`pm2 list` display), which on this machine truncated/corrupted the `ps`-visible command text before it ever reached the `main` filename substring — so a freshly-`pm2 start`-ed worker was invisible to `fob workers list`. Fixed by resolving pm2-managed workers directly from `pm2 jlist`'s own `pm_cwd` field instead of matching `ps` command text at all; direct-mode detection (which has no pm2 registry to lean on) still needs the `ps`-command-text check, but now dedupes against pm2-claimed *cwds* (not just pids) to avoid double-counting an `npm run start`-wrapped worker's grandchild as a second "direct" row. `pm2AppFor()` and the ppid-walk were removed entirely — no longer needed.
 
 ### Phase 3: `fob workers list` ✅
@@ -82,7 +83,7 @@ Canonical pm2 process name = **the worker repo's directory basename** — no `--
 
 ## Open Questions
 
-- **Linux support**: `worker-processes.js` is macOS/BSD-only, matching the source script. Friendly warning vs silent wrong output — leaning friendly warning, not blocking.
+- ~~**Linux support**: `worker-processes.js` is macOS/BSD-only, matching the source script. Friendly warning vs silent wrong output — leaning friendly warning, not blocking.~~ **Resolved 2026-08-11**: Linux is now supported. GNU `ps -o lstart` and `lsof -iTCP -sTCP:LISTEN` turned out to emit the same formats the existing parsers already expected; cwd resolution reads `/proc/<pid>/cwd` directly instead of shelling out to `lsof` (no subprocess per pid, and works in minimal containers that omit `lsof`). The guard now only rejects non-macOS/non-Linux platforms. Verifying this surfaced a latent **cross-platform** bug — see Phase 2 note below.
 - **`workers monit` v2 scope**: exec `pm2 monit` covers pm2-managed workers only, not direct-mode. Acceptable per the direct-mode-is-opted-out reasoning above; a custom polling table covering both is a possible future v2, not built now.
 - **`start` target semantics**: path-only (no bare-name resolution, since nothing is running yet to resolve a name against) — slightly asymmetric with stop/restart/logs where target can be a name. Confirmed acceptable.
 
