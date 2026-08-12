@@ -8,6 +8,7 @@ import {
   readWorkpieceLog,
   ALL_BINS,
 } from '../../utils/line-state.js';
+import { formatTime } from '../../utils/format.js';
 import { listWorkpiecesHandler } from './list.js';
 import { showWorkpieceHandler } from './show.js';
 
@@ -47,7 +48,7 @@ export async function watchSingle(workpiece_id, { interval_secs = DEFAULT_INTERV
   let lines = loadLineState();
   let pos = resolvePosition(workpiece_id, lines);
   if (!pos) {
-    console.log(`${new Date().toISOString()}  ${workpiece_id}  not on disk`);
+    console.log(`${formatTime(new Date())}  ${workpiece_id}  not on disk`);
     return;
   }
   let last_pos_key = `${pos.station}/${pos.bin}`;
@@ -58,14 +59,14 @@ export async function watchSingle(workpiece_id, { interval_secs = DEFAULT_INTERV
     lines = loadLineState();
     pos = resolvePosition(workpiece_id, lines);
     if (!pos) {
-      console.log(`${new Date().toISOString()}  ${workpiece_id}  no longer on disk`);
+      console.log(`${formatTime(new Date())}  ${workpiece_id}  no longer on disk`);
       return;
     }
     const wp_dir = workpieceDir(pos, workpiece_id);
     const pos_key = `${pos.station}/${pos.bin}`;
 
     if (pos_key !== last_pos_key) {
-      console.log(`${new Date().toISOString()}  → moved from ${last_pos_key} to ${pos_key}`);
+      console.log(`${formatTime(new Date())}  → moved from ${last_pos_key} to ${pos_key}`);
       console.log(`Folder: ${workpieceLink(wp_dir)}`);
       last_pos_key = pos_key;
       last_log_count = readWorkpieceLog(wp_dir).length;
@@ -197,7 +198,7 @@ export async function watchMulti(ids, { interval_secs = DEFAULT_INTERVAL_SECS } 
 
       const pos = resolvePosition(id, lines);
       if (!pos) {
-        console.log(`${new Date().toISOString()}  ${id}  no longer on disk`);
+        console.log(`${formatTime(new Date())}  ${id}  no longer on disk`);
         state.delete(id);
         continue;
       }
@@ -205,7 +206,7 @@ export async function watchMulti(ids, { interval_secs = DEFAULT_INTERVAL_SECS } 
       const pos_key = `${pos.station}/${pos.bin}`;
 
       if (pos_key !== prev.pos_key) {
-        console.log(`${new Date().toISOString()}  ${id}  → moved from ${prev.pos_key} to ${pos_key}`);
+        console.log(`${formatTime(new Date())}  ${id}  → moved from ${prev.pos_key} to ${pos_key}`);
         console.log(`                          ${workpieceLink(wp_dir)}`);
         prev.pos_key = pos_key;
         prev.log_count = readWorkpieceLog(wp_dir).length;
@@ -220,7 +221,7 @@ export async function watchMulti(ids, { interval_secs = DEFAULT_INTERVAL_SECS } 
       }
 
       if (pos.bin === 'output' && pos.terminal && !prev.finished) {
-        console.log(`${new Date().toISOString()}  ${id}  ✓ finished (terminal output)`);
+        console.log(`${formatTime(new Date())}  ${id}  ✓ finished (terminal output)`);
         prev.finished = true;
       }
     }

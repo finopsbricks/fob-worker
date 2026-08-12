@@ -57,14 +57,68 @@ export function formatSection(title) {
   return `\n--- ${title} ---\n`;
 }
 
+/** The zone timestamps render in. Resolved once, so a long listing cannot straddle a DST change mid-table. */
+const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 /**
- * Format an ISO date string to human-readable.
- * "2026-03-15 10:23:01"
+ * Short zone label, e.g. "PDT" or "Asia/Calcutta". Computed once — it labels a
+ * header, not a value.
+ *
+ * `timeZoneName: 'short'` only yields a real abbreviation for zones ICU has one
+ * for; elsewhere it returns "GMT+5:30", which is correct but noisy in a column
+ * header and tells you less than the zone's own name. So: take the abbreviation
+ * when it is one, otherwise use the IANA name.
+ */
+const LOCAL_TZ_LABEL = (() => {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(new Date());
+  const short = parts.find((p) => p.type === 'timeZoneName')?.value;
+  if (short && !/^(GMT|UTC)[+-]/.test(short)) return short;
+  return LOCAL_TZ || short || 'local';
+})();
+
+/**
+ * Short name of the local zone, e.g. "PDT" or "Asia/Calcutta".
+ *
+ * Use it to name the zone ONCE per table or detail block — in the column header
+ * (`STARTED (${localTzLabel()})`) or a section heading — never per row.
+ */
+export function localTzLabel() {
+  return LOCAL_TZ_LABEL;
+}
+
+/**
+ * Format an ISO timestamp in the operator's local timezone: "2026-03-15 15:53:01".
+ *
+ * **Local, not UTC.** This used to print `toISOString()` verbatim, so an
+ * operator in IST read every timestamp 5.5 hours early with nothing on screen
+ * saying so — and everything a worker CLI is compared against (`pm2 logs`, file
+ * mtimes, `fob orc` output) is local. Kept identical to fob-orc's helper so the
+ * two CLIs never disagree about the same instant.
+ *
+ * Pair with `localTzLabel()` in the surrounding header so the zone is stated
+ * once. sv-SE is used because its locale format is already `YYYY-MM-DD HH:MM:SS`.
  */
 export function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toISOString().replace('T', ' ').slice(0, 19);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('sv-SE', { timeZone: LOCAL_TZ }).replace(',', '');
+}
+
+/**
+ * Wall-clock time only, for append-style feeds where the date is implied by the
+ * session: "15:53:01".
+ *
+ * Accepts an ISO string or a `Date` (`fob worker workpieces watch` stamps
+ * `new Date()` as each event arrives).
+ *
+ * @param {string|Date|null|undefined} iso
+ */
+export function formatTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('sv-SE', { timeZone: LOCAL_TZ });
 }
 
 /**
