@@ -6,11 +6,12 @@
  * `@fob/lib-worker` and the process command matches that package.json's
  * `main` entry — not tied to any fixed folder or entrypoint filename.
  *
- * macOS/BSD `ps`/`lsof` only.
+ * macOS and Linux only. Both expose `ps -o lstart` and `lsof` in compatible
+ * formats; cwd resolution differs (see `cwdOf`).
  */
 
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { readFileSync, readlinkSync } from 'fs';
 import path from 'path';
 
 function sh(cmd) {
@@ -22,7 +23,9 @@ function sh(cmd) {
 }
 
 function processSnapshot() {
-  const re = /^(\d+)\s+(\d+)\s+(\w{3}\s+\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(\S+)\s+(.*)$/;
+  // Leading `\s*` is load-bearing: `ps` right-aligns the pid/ppid columns and
+  // pads them with spaces, so an anchored `^(\d+)` never matches real output.
+  const re = /^\s*(\d+)\s+(\d+)\s+(\w{3}\s+\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(\S+)\s+(.*)$/;
   const procs = new Map();
   for (const line of sh('ps -A -o pid=,ppid=,lstart=,etime=,command=').split('\n')) {
     const m = line.match(re);
@@ -39,7 +42,28 @@ function nodeCandidates(procs) {
   );
 }
 
+/**
+ * Resolve a pid's working directory.
+ *
+ * On Linux `/proc/<pid>/cwd` is a symlink to the answer — no subprocess, no
+ * dependency on `lsof` being installed (minimal containers often omit it),
+ * and far cheaper than spawning `lsof` once per candidate pid. macOS has no
+ * `/proc`, so it keeps the `lsof` path.
+ *
+ * Returns null for processes owned by another user, where the symlink exists
+ * but is not readable (EACCES) — same outcome as `lsof` yielding nothing.
+ *
+ * @param {string} pid
+ * @returns {string | null}
+ */
 function cwdOf(pid) {
+  if (process.platform === 'linux') {
+    try {
+      return readlinkSync(`/proc/${pid}/cwd`);
+    } catch {
+      return null;
+    }
+  }
   const line = sh(`lsof -p ${pid} -a -d cwd -Fn`)
     .split('\n')
     .find((l) => l.startsWith('n'));
@@ -96,8 +120,8 @@ function pm2Apps() {
  * @returns {Array<{pid: string, worker: string, mode: 'direct'|'pm2', pm2: string, cwd: string, port: string, uptime: string, started: string}>}
  */
 export function listRunningWorkers() {
-  if (process.platform !== 'darwin') {
-    console.error(`Warning: "fob workers" process detection relies on macOS/BSD-style ps/lsof and is unverified on ${process.platform}.`);
+  if (process.platform !== 'darwin' && process.platform !== 'linux') {
+    console.error(`Warning: "fob procs" process detection requires macOS or Linux and is unsupported on ${process.platform}.`);
     return [];
   }
 
