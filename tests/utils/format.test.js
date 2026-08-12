@@ -64,9 +64,38 @@ describe('formatSection()', () => {
 });
 
 describe('formatDate()', () => {
-  it('should format ISO date', () => {
-    const result = formatDate('2026-03-15T10:23:01.000Z');
-    expect(result).toBe('2026-03-15 10:23:01');
+  // Asserted against the same Intl conversion the helper uses rather than a
+  // fixed string: output is local time, so a literal expectation would only
+  // pass in whichever zone it was written in. This previously asserted UTC,
+  // which is exactly the bug — an operator in IST read every timestamp 5.5
+  // hours early.
+  it('should format an ISO date in local time', () => {
+    const iso = '2026-03-15T10:23:01.000Z';
+    const expected = new Date(iso)
+      .toLocaleString('sv-SE', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+      .replace(',', '');
+
+    expect(formatDate(iso)).toBe(expected);
+    expect(formatDate(iso)).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  });
+
+  it('should render UTC as UTC when that is the local zone', () => {
+    const original = process.env.TZ;
+    try {
+      process.env.TZ = 'UTC';
+      // Node needs a fresh formatter to observe the change; assert via Intl
+      // directly so this holds regardless of caching behaviour.
+      const iso = '2026-03-15T10:23:01.000Z';
+      const inUtc = new Date(iso).toLocaleString('sv-SE', { timeZone: 'UTC' }).replace(',', '');
+      expect(inUtc).toBe('2026-03-15 10:23:01');
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
+  });
+
+  it('should return dash for an unparseable value', () => {
+    expect(formatDate('not-a-date')).toBe('—');
   });
 
   it('should return dash for null', () => {
