@@ -261,7 +261,9 @@ export function getScenariosDir() {
 /**
  * Find all local stations that contain a specific step.
  * @param {string} stepSlug - Step slug to search for
- * @returns {Array<{id: string, name: string}>} Stations containing the step
+ * @returns {Array<{id: string, short_code: string|undefined, name: string}>}
+ *   Stations containing the step. `short_code` is undefined for stations that
+ *   don't define one — callers displaying it should fall back to `id`.
  */
 export function findStationsWithStep(stepSlug) {
   const stationIds = listLocalStationIds();
@@ -270,7 +272,7 @@ export function findStationsWithStep(stepSlug) {
   for (const id of stationIds) {
     const station = loadStation(id);
     if (station?.steps?.some(s => s.slug === stepSlug)) {
-      matches.push({ id: station.id, name: station.name });
+      matches.push({ id: station.id, short_code: station.short_code, name: station.name });
     }
   }
 

@@ -57,7 +57,7 @@ export async function runStepHandler(argv) {
     }
 
     stepConfig = resolveConfig(stationStepConfig, step_outputs);
-    configSource = `station: ${station.name} (${stationId})`;
+    configSource = `station: ${station.name} (${station.short_code || station.id})`;
   } else if (scenarioName) {
     // Explicit scenario
     const scenarioConfig = loadScenario(slug, scenarioName);
@@ -77,7 +77,7 @@ export async function runStepHandler(argv) {
     const stationsWithStep = findStationsWithStep(slug);
     for (const station of stationsWithStep) {
       pickerOptions.push({
-        label: `Station: ${station.name} (${station.id})`,
+        label: `Station: ${station.name} (${station.short_code || station.id})`,
         value: station.id,
         type: 'station',
       });
@@ -113,7 +113,7 @@ export async function runStepHandler(argv) {
       const station = loadStation(selected.value);
       const stationStepConfig = getStepConfigFromStation(station, slug);
       stepConfig = resolveConfig(stationStepConfig || {}, step_outputs);
-      configSource = `station: ${station.name} (${selected.value})`;
+      configSource = `station: ${station.name} (${station.short_code || station.id})`;
     } else if (selected.type === 'scenario') {
       const scenarioConfig = loadScenario(slug, selected.value);
       stepConfig = resolveConfig(scenarioConfig, step_outputs);

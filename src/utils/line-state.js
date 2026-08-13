@@ -176,6 +176,56 @@ export function loadLineState({ stations_root = defaultStationsRoot() } = {}) {
 export const codeOf = (s) => s.data.short_code || s.data.id;
 
 /**
+ * Index station defs by every reference form they answer to — short_code, id,
+ * and the resolved `codeOf` — so a dependency edge written either way finds its
+ * peer. Shared by `topoSortStations` and `resolveStationRef`.
+ *
+ * @param {Array<{data: object}>} members
+ * @returns {Map<string, {data: object}>}
+ */
+export function indexStationsByRef(members) {
+  const byRef = new Map();
+  for (const s of members) {
+    byRef.set(codeOf(s), s);
+    if (s.data.id) byRef.set(s.data.id, s);
+    if (s.data.short_code) byRef.set(s.data.short_code, s);
+  }
+  return byRef;
+}
+
+/**
+ * Normalise one entry of a `dependencies` array to a reference string.
+ * Entries are usually bare id strings (that's what the orchestrator stores),
+ * but may also be objects carrying short_code and/or id.
+ *
+ * @param {string|{short_code?: string, id?: string}} dep
+ * @returns {string|undefined}
+ */
+export function dependencyRef(dep) {
+  return typeof dep === 'string' ? dep : dep?.short_code || dep?.id;
+}
+
+/**
+ * Resolve a station reference (short_code OR orchestrator id) to its display
+ * code — the peer's short_code when it has one.
+ *
+ * `dependencies` stores bare orchestrator ids, so displaying an edge verbatim
+ * prints an opaque id like `6VlLAOtS4MZy` where the reader expects `EM0`. Any
+ * command rendering dependency edges should route them through this.
+ *
+ * @param {string} ref - short_code or id
+ * @param {Map<string, {data: object}>|Array<{data: object}>} stations - ref index
+ *   (from `indexStationsByRef`) or the raw member list to index on the fly.
+ * @returns {string} The peer's display code, or `ref` unchanged when the peer
+ *   isn't among the given stations (cross-line or not pulled locally).
+ */
+export function resolveStationRef(ref, stations) {
+  const byRef = stations instanceof Map ? stations : indexStationsByRef(stations);
+  const match = byRef.get(ref);
+  return match ? codeOf(match) : ref;
+}
+
+/**
  * Topologically sort station defs within a single line by their `dependencies`
  * edges. Exported and shared across `lines list`, `lines show`, and `lines
  * status` so all three present the same execution order.
@@ -189,16 +239,10 @@ export const codeOf = (s) => s.data.short_code || s.data.id;
  * @returns {Array<{data: object}>} Same defs, ordered.
  */
 export function topoSortStations(members) {
-  const byRef = new Map();
-  for (const s of members) {
-    const code = codeOf(s);
-    byRef.set(code, s);
-    if (s.data.id) byRef.set(s.data.id, s);
-    if (s.data.short_code) byRef.set(s.data.short_code, s);
-  }
+  const byRef = indexStationsByRef(members);
 
   const depsOf = (s) => (s.data.dependencies || [])
-    .map((d) => (typeof d === 'string' ? d : d.short_code || d.id))
+    .map(dependencyRef)
     .map((ref) => byRef.get(ref))
     .filter(Boolean);
 
@@ -224,18 +268,13 @@ export function topoSortStations(members) {
  */
 function computeTerminal(ordered) {
   if (ordered.length === 0) return '';
-  const codes = new Set(ordered.map(codeOf));
-  const idToCode = new Map();
-  for (const s of ordered) {
-    if (s.data.id) idToCode.set(s.data.id, codeOf(s));
-  }
+  const byRef = indexStationsByRef(ordered);
 
   const depended_on = new Set();
   for (const s of ordered) {
     for (const d of s.data.dependencies || []) {
-      const ref = typeof d === 'string' ? d : d.short_code || d.id;
-      if (codes.has(ref)) depended_on.add(ref);
-      else if (idToCode.has(ref)) depended_on.add(idToCode.get(ref));
+      const ref = dependencyRef(d);
+      if (byRef.has(ref)) depended_on.add(resolveStationRef(ref, byRef));
     }
   }
 

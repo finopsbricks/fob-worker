@@ -57,7 +57,7 @@ export async function updateStepMetadataHandler() {
 
       if (updated) {
         saveStation(station);
-        console.log(`Updated: ${station.name} (${stationId})`);
+        console.log(`Updated: ${station.name} (${station.short_code || stationId})`);
         totalUpdated++;
       }
     }

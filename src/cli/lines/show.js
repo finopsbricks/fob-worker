@@ -1,5 +1,11 @@
 import { listLocalStations } from '../../utils/station-files.js';
-import { topoSortStations } from '../../utils/line-state.js';
+import {
+  topoSortStations,
+  codeOf,
+  dependencyRef,
+  resolveStationRef,
+  indexStationsByRef,
+} from '../../utils/line-state.js';
 import { formatHeader, formatField, formatTable, formatSection } from '../../utils/format.js';
 
 /**
@@ -32,12 +38,16 @@ export async function showLineHandler(argv) {
   console.log(formatField('Stations', String(members.length), 12));
   console.log('');
 
+  // Resolve dependency refs against every local station, not just this line's
+  // members — a cross-line edge should still render as a short_code.
+  const byRef = indexStationsByRef(stations);
+
   const rows = ordered.map(m => {
-    const code = m.data.short_code || m.data.id;
+    const code = codeOf(m);
     const name = m.data.name || '—';
     const stepCount = Array.isArray(m.data.steps) ? m.data.steps.length : 0;
     const deps = (m.data.dependencies || [])
-      .map(d => (typeof d === 'string' ? d : d.short_code || d.id))
+      .map(d => resolveStationRef(dependencyRef(d), byRef))
       .join(', ') || '—';
     const enabled = m.data.is_enabled === false ? 'no' : 'yes';
     return [code, name, String(stepCount), deps, enabled];
@@ -51,7 +61,7 @@ export async function showLineHandler(argv) {
     for (const step of m.data.steps || []) {
       if (step.slug === 'lib-worker:move_files' && step.config) {
         conveyors.push({
-          station: m.data.short_code || m.data.id,
+          station: codeOf(m),
           from: step.config.source_bin,
           to: step.config.target_bin,
           mode: step.config.mode,
