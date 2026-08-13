@@ -380,7 +380,9 @@ export function run(args) {
     // heading; each command's own options stay under "Options:", shown first
     // via localOptions() in the command builders.
     .group(['help', 'version'], 'Global Options:')
-    .wrap(null)
+    // Wrap to the terminal width so long descriptions hang-indent under the
+    // description column instead of overflowing back to column 0.
+    .wrap(process.stdout.columns || 100)
     .fail((msg, err, yargs) => {
       if (err) {
         console.error(`Error: ${err.message}`);
