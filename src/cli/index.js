@@ -322,52 +322,41 @@ export function run(args) {
         .demandCommand(1, 'Specify an action: show');
     })
     .completion('completion', 'Generate shell completion script', function (current, argv) {
-      // argv._ includes the script name as first element
-      const args = argv._.slice(1).filter(a => a !== '');
+      // Actions available under each resource. Kept as data so every level
+      // filters through the same path.
+      const ACTIONS = {
+        lines: ['list', 'show', 'status', 'empty-bins'],
+        stations: ['status', 'empty-bins', 'update-step-metadata'],
+        steps: ['list', 'run'],
+        workpieces: ['list', 'show', 'watch'],
+        procs: ['list', 'start', 'stop', 'restart', 'logs', 'monit'],
+        config: ['show'],
+      };
+      const RESOURCES = Object.keys(ACTIONS);
 
-      // Resource level completions (fob-worker <tab>)
+      // argv._ includes the script name first, and — when the user is midway
+      // through a word — the partial word last. `current` is that partial.
+      // Drop it so `args` holds only *completed* words: without this,
+      // `fob-worker li<TAB>` yields args=['li'], which matches no level and
+      // returns nothing (bare `<TAB>` worked only because '' was filtered out).
+      const words = argv._.slice(1).filter((a) => a !== '');
+      const args = current && words[words.length - 1] === current ? words.slice(0, -1) : words;
+
+      const startsWithCurrent = (list) => (current ? list.filter((c) => c.startsWith(current)) : list);
+
+      // Resource level (fob-worker <tab>)
       if (args.length === 0) {
-        return ['lines', 'stations', 'steps', 'workpieces', 'procs', 'config'];
+        return startsWithCurrent(RESOURCES);
       }
 
-      if (args[0] === 'config') {
-        return args.length === 1 ? ['show'] : [];
+      // Action level (fob-worker <resource> <tab>)
+      if (args.length === 1) {
+        return startsWithCurrent(ACTIONS[args[0]] ?? []);
       }
 
-      // Steps action level completions (fob-worker steps <tab>)
-      if (args[0] === 'steps') {
-        if (args.length === 1) {
-          return ['list', 'run'];
-        }
-        // Step slug completions (fob-worker steps run <tab>)
-        if (args[1] === 'run') {
-          return getStepSlugs().then(slugs => {
-            if (args.length === 2) {
-              return slugs;
-            }
-            return slugs.filter(s => s.startsWith(current));
-          });
-        }
-      }
-
-      // Stations action level completions (fob-worker stations <tab>)
-      if (args[0] === 'stations') {
-        return args.length === 1 ? ['status', 'empty-bins', 'update-step-metadata'] : [];
-      }
-
-      // Lines action level completions (fob-worker lines <tab>)
-      if (args[0] === 'lines') {
-        return args.length === 1 ? ['list', 'show', 'status', 'empty-bins'] : [];
-      }
-
-      // Workpieces action level completions (fob-worker workpieces <tab>)
-      if (args[0] === 'workpieces') {
-        return args.length === 1 ? ['list', 'show', 'watch'] : [];
-      }
-
-      // Procs action level completions (fob-worker procs <tab>)
-      if (args[0] === 'procs') {
-        return args.length === 1 ? ['list', 'start', 'stop', 'restart', 'logs', 'monit'] : [];
+      // Step slugs (fob-worker steps run <tab>) — the one dynamic source.
+      if (args[0] === 'steps' && args[1] === 'run' && args.length === 2) {
+        return getStepSlugs().then(startsWithCurrent);
       }
 
       return [];
