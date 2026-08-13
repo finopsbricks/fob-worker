@@ -52,12 +52,21 @@ export function getHandler(steps, slug) {
  * @returns {Promise<string[]>} Array of step slugs
  */
 export async function getStepSlugs() {
+  // Step discovery logs "[Worker] Discovered N steps…" to stdout from inside
+  // lib-worker. During completion, stdout *is* the candidate list — bash splits
+  // it on whitespace, so that one line adds 6 bogus candidates ("[Worker]",
+  // "Discovered", "44", …). Silence stdout for the duration of the load; stderr
+  // is untouched, so real errors still surface.
+  const write = process.stdout.write.bind(process.stdout);
+  process.stdout.write = () => true;
   try {
     const config = loadConfig();
     const steps = await loadSteps(config.stepsDir);
     return Object.keys(steps);
   } catch {
     return [];
+  } finally {
+    process.stdout.write = write;
   }
 }
 
