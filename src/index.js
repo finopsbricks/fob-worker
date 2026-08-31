@@ -1,5 +1,5 @@
 /**
- * @fob/cli-fob
+ * @finopsbricks/fob-worker
  *
  * Developer CLI for FinOpsBricks workers.
  *

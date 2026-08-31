@@ -4,7 +4,7 @@ Guidance for Claude Code when working with this package.
 
 ## Overview
 
-`@fob/worker` (binary `fob-worker`) is the **local worker-plane** CLI for FinOpsBricks workers: local step debugging/execution, local run-state inspection (lines/workpieces/`stations status`), and pm2 process management (`procs`). The **orchestrator control plane** (canonical station defs, work records, tags, supporting docs) lives in the sibling **`fob-orc`** CLI / **`@fob/orc`** client. This CLI holds no orchestrator API code. Reachable via the `fob` dispatcher as `fob worker <resource> <action>`. (Was `@fob/cli-fob`, binary `fob`, before the 2026-07-26 split.)
+`@finopsbricks/fob-worker` (binary `fob-worker`) is the **local worker-plane** CLI for FinOpsBricks workers: local step debugging/execution, local run-state inspection (lines/workpieces/`stations status`), and pm2 process management (`procs`). The **orchestrator control plane** (canonical station defs, work records, tags, supporting docs) lives in the sibling **`fob-orc`** CLI / **`@finopsbricks/fob-orc`** client. This CLI holds no orchestrator API code. Reachable via the `fob` dispatcher as `fob worker <resource> <action>`. (Was `@fob/cli-fob`, binary `fob`, before the 2026-07-26 split.)
 
 ### Related Repositories
 

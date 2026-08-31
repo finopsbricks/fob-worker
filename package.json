@@ -1,5 +1,5 @@
 {
-  "name": "@fob/worker",
+  "name": "@finopsbricks/fob-worker",
   "version": "2.0.0",
   "description": "Local worker-plane CLI for FinOpsBricks: step execution, run-state, and pm2 processes (the fob-orc CLI owns the orchestrator plane)",
   "type": "module",

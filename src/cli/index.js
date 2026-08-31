@@ -6,7 +6,7 @@
  * This is the machine-local half of the old `fob` CLI: step execution, local
  * run-state (temp/stations/ → lines/workpieces/bins), and pm2 processes. The
  * orchestrator control plane (canonical station defs, work records, tags,
- * supporting docs) now lives in the sibling `fob-orc` CLI / `@fob/orc` client.
+ * supporting docs) now lives in the sibling `fob-orc` CLI / `@finopsbricks/fob-orc` client.
  * Reachable via the `fob` dispatcher as `fob worker <resource> <action>`.
  */
 

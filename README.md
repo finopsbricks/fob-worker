@@ -1,4 +1,4 @@
-# @fob/worker (`fob-worker`)
+# @finopsbricks/fob-worker (`fob-worker`)
 
 Local worker-plane CLI for FinOpsBricks — step execution, local run-state
 (`fob-worker steps`, `lines`, `workpieces`, `stations status`), and pm2 process
@@ -11,7 +11,7 @@ Command pattern: `fob-worker <resource> <action> [target] [options]`
 > **orchestrator control plane** — canonical station definitions, work records,
 > tags, supporting docs (`stations list/show/edit/pull/push/run/…`, `work-records`,
 > `tags`, `supporting-docs`, `orchestrator status`) — moved to the sibling
-> **`fob-orc`** CLI / **`@fob/orc`** client. What remains here is strictly local:
+> **`fob-orc`** CLI / **`@finopsbricks/fob-orc`** client. What remains here is strictly local:
 > filesystem run-state + local step execution + pm2. The pm2 resource `workers`
 > was renamed **`procs`**.
 
