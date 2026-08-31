@@ -25,7 +25,18 @@
     "worker"
   ],
   "author": "FinOpsBricks",
-  "license": "PRIVATE",
+  "license": "Apache-2.0",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
