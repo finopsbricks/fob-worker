@@ -276,3 +276,39 @@ describe('saveScenario() + loadScenario() + listScenarios()', () => {
     expect(result).toEqual([]);
   });
 });
+
+// ============================================================================
+// Line files
+// ============================================================================
+
+describe('listLocalLines()', () => {
+  let tmp_dir;
+  let original_cwd;
+
+  beforeEach(() => {
+    tmp_dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fob-lines-'));
+    original_cwd = process.cwd();
+    process.chdir(tmp_dir);
+  });
+
+  afterEach(() => {
+    process.chdir(original_cwd);
+    fs.rmSync(tmp_dir, { recursive: true, force: true });
+  });
+
+  it('returns an empty map when .orchestrator/lines/ does not exist', async () => {
+    const { listLocalLines } = await import('../../src/utils/station-files.js');
+    expect(listLocalLines()).toEqual({});
+  });
+
+  it('keys line files by code and skips malformed ones', async () => {
+    const { listLocalLines, getLinesDir } = await import('../../src/utils/station-files.js');
+    fs.mkdirSync(getLinesDir(), { recursive: true });
+    fs.writeFileSync(path.join(getLinesDir(), 'VM.json'), JSON.stringify({ id: 'l1', code: 'VM', name: 'Voice memos', location: 'alex-laptop1' }));
+    fs.writeFileSync(path.join(getLinesDir(), 'bad.json'), '{ not json');
+
+    const lines = listLocalLines();
+    expect(Object.keys(lines)).toEqual(['VM']);
+    expect(lines.VM.location).toBe('alex-laptop1');
+  });
+});

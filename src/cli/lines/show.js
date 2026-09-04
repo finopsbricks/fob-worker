@@ -1,4 +1,4 @@
-import { listLocalStations } from '../../utils/station-files.js';
+import { listLocalStations, listLocalLines } from '../../utils/station-files.js';
 import {
   topoSortStations,
   codeOf,
@@ -17,9 +17,10 @@ import { formatHeader, formatField, formatTable, formatSection } from '../../uti
 export async function showLineHandler(argv) {
   const { line: lineArg, json } = argv;
   const stations = listLocalStations();
+  const line_def = listLocalLines()[lineArg] || null;
 
   const members = stations.filter(s => s.line === lineArg);
-  if (members.length === 0) {
+  if (members.length === 0 && !line_def) {
     console.error(`Line not found locally: ${lineArg}`);
     console.error('Run "fob lines list" to see available lines.');
     process.exit(1);
@@ -30,11 +31,14 @@ export async function showLineHandler(argv) {
   const ordered = topoSortStations(members);
 
   if (json) {
-    console.log(JSON.stringify(ordered.map(m => m.data), null, 2));
+    console.log(JSON.stringify({ line: line_def, stations: ordered.map(m => m.data) }, null, 2));
     return;
   }
 
   console.log(formatHeader('Line', lineArg));
+  if (line_def?.name && line_def.name !== lineArg) console.log(formatField('Name', line_def.name, 12));
+  console.log(formatField('Location', line_def?.location ?? '(no line file — run "fob-orc lines pull --all")', 12));
+  if (line_def?.description) console.log(formatField('Description', line_def.description, 12));
   console.log(formatField('Stations', String(members.length), 12));
   console.log('');
 

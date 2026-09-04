@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `listLocalLines()` / `getLinesDir()` in `src/utils/station-files.js` — reads `.orchestrator/lines/<CODE>.json` (`{ id, code, name, description, location }`), the line files `fob-orc lines pull` writes. A line owns the worker location; stations name their line by code.
+- `fob lines list` shows NAME and LOCATION columns from the line files and lists a line that has a file but no stations yet; `fob lines show` prints the line's name, location and description. `--json` output for both now nests `{ line, stations }` / `{ name, location, stations }`.
 - `--watch [--interval=N]` flag on `fob lines status` and `fob stations status`. Re-renders the snapshot in place on the main screen (cursor-home + erase-to-end, no scrollback pollution; last frame stays visible after Ctrl-C). Default interval 1s. Mutually exclusive with `--json` (one-shot format). Shared helper lives in `src/utils/watch-render.js`.
 - `scanBinWorkpieces(bin_dir)` in `src/utils/line-state.js` — walks a bin tree (up to `MAX_BIN_DEPTH` = 4) and treats any directory containing `pointer.json` as a workpiece. Lets workpieces live under typed sub-bins (`output/invoices/`, `output/PO/`, `output/MSA/`) while keeping the workpiece-id namespace flat.
 - `Position.subpath` — the path from a bin root to the workpiece directory. Equals the workpiece id for flat layouts; carries the sub-bin segment for nested layouts (e.g. `'invoices/hi-1__NT-001'`).

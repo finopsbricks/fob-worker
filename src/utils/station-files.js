@@ -2,9 +2,11 @@
  * Local station and scenario file management
  *
  * Station files live in: .orchestrator/stations/<short_code>__<name>.json
+ * Line files live in:    .orchestrator/lines/<CODE>.json  ({ id, code, name, description, location })
  *
- * Line membership is encoded by the `line` field inside each JSON, not by folder
- * hierarchy — this avoids the redundant-data drift risk of nesting by line.
+ * Line membership is encoded by the `line` field (a line code) inside each
+ * station JSON, not by folder hierarchy — this avoids the redundant-data drift
+ * risk of nesting by line. The line file is where the worker location lives.
  *
  * Scenarios: .orchestrator/scenarios/<slug>/
  */
@@ -13,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 
 const STATIONS_DIR = '.orchestrator/stations';
+const LINES_DIR = '.orchestrator/lines';
 const SCENARIOS_DIR = '.orchestrator/scenarios';
 
 /**
@@ -170,6 +173,34 @@ export function listLocalStations() {
     }
   }
   return stations;
+}
+
+/**
+ * Load every local line JSON (`.orchestrator/lines/*.json`), keyed by code.
+ * A line owns the worker `location`; stations inherit it through their `line` code.
+ * @returns {Object<string, {id?: string, code: string, name?: string, description?: string|null, location: string}>}
+ */
+export function listLocalLines() {
+  const lines = {};
+  if (!fs.existsSync(LINES_DIR)) return lines;
+  for (const f of fs.readdirSync(LINES_DIR)) {
+    if (!f.endsWith('.json')) continue;
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(LINES_DIR, f), 'utf8'));
+      if (data.code) lines[data.code] = data;
+    } catch {
+      // skip malformed files
+    }
+  }
+  return lines;
+}
+
+/**
+ * Get the lines directory path.
+ * @returns {string}
+ */
+export function getLinesDir() {
+  return LINES_DIR;
 }
 
 /**

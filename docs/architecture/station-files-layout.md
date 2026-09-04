@@ -8,9 +8,12 @@ How station definitions and test scenarios are stored in the worker directory.
 
 ```
 .orchestrator/
+├── lines/
+│   ├── VM.json            { id, code, name, description, location }
+│   └── P8.json
 ├── stations/
-│   ├── fvVNrEH6kFW1__verify_statement.json
-│   ├── NKB2zLGHbJxN__data_freshness_report.json
+│   ├── VM3__transcribe_whisper.json   "line": "VM"
+│   ├── P8__verify_statement.json      "line": "P8"
 │   └── 0flNNmVLV5Dg__update_rules.json
 └── scenarios/
     └── alex__send_email/
@@ -21,6 +24,10 @@ How station definitions and test scenarios are stored in the worker directory.
 ## .gitignore
 
 `.orchestrator/` contains worker-specific local state (pulled from the orchestrator for a specific org). It should be in `.gitignore` and is not committed to the worker repo.
+
+## Line Files
+
+One file per line, named by its code: `.orchestrator/lines/<CODE>.json`. A line owns the worker `location`; every station names its line by `code` and inherits the location from it. `@fob/lib-worker` refuses to boot without this directory. Pull with `fob-orc lines pull --all` (also done by `fob-orc stations pull --all`).
 
 ## Station File Naming
 
