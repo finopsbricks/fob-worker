@@ -3,14 +3,14 @@ import path from 'path';
 import { captureOutput } from '../helpers.js';
 
 const mockLoadConfig = jest.fn();
-const mockLoadStepsWithFiles = jest.fn();
+const mockLoadSteps = jest.fn();
 
 jest.unstable_mockModule('../../../src/utils/config.js', () => ({
   loadConfig: mockLoadConfig,
 }));
 
 jest.unstable_mockModule('../../../src/utils/steps-loader.js', () => ({
-  loadStepsWithFiles: mockLoadStepsWithFiles,
+  loadSteps: mockLoadSteps,
 }));
 
 const { listStepsHandler } = await import('../../../src/cli/steps/list.js');
@@ -26,7 +26,7 @@ describe('listStepsHandler()', () => {
     jest.clearAllMocks();
     out = captureOutput();
     mockLoadConfig.mockReturnValue({
-      stepsPath: path.join(process.cwd(), 'src/steps/index.js'),
+      stepsDir: path.join(process.cwd(), 'src/steps'),
     });
   });
 
@@ -36,15 +36,9 @@ describe('listStepsHandler()', () => {
 
   it('should print a table with slug, folder, and file columns', async () => {
     // Arrange
-    mockLoadStepsWithFiles.mockResolvedValue({
-      steps: {
-        'acme/fetch_data': {},
-        'acme/process_data': {},
-      },
-      files: {
-        'acme/fetch_data': './billing/fetch_data.js',
-        'acme/process_data': './billing/process_data.js',
-      },
+    mockLoadSteps.mockResolvedValue({
+      'acme/fetch_data': { _file: 'billing/fetch_data.js' },
+      'acme/process_data': { _file: 'billing/process_data.js' },
     });
 
     // Act
@@ -59,9 +53,8 @@ describe('listStepsHandler()', () => {
 
   it('should extract folder and file correctly from step file paths', async () => {
     // Arrange
-    mockLoadStepsWithFiles.mockResolvedValue({
-      steps: { 'acme/top_level': {} },
-      files: { 'acme/top_level': './top_level.js' },
+    mockLoadSteps.mockResolvedValue({
+      'acme/top_level': { _file: 'top_level.js' },
     });
 
     // Act
@@ -74,19 +67,12 @@ describe('listStepsHandler()', () => {
     expect(out.stdout).toContain('-');
   });
 
-  it('should print steps sorted alphabetically by slug', async () => {
+  it('should print steps sorted by folder, then file', async () => {
     // Arrange
-    mockLoadStepsWithFiles.mockResolvedValue({
-      steps: {
-        'acme/z_last': {},
-        'acme/a_first': {},
-        'acme/m_middle': {},
-      },
-      files: {
-        'acme/z_last': './z_last.js',
-        'acme/a_first': './a_first.js',
-        'acme/m_middle': './m_middle.js',
-      },
+    mockLoadSteps.mockResolvedValue({
+      'acme/z_last': { _file: 'z_last.js' },
+      'acme/a_first': { _file: 'a_first.js' },
+      'acme/m_middle': { _file: 'm_middle.js' },
     });
 
     // Act
@@ -100,7 +86,7 @@ describe('listStepsHandler()', () => {
 
   it('should print "No steps found" when the registry is empty', async () => {
     // Arrange
-    mockLoadStepsWithFiles.mockResolvedValue({ steps: {}, files: {} });
+    mockLoadSteps.mockResolvedValue({});
 
     // Act
     await listStepsHandler();

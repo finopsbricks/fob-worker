@@ -18,7 +18,7 @@ export async function startWorkerHandler(argv) {
   const existing = listRunningWorkers().find((r) => r.cwd === dir);
   if (existing) {
     console.error(`Worker "${name}" is already running (pid ${existing.pid}, mode ${existing.mode}).`);
-    console.error('Use "fob workers stop" first, or "fob workers restart".');
+    console.error('Use "fob-worker procs stop" first, or "fob-worker procs restart".');
     process.exit(1);
   }
 

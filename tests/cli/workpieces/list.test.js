@@ -2,15 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { makeWorkpiece, writeStationDefs } from '../../fixtures/stations.js';
 import { captureOutput, ExitError } from '../helpers.js';
 import { listWorkpiecesHandler } from '../../../src/cli/workpieces/list.js';
 
 // Synthetic stations tree at temp/stations under a fresh cwd, so the handler's
 // default stations_root resolution (cwd-relative) picks it up.
-function makeWorkpiece(stations_root, station, bin, id) {
-  const dir = path.join(stations_root, station, bin, id);
-  fs.mkdirSync(dir, { recursive: true });
-}
 
 describe('listWorkpiecesHandler()', () => {
   let tempDir;
@@ -26,6 +23,7 @@ describe('listWorkpiecesHandler()', () => {
     makeWorkpiece(stations_root, 'VM3', 'failed', 'stuck-a');
     makeWorkpiece(stations_root, 'VM3', 'failed', 'stuck-b');
     makeWorkpiece(stations_root, 'VM5', 'output', 'done-c');
+    writeStationDefs(path.join(tempDir, 'temp', 'stations'), tempDir);
     out = captureOutput();
   });
 

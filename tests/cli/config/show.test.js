@@ -24,7 +24,7 @@ describe('showConfigHandler()', () => {
     jest.clearAllMocks();
     out = captureOutput();
     mockLoadConfig.mockReturnValue({
-      stepsPath: path.join(process.cwd(), 'src/steps/index.js'),
+      stepsDir: path.join(process.cwd(), 'src/steps'),
       tempDir: path.join(process.cwd(), 'temp'),
     });
   });
@@ -41,8 +41,8 @@ describe('showConfigHandler()', () => {
     showConfigHandler();
 
     // Assert
-    expect(out.stdout).toContain('stepsPath');
-    expect(out.stdout).toContain('src/steps/index.js');
+    expect(out.stdout).toContain('stepsDir');
+    expect(out.stdout).toContain('src/steps/');
     expect(out.stdout).toContain('tempDir');
     expect(out.stdout).toContain('temp');
   });
@@ -52,7 +52,7 @@ describe('showConfigHandler()', () => {
     mockGetRelevantEnvVars.mockReturnValue({
       ORCHESTRATOR_URL: 'https://orchestrator.example.com',
       ORCHESTRATOR_API_KEY: '***',
-      STEP_PREFIX: 'acme',
+      WORKER_LOCATION: 'acme',
     });
 
     // Act
@@ -71,7 +71,7 @@ describe('showConfigHandler()', () => {
     mockGetRelevantEnvVars.mockReturnValue({
       ORCHESTRATOR_URL: undefined,
       ORCHESTRATOR_API_KEY: undefined,
-      STEP_PREFIX: undefined,
+      WORKER_LOCATION: undefined,
     });
 
     // Act

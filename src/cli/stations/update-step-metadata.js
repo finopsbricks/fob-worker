@@ -32,7 +32,7 @@ export async function updateStepMetadataHandler() {
 
     if (localIds.length === 0) {
       console.log('No local stations found');
-      console.log('Run "fob stations pull" first');
+      console.log('Run "fob-orc stations pull" first');
       return;
     }
 

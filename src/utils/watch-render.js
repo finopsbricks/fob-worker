@@ -1,5 +1,5 @@
 /**
- * Watch-mode renderer for snapshot commands (e.g. `fob lines status --watch`).
+ * Watch-mode renderer for snapshot commands (e.g. `fob-worker lines status --watch`).
  *
  * Renders in place on the main screen. Each tick sends:
  *   `\x1b[2J` — erase the visible display

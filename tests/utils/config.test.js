@@ -10,7 +10,7 @@ import { loadConfig, ensureTempDir, getRelevantEnvVars } from '../../src/utils/c
 // ============================================================================
 
 describe('loadConfig()', () => {
-  it('should return stepsPath relative to cwd', () => {
+  it('should return stepsDir relative to cwd', () => {
     // Arrange
     const cwd = process.cwd();
 
@@ -18,7 +18,7 @@ describe('loadConfig()', () => {
     const config = loadConfig();
 
     // Assert
-    expect(config.stepsPath).toBe(path.resolve(cwd, './src/steps/index.js'));
+    expect(config.stepsDir).toBe(path.resolve(cwd, './src/steps'));
   });
 
   it('should return tempDir relative to cwd', () => {
@@ -32,12 +32,12 @@ describe('loadConfig()', () => {
     expect(config.tempDir).toBe(path.resolve(cwd, './temp'));
   });
 
-  it('should return an object with exactly stepsPath and tempDir', () => {
+  it('should return an object with exactly stepsDir and tempDir', () => {
     // Act
     const config = loadConfig();
 
     // Assert
-    expect(Object.keys(config).sort()).toEqual(['stepsPath', 'tempDir'].sort());
+    expect(Object.keys(config).sort()).toEqual(['stepsDir', 'tempDir'].sort());
   });
 });
 
@@ -85,7 +85,7 @@ describe('getRelevantEnvVars()', () => {
   beforeEach(() => {
     original = {
       ORCHESTRATOR_URL: process.env.ORCHESTRATOR_URL,
-      STEP_PREFIX: process.env.STEP_PREFIX,
+      WORKER_LOCATION: process.env.WORKER_LOCATION,
       ORCHESTRATOR_API_KEY: process.env.ORCHESTRATOR_API_KEY,
       ORCHESTRATOR_API_SECRET: process.env.ORCHESTRATOR_API_SECRET,
     };
@@ -109,18 +109,18 @@ describe('getRelevantEnvVars()', () => {
     expect(result.ORCHESTRATOR_URL).toBe('https://api.example.com');
   });
 
-  it('should return STEP_PREFIX as-is when set', () => {
+  it('should return WORKER_LOCATION as-is when set', () => {
     // Arrange
-    process.env.STEP_PREFIX = 'alex';
+    process.env.WORKER_LOCATION = 'acme';
 
     // Act
     const result = getRelevantEnvVars();
 
     // Assert
-    expect(result.STEP_PREFIX).toBe('alex');
+    expect(result.WORKER_LOCATION).toBe('acme');
   });
 
-  it('should show first 10 and last 5 chars of ORCHESTRATOR_API_KEY when long enough', () => {
+  it('should reveal no characters of a long ORCHESTRATOR_API_KEY', () => {
     // Arrange
     process.env.ORCHESTRATOR_API_KEY = 'abcdefghij12345678901234567890';
 
@@ -128,35 +128,24 @@ describe('getRelevantEnvVars()', () => {
     const result = getRelevantEnvVars();
 
     // Assert
-    expect(result.ORCHESTRATOR_API_KEY).toBe('abcdefghij***************67890');
+    expect(result.ORCHESTRATOR_API_KEY).toBe('*** (set)');
   });
 
-  it('should mask ORCHESTRATOR_API_KEY with *** when too short to partially reveal', () => {
+  it('should reveal no characters of ORCHESTRATOR_API_SECRET', () => {
     // Arrange
-    process.env.ORCHESTRATOR_API_KEY = 'short-key';
+    process.env.ORCHESTRATOR_API_SECRET = 'super-secret-value-0123456789';
 
     // Act
     const result = getRelevantEnvVars();
 
     // Assert
-    expect(result.ORCHESTRATOR_API_KEY).toBe('***');
-  });
-
-  it('should mask ORCHESTRATOR_API_SECRET with *** when too short to partially reveal', () => {
-    // Arrange
-    process.env.ORCHESTRATOR_API_SECRET = 'super-secret';
-
-    // Act
-    const result = getRelevantEnvVars();
-
-    // Assert
-    expect(result.ORCHESTRATOR_API_SECRET).toBe('***');
+    expect(result.ORCHESTRATOR_API_SECRET).toBe('*** (set)');
   });
 
   it('should return undefined for unset vars', () => {
     // Arrange
     delete process.env.ORCHESTRATOR_URL;
-    delete process.env.STEP_PREFIX;
+    delete process.env.WORKER_LOCATION;
     delete process.env.ORCHESTRATOR_API_KEY;
     delete process.env.ORCHESTRATOR_API_SECRET;
 
@@ -165,7 +154,7 @@ describe('getRelevantEnvVars()', () => {
 
     // Assert
     expect(result.ORCHESTRATOR_URL).toBeUndefined();
-    expect(result.STEP_PREFIX).toBeUndefined();
+    expect(result.WORKER_LOCATION).toBeUndefined();
     expect(result.ORCHESTRATOR_API_KEY).toBeUndefined();
     expect(result.ORCHESTRATOR_API_SECRET).toBeUndefined();
   });

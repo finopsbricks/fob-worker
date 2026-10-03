@@ -10,7 +10,7 @@ import path from 'path';
 
 /**
  * Resolve convention-based paths for the current worker repo
- * @returns {{ stepsPath: string, tempDir: string }}
+ * @returns {{ stepsDir: string, tempDir: string }}
  */
 export function loadConfig() {
   const cwd = process.cwd();
@@ -30,11 +30,10 @@ export function ensureTempDir(tempDir) {
   }
 }
 
+/** Never show any part of a credential: only whether it is set. */
 function maskSecret(value) {
   if (!value) return undefined;
-  if (value.length <= 15) return '***';
-  const masked = value.length - 10 - 5;
-  return `${value.slice(0, 10)}${'*'.repeat(masked)}${value.slice(-5)}`;
+  return '*** (set)';
 }
 
 /**

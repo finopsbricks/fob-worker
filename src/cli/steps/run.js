@@ -25,7 +25,7 @@ export async function runStepHandler(argv) {
 
   if (!handler) {
     console.error(`Unknown step: ${slug}`);
-    console.error('Run "fob steps list" to see available steps');
+    console.error('Run "fob-worker steps list" to see available steps');
     process.exit(1);
   }
 
@@ -45,7 +45,7 @@ export async function runStepHandler(argv) {
     const station = loadStation(stationId);
     if (!station) {
       console.error(`Station not found locally: ${stationId}`);
-      console.error(`Run "fob stations pull ${stationId}" first`);
+      console.error(`Run "fob-orc stations pull ${stationId}" first`);
       process.exit(1);
     }
 

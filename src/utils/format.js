@@ -109,7 +109,7 @@ export function formatDate(iso) {
  * Wall-clock time only, for append-style feeds where the date is implied by the
  * session: "15:53:01".
  *
- * Accepts an ISO string or a `Date` (`fob worker workpieces watch` stamps
+ * Accepts an ISO string or a `Date` (`fob-worker workpieces watch` stamps
  * `new Date()` as each event arrives).
  *
  * @param {string|Date|null|undefined} iso

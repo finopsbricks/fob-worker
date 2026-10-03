@@ -9,10 +9,10 @@ import {
 import { formatHeader, formatField, formatTable, formatSection } from '../../utils/format.js';
 
 /**
- * `fob lines show <line>` — definitional view of a line: stations in dependency
+ * `fob-worker lines show <line>` — definitional view of a line: stations in dependency
  * order, plus conveyor topology. Derived from local station JSON files.
  *
- * For the operational view (live bin counts), use `fob lines status <line>`.
+ * For the operational view (live bin counts), use `fob-worker lines status <line>`.
  */
 export async function showLineHandler(argv) {
   const { line: lineArg, json } = argv;
@@ -22,7 +22,7 @@ export async function showLineHandler(argv) {
   const members = stations.filter(s => s.line === lineArg);
   if (members.length === 0 && !line_def) {
     console.error(`Line not found locally: ${lineArg}`);
-    console.error('Run "fob lines list" to see available lines.');
+    console.error('Run "fob-worker lines list" to see available lines.');
     process.exit(1);
   }
 
@@ -82,5 +82,5 @@ export async function showLineHandler(argv) {
   }
 
   console.log('');
-  console.log(`Run \`fob lines status ${lineArg}\` for live bin counts.`);
+  console.log(`Run \`fob-worker lines status ${lineArg}\` for live bin counts.`);
 }

@@ -13,7 +13,7 @@
  *   const { initTemplates, resolveConfig } = libWorker;
  *
  *   // Sync — returns cached module (throws if not yet loaded)
- *   const { isStepDefinition, getStepHandler } = getLibWorker();
+ *   const { createHandler } = getLibWorker();
  */
 
 import path from 'path';

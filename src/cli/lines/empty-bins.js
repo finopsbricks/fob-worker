@@ -8,10 +8,10 @@ import {
   confirmWipe,
 } from '../shared/empty-bins.js';
 
-const USAGE = 'Usage: fob lines empty-bins <line> [--all | --all-bins | --input | --doing | --output | --failed | --done | --intake-registry] [--yes]';
+const USAGE = 'Usage: fob-worker lines empty-bins <line> [--all | --all-bins | --input | --doing | --output | --failed | --done | --intake-registry] [--yes]';
 
 /**
- * `fob lines empty-bins <LINE>` — wipe selected bin dirs (and optionally
+ * `fob-worker lines empty-bins <LINE>` — wipe selected bin dirs (and optionally
  * intake-registry.jsonl) across every station in the line. Same primitives
  * as the station handler — just a wider Y axis.
  */

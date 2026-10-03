@@ -3,7 +3,7 @@ import { loadLineState, summarizeLine, LIVE_BINS } from '../../utils/line-state.
 import { watchRender, DEFAULT_WATCH_INTERVAL_SECS } from '../../utils/watch-render.js';
 
 /**
- * `fob lines status [code]` — operational snapshot of live bin state.
+ * `fob-worker lines status [code]` — operational snapshot of live bin state.
  *
  * With no argument: per-line summary across every line found under
  * temp/stations/, with IN-FLIGHT / STUCK / FINISHED / HEALTH columns.
@@ -28,7 +28,7 @@ export async function statusLineHandler(argv) {
 
     if (Object.keys(lines).length === 0) {
       if (json) console.log(JSON.stringify({}, null, 2));
-      else console.log('No lines found under temp/stations/.');
+      else console.log('No lines found in .orchestrator/stations/. Run "fob-orc stations pull --all" to fetch station files.');
       return;
     }
 
@@ -138,5 +138,5 @@ function renderLineDrilldown(ls, json) {
   ));
   console.log('');
   console.log('`(done)` shown in parens for audit; excluded from live totals.');
-  console.log('Run `fob workpieces list --line ' + ls.code + '` for per-workpiece positions.');
+  console.log('Run `fob-worker workpieces list --line ' + ls.code + '` for per-workpiece positions.');
 }

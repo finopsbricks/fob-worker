@@ -121,7 +121,7 @@ function pm2Apps() {
  */
 export function listRunningWorkers() {
   if (process.platform !== 'darwin' && process.platform !== 'linux') {
-    console.error(`Warning: "fob procs" process detection requires macOS or Linux and is unsupported on ${process.platform}.`);
+    console.error(`Warning: "fob-worker procs" process detection requires macOS or Linux and is unsupported on ${process.platform}.`);
     return [];
   }
 

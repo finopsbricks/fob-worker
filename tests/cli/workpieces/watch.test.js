@@ -2,14 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { makeWorkpiece, writeStationDefs } from '../../fixtures/stations.js';
 import { captureOutput, ExitError } from '../helpers.js';
 import { watchHandler } from '../../../src/cli/workpieces/watch.js';
 
-function makeWorkpiece(stations_root, station, bin, id) {
-  fs.mkdirSync(path.join(stations_root, station, bin, id), { recursive: true });
-}
 
-// These tests exercise the routing logic of `fob workpieces watch` —
+// These tests exercise the routing logic of `fob-worker workpieces watch` —
 // specifically: scope validation, error paths, and what happens before
 // the watch loop starts. The loop itself runs forever, so we don't
 // exercise it here (tested manually + via line-state.test.js).
@@ -26,6 +24,7 @@ describe('watchHandler() — routing', () => {
     const stations_root = path.join(tempDir, 'temp', 'stations');
     fs.mkdirSync(stations_root, { recursive: true });
     makeWorkpiece(stations_root, 'VM3', 'failed', 'stuck-a');
+    writeStationDefs(path.join(tempDir, 'temp', 'stations'), tempDir);
     out = captureOutput();
   });
 
@@ -38,7 +37,7 @@ describe('watchHandler() — routing', () => {
   it('should exit with a usage message when no scope flag and no id is provided', async () => {
     // Act + Assert
     await expect(watchHandler({})).rejects.toBeInstanceOf(ExitError);
-    expect(out.stderr).toMatch(/Usage: fob workpieces watch/);
+    expect(out.stderr).toMatch(/Usage: fob-worker workpieces watch/);
   });
 
   it('should exit when the workpiece id matches nothing', async () => {

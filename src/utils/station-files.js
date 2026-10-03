@@ -390,7 +390,7 @@ export function saveScenario(stepSlug, scenarioName, config) {
 // ============================================================================
 //
 // Station scenarios are flat key→value JSONs of step-config overrides applied
-// to a whole station run via `fob stations run <id> --scenario <name>`. They
+// to a whole station run via `fob-worker stations run <id> --scenario <name>`. They
 // live under `.orchestrator/scenarios/stations/<short_code>/<name>.json`, keyed
 // by short_code (stable + human-readable). The orchestrator shallow-merges
 // every key into every step's config — zod on the worker strips keys a step

@@ -9,19 +9,19 @@ import {
 import { listWorkpiecesHandler } from './list.js';
 
 /**
- * `fob workpieces show <id-or-substring>` — single-workpiece depth view.
+ * `fob-worker workpieces show <id-or-substring>` — single-workpiece depth view.
  *
  * Renders: position label, journey from log.jsonl with computed durations,
  * and a Cmd-clickable file:// folder link to the workpiece dir.
  *
  * Substring resolving to >1 id auto-promotes to the dashboard via
- * `fob workpieces list --match <substring>`. To force the single view,
+ * `fob-worker workpieces list --match <substring>`. To force the single view,
  * pass the full id.
  */
 export async function showWorkpieceHandler(argv) {
   const { id: query, json } = argv;
   if (!query) {
-    console.error('Usage: fob workpieces show <id-or-substring>');
+    console.error('Usage: fob-worker workpieces show <id-or-substring>');
     process.exit(1);
   }
 
@@ -56,7 +56,7 @@ export async function showWorkpieceHandler(argv) {
   }
 
   renderWorkpiece(resolved.id, pos);
-  console.log(`\nRun \`fob workpieces watch ${resolved.id}\` to tail this workpiece live.`);
+  console.log(`\nRun \`fob-worker workpieces watch ${resolved.id}\` to tail this workpiece live.`);
 }
 
 function resolveQueryToId(query, lines) {

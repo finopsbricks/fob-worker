@@ -19,10 +19,10 @@ import { showWorkpieceHandler } from './show.js';
  * Friendly to scrollback and `>` redirection. Initial snapshot is rendered
  * by the existing list/show handlers; the watch loop picks up from there.
  *
- * `fob workpieces watch <id>` → tail one workpiece
- * `fob workpieces watch --bin VM3/failed` → tail every workpiece in that bin
- * `fob workpieces watch --line VM` → tail every workpiece on a line
- * `fob workpieces watch --match <substring>` → tail by substring filter
+ * `fob-worker workpieces watch <id>` → tail one workpiece
+ * `fob-worker workpieces watch --bin VM3/failed` → tail every workpiece in that bin
+ * `fob-worker workpieces watch --line VM` → tail every workpiece on a line
+ * `fob-worker workpieces watch --match <substring>` → tail by substring filter
  */
 
 const DEFAULT_INTERVAL_SECS = 2;
@@ -96,7 +96,7 @@ export async function watchSingle(workpiece_id, { interval_secs = DEFAULT_INTERV
  * @param {number} [opts.interval_secs=2]
  */
 /**
- * Top-level handler for `fob workpieces watch [id|--line|--bin|--match]`.
+ * Top-level handler for `fob-worker workpieces watch [id|--line|--bin|--match]`.
  *
  * Decides single vs multi based on flags / positional id, renders the
  * matching snapshot (delegated to show/list), then enters the watch loop.
@@ -155,8 +155,8 @@ export async function watchHandler(argv) {
     }
     ids = [...set];
   } else {
-    console.error('Usage: fob workpieces watch <id> | --line <code> | --bin STATION/BIN | --match <substring>');
-    console.error('Run "fob workpieces list" to see workpieces on disk.');
+    console.error('Usage: fob-worker workpieces watch <id> | --line <code> | --bin STATION/BIN | --match <substring>');
+    console.error('Run "fob-worker workpieces list" to see workpieces on disk.');
     process.exit(1);
   }
 

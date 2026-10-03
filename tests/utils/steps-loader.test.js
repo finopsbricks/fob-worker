@@ -1,6 +1,13 @@
-import { describe, it, expect } from '@jest/globals';
+import { jest, describe, it, expect } from '@jest/globals';
 
-import { findPreviousStep, getHandler } from '../../src/utils/steps-loader.js';
+const mockCreateHandler = jest.fn();
+
+jest.unstable_mockModule('../../src/utils/lib-worker-loader.js', () => ({
+  loadLibWorker: jest.fn(),
+  getLibWorker: () => ({ createHandler: mockCreateHandler }),
+}));
+
+const { findPreviousStep, getHandler } = await import('../../src/utils/steps-loader.js');
 
 // ============================================================================
 // findPreviousStep
@@ -46,12 +53,14 @@ describe('getHandler()', () => {
     expect(result).toBeNull();
   });
 
-  it('should throw when the step is a plain function (not a StepDefinition)', () => {
-    const steps = {
-      'plain_fn': async () => ({}),
-    };
-    expect(() => getHandler(steps, 'plain_fn')).toThrow(
-      /must be a StepDefinition/
-    );
+  it('should build the handler with lib-worker createHandler()', () => {
+    const step = { slug: 'acme/fetch' };
+    const handler = async () => ({});
+    mockCreateHandler.mockReturnValue(handler);
+
+    const result = getHandler({ 'acme/fetch': step }, 'acme/fetch');
+
+    expect(mockCreateHandler).toHaveBeenCalledWith(step);
+    expect(result).toBe(handler);
   });
 });

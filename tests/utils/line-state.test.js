@@ -14,33 +14,24 @@ import {
   summarizeLine,
   scanBinWorkpieces,
 } from '../../src/utils/line-state.js';
+import { makeWorkpiece, makeBinDir, writeStationDefs } from '../fixtures/stations.js';
 
 // ============================================================================
 // Helpers — build a synthetic stations tree on disk
 // ============================================================================
 
 /**
- * Make a workpiece dir at temp/stations/{station}/{bin}/{id}/
- * Optionally drop a log.jsonl with the given events.
+ * Load line state the way the CLI does: from the worker repo root (the
+ * parent of stations_root), with station files describing the topology.
  */
-function makeWorkpiece(stations_root, station, bin, id, events = null) {
-  const dir = path.join(stations_root, station, bin, id);
-  fs.mkdirSync(dir, { recursive: true });
-  if (events) {
-    fs.writeFileSync(
-      path.join(dir, 'log.jsonl'),
-      events.map((e) => JSON.stringify(e)).join('\n') + '\n',
-    );
-  }
-  return dir;
+function load(stations_root) {
+  if (fs.existsSync(stations_root)) writeStationDefs(stations_root, path.dirname(stations_root));
+  process.chdir(path.dirname(stations_root));
+  return loadLineState({ stations_root });
 }
 
-/**
- * Make an (empty) bin dir without any workpieces.
- */
-function makeBinDir(stations_root, station, bin) {
-  fs.mkdirSync(path.join(stations_root, station, bin), { recursive: true });
-}
+const original_cwd = process.cwd();
+afterEach(() => process.chdir(original_cwd));
 
 // ============================================================================
 // Pure helpers (no fs)
@@ -125,20 +116,21 @@ describe('loadLineState()', () => {
 
   it('should return an empty object when stations_root does not exist', () => {
     // Act
+    process.chdir(tempDir);
     const lines = loadLineState({ stations_root: path.join(tempDir, 'missing') });
 
     // Assert
     expect(lines).toEqual({});
   });
 
-  it('should discover lines by 2-letter station prefix', () => {
+  it('should group stations by the line in their station files', () => {
     // Arrange
     makeBinDir(stations_root, 'VM0', 'output');
     makeBinDir(stations_root, 'VM2', 'input');
     makeBinDir(stations_root, 'ZP1', 'input');
 
     // Act
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Assert
     expect(Object.keys(lines).sort()).toEqual(['VM', 'ZP']);
@@ -146,27 +138,27 @@ describe('loadLineState()', () => {
     expect(lines.ZP.stations).toEqual(['ZP1']);
   });
 
-  it('should sort stations by numeric suffix and pick the highest as terminal', () => {
+  it('should order stations by dependencies and pick the last as terminal', () => {
     // Arrange
     makeBinDir(stations_root, 'VM10', 'output');
     makeBinDir(stations_root, 'VM2', 'output');
     makeBinDir(stations_root, 'VM0', 'output');
 
     // Act
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Assert
     expect(lines.VM.stations).toEqual(['VM0', 'VM2', 'VM10']);
     expect(lines.VM.terminal).toBe('VM10');
   });
 
-  it('should skip non-conforming station directories (e.g. "VM5 old")', () => {
+  it('should ignore station directories with no station file (e.g. "VM5 old")', () => {
     // Arrange
     makeBinDir(stations_root, 'VM5', 'output');
     fs.mkdirSync(path.join(stations_root, 'VM5 old', 'done'), { recursive: true });
 
     // Act
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Assert
     expect(lines.VM.stations).toEqual(['VM5']);
@@ -177,24 +169,24 @@ describe('loadLineState()', () => {
     makeBinDir(stations_root, 'VM0', 'output');
 
     // Act
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Assert
-    expect(lines.VM.bins.VM0.output).toBeInstanceOf(Set);
+    expect(lines.VM.bins.VM0.output).toBeInstanceOf(Map);
     expect(lines.VM.bins.VM0.input).toBeNull();
     expect(lines.VM.bins.VM0.failed).toBeNull();
   });
 
-  it('should populate bins with workpiece-id Sets', () => {
+  it('should populate bins with workpiece ids', () => {
     // Arrange
     makeWorkpiece(stations_root, 'VM3', 'failed', 'wp1');
     makeWorkpiece(stations_root, 'VM3', 'failed', 'wp2');
 
     // Act
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Assert
-    expect(lines.VM.bins.VM3.failed).toEqual(new Set(['wp1', 'wp2']));
+    expect([...lines.VM.bins.VM3.failed.keys()].sort()).toEqual(['wp1', 'wp2']);
   });
 });
 
@@ -215,7 +207,7 @@ describe('resolvePosition()', () => {
   it('should return null when the workpiece is nowhere on disk', () => {
     // Arrange
     makeBinDir(stations_root, 'VM0', 'output');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const pos = resolvePosition('ghost', lines);
@@ -230,20 +222,20 @@ describe('resolvePosition()', () => {
     makeBinDir(stations_root, 'VM5', 'output');
     makeWorkpiece(stations_root, 'VM3', 'done', 'wp');
     makeWorkpiece(stations_root, 'VM4', 'input', 'wp');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const pos = resolvePosition('wp', lines);
 
     // Assert — VM4/input wins; VM3/done is just an archive
-    expect(pos).toEqual({ line: 'VM', station: 'VM4', bin: 'input', terminal: false });
+    expect(pos).toEqual({ line: 'VM', station: 'VM4', bin: 'input', subpath: 'wp', terminal: false });
   });
 
   it('should report terminal when the workpiece is at the highest-numbered station output', () => {
     // Arrange
     makeWorkpiece(stations_root, 'VM2', 'output', 'wp_other'); // ensure VM2 exists
     makeWorkpiece(stations_root, 'VM5', 'output', 'wp');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const pos = resolvePosition('wp', lines);
@@ -257,7 +249,7 @@ describe('resolvePosition()', () => {
   it('should mark anomaly when a workpiece is only in done and no live bin', () => {
     // Arrange — workpiece only in VM3/done, nowhere else
     makeWorkpiece(stations_root, 'VM3', 'done', 'orphan');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const pos = resolvePosition('orphan', lines);
@@ -270,7 +262,7 @@ describe('resolvePosition()', () => {
     // Arrange — workpiece in BOTH VM3/failed and VM3/output (edge case)
     makeWorkpiece(stations_root, 'VM3', 'output', 'wp');
     makeWorkpiece(stations_root, 'VM3', 'failed', 'wp');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const pos = resolvePosition('wp', lines);
@@ -299,7 +291,7 @@ describe('findWorkpieceMatches()', () => {
 
   it('should return every distinct id whose name contains the query', () => {
     // Arrange
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const matches = findWorkpieceMatches('20260605', lines);
@@ -312,20 +304,20 @@ describe('findWorkpieceMatches()', () => {
     // Arrange — add a workpiece that appears at VM3/done AND VM4/input
     makeWorkpiece(stations_root, 'VM3', 'done', 'twin');
     makeWorkpiece(stations_root, 'VM4', 'input', 'twin');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const matches = findWorkpieceMatches('twin', lines);
 
     // Assert
     expect(matches.get('twin')).toEqual({
-      line: 'VM', station: 'VM4', bin: 'input', terminal: false,
+      line: 'VM', station: 'VM4', bin: 'input', subpath: 'twin', terminal: false,
     });
   });
 
   it('should return an empty map when no id matches', () => {
     // Arrange
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const matches = findWorkpieceMatches('xxxx', lines);
@@ -416,13 +408,13 @@ describe('summarizeLine()', () => {
   });
 
   it('should count stuck workpieces in failed, in-flight in non-terminal live bins, finished at terminal output', () => {
-    // Arrange — replicate the worker-alex state: 7 stuck at VM3/failed, 8 finished at VM5/output
+    // Arrange — 7 stuck at VM3/failed, 8 finished at VM5/output
     for (let i = 0; i < 7; i++) makeWorkpiece(stations_root, 'VM3', 'failed', `stuck${i}`);
     for (let i = 0; i < 8; i++) makeWorkpiece(stations_root, 'VM5', 'output', `done${i}`);
     makeBinDir(stations_root, 'VM0', 'output');
     makeBinDir(stations_root, 'VM2', 'output');
     makeBinDir(stations_root, 'VM4', 'output');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const summary = summarizeLine(lines.VM);
@@ -438,7 +430,7 @@ describe('summarizeLine()', () => {
     // Arrange — only done bin populated
     for (let i = 0; i < 15; i++) makeWorkpiece(stations_root, 'VM2', 'done', `archive${i}`);
     makeBinDir(stations_root, 'VM5', 'output');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const summary = summarizeLine(lines.VM);
@@ -454,7 +446,7 @@ describe('summarizeLine()', () => {
     for (let i = 0; i < 3; i++) makeWorkpiece(stations_root, 'VM2', 'input', `a${i}`);
     for (let i = 0; i < 10; i++) makeWorkpiece(stations_root, 'VM3', 'input', `b${i}`);
     makeBinDir(stations_root, 'VM5', 'output');
-    const lines = loadLineState({ stations_root });
+    const lines = load(stations_root);
 
     // Act
     const summary = summarizeLine(lines.VM);

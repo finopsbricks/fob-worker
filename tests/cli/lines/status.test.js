@@ -2,16 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { makeWorkpiece, makeBinDir, writeStationDefs } from '../../fixtures/stations.js';
 import { captureOutput, ExitError } from '../helpers.js';
 import { statusLineHandler } from '../../../src/cli/lines/status.js';
 
-function makeWorkpiece(stations_root, station, bin, id) {
-  fs.mkdirSync(path.join(stations_root, station, bin, id), { recursive: true });
-}
 
-function makeBinDir(stations_root, station, bin) {
-  fs.mkdirSync(path.join(stations_root, station, bin), { recursive: true });
-}
 
 describe('statusLineHandler()', () => {
   let tempDir;
@@ -31,6 +26,7 @@ describe('statusLineHandler()', () => {
     makeWorkpiece(stations_root, 'VM3', 'failed', 'stuck-a');
     makeWorkpiece(stations_root, 'VM5', 'output', 'done-b');
     makeWorkpiece(stations_root, 'VM5', 'output', 'done-c');
+    writeStationDefs(path.join(tempDir, 'temp', 'stations'), tempDir);
     out = captureOutput();
   });
 
@@ -88,9 +84,9 @@ describe('statusLineHandler()', () => {
     expect(parsed.stations.VM3.failed).toEqual(['stuck-a']);
   });
 
-  it('should report when no lines exist on disk', async () => {
-    // Arrange — wipe the stations root
-    fs.rmSync(path.join(tempDir, 'temp', 'stations'), { recursive: true, force: true });
+  it('should report when there are no station files', async () => {
+    // Arrange — no .orchestrator/stations/ means no lines
+    fs.rmSync(path.join(tempDir, '.orchestrator'), { recursive: true, force: true });
 
     // Act
     await statusLineHandler({});

@@ -7,11 +7,13 @@
  * run-state (temp/stations/ → lines/workpieces/bins), and pm2 processes. The
  * orchestrator control plane (canonical station defs, work records, tags,
  * supporting docs) now lives in the sibling `fob-orc` CLI / `@finopsbricks/fob-orc` client.
- * Reachable via the `fob` dispatcher as `fob worker <resource> <action>`.
  */
 
+import { readFileSync } from 'node:fs';
 import yargs from 'yargs';
 import 'dotenv/config';
+
+import { DOCS_URL, LANDING_URL } from '../links.js';
 
 import { localOptions } from './_helpers.js';
 
@@ -36,8 +38,18 @@ import { showWorkpieceHandler } from './workpieces/show.js';
 import { watchHandler } from './workpieces/watch.js';
 import { getStepSlugs } from '../utils/steps-loader.js';
 
+// Read our own package.json: yargs' default --version looks for the nearest
+// package.json from the working directory, which is the host project's when
+// fob-worker is installed as a dependency.
+const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+
+/**
+ * Frame human output with separator lines. `--json` output is left bare so it
+ * stays parseable.
+ */
 function withSeparator(handler) {
   return async (argv) => {
+    if (argv.json) return handler(argv);
     console.log('='.repeat(60));
     await handler(argv);
     console.log('='.repeat(60));
@@ -362,7 +374,10 @@ export function run(args) {
       return [];
     })
     .demandCommand(1, 'Specify a resource: lines, stations, steps, workpieces, procs, config')
+    .strictCommands()
+    .epilogue(`Docs: ${DOCS_URL}\nAbout: ${LANDING_URL}`)
     .help()
+    .version(version)
     .alias('h', 'help')
     .alias('v', 'version')
     // Global options (inherited by every command) render under their own
