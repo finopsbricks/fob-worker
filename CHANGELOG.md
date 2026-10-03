@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.0] - 2026-10-03
 
-First public release. Docs: https://orchestrator.finopsbricks.com/docs/workers
+First public release. Docs: https://finopsbricks.com/docs/workers
 
 ### Added
 - Line files: `fob-worker lines list` shows NAME and LOCATION columns from `.orchestrator/lines/<CODE>.json` (written by `fob-orc lines pull`) and lists a line that has a file but no stations yet; `fob-worker lines show` prints the line's name, location and description. `--json` output for both now nests `{ name, location, stations }` / `{ line, stations }`. Library: `listLocalLines()` / `getLinesDir()` in `src/utils/station-files.js`.
@@ -22,6 +22,7 @@ First public release. Docs: https://orchestrator.finopsbricks.com/docs/workers
 - Unknown commands and actions exit 1 with an error instead of exiting 0 silently.
 - `config show` no longer prints any characters of `ORCHESTRATOR_API_KEY` or `ORCHESTRATOR_API_SECRET`; it shows `*** (set)`.
 - Hints that named retired commands (`fob steps list`, `fob stations pull`, `fob workers stop`, …) now name the current ones (`fob-worker …`, `fob-orc …`).
+- `workpieces list`, `show` and `watch` show event times in local time, with the zone in the header. They printed UTC with no label.
 - "No lines found" messages say where lines come from (`.orchestrator/stations/`) and how to fetch them.
 - The test suite passes again (it had 36 failures from the line-file and `discoverSteps()` changes).
 
