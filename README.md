@@ -14,7 +14,7 @@ fob-worker workpieces show 2026-10-03-acme
 
 fob-worker works inside a **worker repo**: a Node.js project that runs your steps for the Orchestrator.
 
-- **An Orchestrator account.** Orchestrator is available to FinOpsBricks customers; [request access](https://finopsbricks.com/cli/fob-worker#access).
+- **An Orchestrator account**, to run the worker for real: [sign up](https://console.finopsbricks.com/signup), then create an organisation in the [Orchestrator](https://orchestrator.finopsbricks.com/orgs). Running steps locally needs no account.
 - **A worker repo** built on [`@fob/lib-worker`](https://github.com/finopsbricks/lib-worker). Start from [worker-template](https://github.com/finopsbricks/worker-template).
 - **Node.js 18 or later.**
 - [`fob-orc`](https://www.npmjs.com/package/@finopsbricks/fob-orc), to pull and push station definitions.
