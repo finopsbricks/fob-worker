@@ -15,6 +15,14 @@ Command pattern: `fob-worker <resource> <action> [target] [options]`
 > filesystem run-state + local step execution + pm2. The pm2 resource `workers`
 > was renamed **`procs`**.
 
+## Install
+
+```bash
+npm install -g @finopsbricks/fob-worker
+```
+
+Run it inside a worker repository built on [`@fob/lib-worker`](https://github.com/finopsbricks/lib-worker). To start one, use the [worker-template](https://github.com/finopsbricks/worker-template). Station definitions are pulled and pushed with `fob-orc`.
+
 ## Installation Docs
 
 - [Installation](docs/usage/installation.md) — install, link, shell completion
@@ -26,7 +34,6 @@ Guides for CLI users:
 
 - [Command Reference](docs/usage/commands.md) — all commands grouped by resource
 - [Running Steps](docs/usage/running-steps.md) — local step debugging workflow
-- [Station Sync](docs/usage/station-sync.md) — pull/edit/push workflow
 - [Scenarios](docs/usage/scenarios.md) — reusable test configs for steps
 
 

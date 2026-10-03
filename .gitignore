@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 junit.xml
 coverage/
+.claude/
+CLAUDE.md
+# Internal planning notes, kept locally
+docs/wip/

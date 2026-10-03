@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git -C /Users/alex/ec2code/finopsbricks/cli/cli-fobs remote -v)"
-    ]
-  }
-}

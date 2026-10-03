@@ -58,6 +58,5 @@ This matches the same convention used for step output files in `temp/`.
 ## Related Notes
 
 - [Running Steps Locally](/docs/usage/running-steps.md)
-- [Station Sync](/docs/usage/station-sync.md)
 - [Station Files Layout](/docs/architecture/station-files-layout.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)

@@ -153,6 +153,5 @@ fob config show                             # Show resolved paths and environmen
 ## Related Notes
 
 - [Running Steps Locally](/docs/usage/running-steps.md) — step debugging workflow
-- [Station Sync](/docs/usage/station-sync.md) — pull/edit/push workflow
 - [Scenarios](/docs/usage/scenarios.md) — reusable test configs
 - [Configuration Reference](/docs/usage/configuration.md) — paths and env vars

@@ -54,5 +54,4 @@ Full station definition JSON as returned by the orchestrator API, including `id`
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
-- [Station Sync](/docs/usage/station-sync.md)
 - [Scenarios](/docs/usage/scenarios.md)

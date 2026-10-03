@@ -58,5 +58,4 @@ Each local run constructs a synthetic task matching the orchestrator's structure
 
 - [Command Reference](/docs/usage/commands.md)
 - [Scenarios](/docs/usage/scenarios.md)
-- [Station Sync](/docs/usage/station-sync.md)
 - [Task Construction](/docs/architecture/task-construction.md)
