@@ -7,23 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-03
+
+First public release. Docs: https://orchestrator.finopsbricks.com/docs/workers
+
 ### Added
-- `listLocalLines()` / `getLinesDir()` in `src/utils/station-files.js` — reads `.orchestrator/lines/<CODE>.json` (`{ id, code, name, description, location }`), the line files `fob-orc lines pull` writes. A line owns the worker location; stations name their line by code.
-- `fob lines list` shows NAME and LOCATION columns from the line files and lists a line that has a file but no stations yet; `fob lines show` prints the line's name, location and description. `--json` output for both now nests `{ line, stations }` / `{ name, location, stations }`.
-- `--watch [--interval=N]` flag on `fob lines status` and `fob stations status`. Re-renders the snapshot in place on the main screen (cursor-home + erase-to-end, no scrollback pollution; last frame stays visible after Ctrl-C). Default interval 1s. Mutually exclusive with `--json` (one-shot format). Shared helper lives in `src/utils/watch-render.js`.
+- Line files: `fob-worker lines list` shows NAME and LOCATION columns from `.orchestrator/lines/<CODE>.json` (written by `fob-orc lines pull`) and lists a line that has a file but no stations yet; `fob-worker lines show` prints the line's name, location and description. `--json` output for both now nests `{ name, location, stations }` / `{ line, stations }`. Library: `listLocalLines()` / `getLinesDir()` in `src/utils/station-files.js`.
+- `--help` links the docs and the fob-worker page.
+
+### Fixed
+- `--json` output is parseable: the `====` separator lines are no longer printed with `--json`, and `lines list --json` and `workpieces list --json` print JSON (not a message) when there's nothing to show.
+- `import '@finopsbricks/fob-worker'` no longer throws (the entry re-exported a missing `src/cli.js`).
+- `--version` prints fob-worker's version, not the version of the project it's run in.
+- Unknown commands and actions exit 1 with an error instead of exiting 0 silently.
+- `config show` no longer prints any characters of `ORCHESTRATOR_API_KEY` or `ORCHESTRATOR_API_SECRET`; it shows `*** (set)`.
+- Hints that named retired commands (`fob steps list`, `fob stations pull`, `fob workers stop`, …) now name the current ones (`fob-worker …`, `fob-orc …`).
+- "No lines found" messages say where lines come from (`.orchestrator/stations/`) and how to fetch them.
+- The test suite passes again (it had 36 failures from the line-file and `discoverSteps()` changes).
+
+## [2.0.0] - 2026-08-31
+
+### Changed
+- **BREAKING:** Split from `@fob/cli-fob` (binary `fob`). This package is now `@finopsbricks/fob-worker` (binary `fob-worker`), the machine-local half: steps, lines, stations status, workpieces, procs and config. Station definitions, work records, tags, supporting docs and orchestrator status moved to [`fob-orc`](https://www.npmjs.com/package/@finopsbricks/fob-orc).
+- **BREAKING:** The pm2 resource `workers` is renamed `procs`.
+- **BREAKING:** `steps run --item` is removed; fob-worker makes no Orchestrator API calls.
+- `LineState.bins[station][bin]` is now `Map<id, subpath>` instead of `Set<id>`. Consumers that iterate ids should use `.keys()`; `.size` and `.has()` keep working unchanged.
+- `workpieceDir()` uses `pos.subpath` when set so sub-bin layouts resolve correctly.
+- `fob-worker workpieces list` and `fob-worker stations status` show the sub-bin path when a workpiece lives under one (e.g. `HI3/output/invoices` in `POSITION`).
+- Help output: each command's own options now render under `Options:` above a dedicated `Global Options:` group (`--help`, `--version`), instead of being interleaved. Help text only — no behavior change.
+
+### Added
+- `--watch [--interval=N]` flag on `fob-worker lines status` and `fob-worker stations status`. Re-renders the snapshot in place on the main screen (cursor-home + erase-to-end, no scrollback pollution; last frame stays visible after Ctrl-C). Default interval 1s. Mutually exclusive with `--json` (one-shot format). Shared helper lives in `src/utils/watch-render.js`.
 - `scanBinWorkpieces(bin_dir)` in `src/utils/line-state.js` — walks a bin tree (up to `MAX_BIN_DEPTH` = 4) and treats any directory containing `pointer.json` as a workpiece. Lets workpieces live under typed sub-bins (`output/invoices/`, `output/PO/`, `output/MSA/`) while keeping the workpiece-id namespace flat.
 - `Position.subpath` — the path from a bin root to the workpiece directory. Equals the workpiece id for flat layouts; carries the sub-bin segment for nested layouts (e.g. `'invoices/hi-1__NT-001'`).
 - `collectIdsForBin()` now accepts an optional `STATION/BIN/SUBPATH` form (e.g. `HI3/output/invoices`) to narrow to a specific sub-bin.
 
-### Changed
-- `LineState.bins[station][bin]` is now `Map<id, subpath>` instead of `Set<id>`. Consumers that iterate ids should use `.keys()`; `.size` and `.has()` keep working unchanged.
-- `workpieceDir()` uses `pos.subpath` when set so sub-bin layouts resolve correctly.
-- `fob workpieces list` and `fob stations status` show the sub-bin path when a workpiece lives under one (e.g. `HI3/output/invoices` in `POSITION`).
-- Help output: each command's own options now render under `Options:` above a dedicated `Global Options:` group (`--help`, `--version`), instead of being interleaved. Help text only — no behavior change.
-
 ### Fixed
-
-### Removed
+- `procs` detects workers on Linux as well as macOS.
+- Timestamps render in local time, not UTC.
+- Shell completion completes partial words and no longer includes step-discovery log output.
+- Station short_codes are shown instead of raw ids.
+- Help output wraps to the terminal width.
 
 ## [1.0.1] - 2026-06-11
 

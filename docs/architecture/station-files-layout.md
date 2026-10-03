@@ -16,7 +16,7 @@ How station definitions and test scenarios are stored in the worker directory.
 │   ├── P8__verify_statement.json      "line": "P8"
 │   └── 0flNNmVLV5Dg__update_rules.json
 └── scenarios/
-    └── alex__send_email/
+    └── acme__send_email/
         ├── happy-path.json
         └── missing-recipient.json
 ```
@@ -54,4 +54,4 @@ Full station definition JSON as returned by the orchestrator API, including `id`
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
-- [Scenarios](/docs/usage/scenarios.md)
+- [Scenarios](https://orchestrator.finopsbricks.com/docs/workers/run-steps#scenarios)

@@ -4,7 +4,7 @@ How the CLI accesses `@fob/lib-worker` without declaring it as a dependency.
 
 ## Context
 
-The CLI needs 4 functions from `@fob/lib-worker`: `initTemplates`, `resolveConfig`, `isStepDefinition`, and `getStepHandler`. It previously declared `@fob/lib-worker` as a bundled dependency in `package.json`.
+The CLI needs `initTemplates`, `resolveConfig`, `discoverSteps` and `createHandler` from `@fob/lib-worker`. It previously declared `@fob/lib-worker` as a bundled dependency in `package.json`.
 
 This caused a **dual module instance bug**: Node.js loaded two separate copies of `@fob/lib-worker` (one from the CLI's `node_modules/`, one from the worker's). Module-level state set by the CLI's copy (via `initTemplates`) was invisible to step handlers running from the worker's copy (via `renderTemplate`), causing "Templates not initialized" errors.
 
@@ -25,7 +25,7 @@ The CLI dynamically imports `@fob/lib-worker` from the **worker's** `node_module
 const { initTemplates, resolveConfig } = await loadLibWorker();
 
 // Sync — returns cached module (throws if not yet loaded)
-const { isStepDefinition, getStepHandler } = getLibWorker();
+const { createHandler } = getLibWorker();
 ```
 
 Resolution path: `{process.cwd()}/node_modules/@fob/lib-worker/src/index.js`
@@ -34,7 +34,7 @@ The module is cached after the first `loadLibWorker()` call. `getLibWorker()` re
 
 ## Why This Works
 
-The CLI always runs from inside a worker repo directory. It cannot function without one — it requires `src/steps/index.js`, `.orchestrator/`, `.env`, etc. Since a worker always has `@fob/lib-worker` installed, the module is guaranteed to be available.
+The CLI always runs from inside a worker repo directory. It cannot function without one — it requires `src/steps/`, `.orchestrator/`, `.env`, etc. Since a worker always has `@fob/lib-worker` installed, the module is guaranteed to be available.
 
 ## Trade-offs
 

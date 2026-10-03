@@ -40,8 +40,8 @@ Templates appear in step configs inside station definitions:
 ```json
 {
   "to": "{{env.EMAIL_RECIPIENTS}}",
-  "subject": "{{alex/generate_email.subject}}",
-  "html": "{{alex/generate_email.html}}"
+  "subject": "{{acme/generate_email.subject}}",
+  "html": "{{acme/generate_email.html}}"
 }
 ```
 
@@ -52,4 +52,4 @@ They are resolved before the step handler receives the config.
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
 - [Station Files Layout](/docs/architecture/station-files-layout.md)
-- [Running Steps Locally](/docs/usage/running-steps.md)
+- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)

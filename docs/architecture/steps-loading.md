@@ -1,53 +1,32 @@
 # Steps Loading
 
-How the CLI dynamically imports and validates step handlers from a worker repo.
+How the CLI discovers and runs step handlers from a worker repo.
 
 ## Loading Procedure
 
-`loadSteps(stepsPath)` in `src/utils/steps-loader.js`:
+`loadSteps(stepsDir)` in `src/utils/steps-loader.js`:
 
-1. Converts `stepsPath` to a `file://` URL (required for Windows compatibility)
-2. Dynamic `import()` loads the module
-3. Expects the module to export a `steps` object: `export const steps = { ... }`
-4. Returns the steps registry map
+1. Checks that `src/steps/` exists in the current directory
+2. Loads `@fob/lib-worker` from the worker's own `node_modules/` (see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md))
+3. Calls lib-worker's `discoverSteps(stepsDir)`, which imports every step file under `src/steps/` and returns a registry of slug → step definition. Each definition carries `_file`, its path relative to `src/steps/`, which `fob-worker steps list` shows as FOLDER and FILE
+
+There is no index file: adding a file that default-exports a `defineStep()` is enough.
 
 ## StepDefinition Requirement
 
-Steps must be created with `defineStep()` from `@fob/lib-worker`. Plain function exports are rejected:
+Steps must be created with `defineStep()` from `@fob/lib-worker`:
 
 ```javascript
-// Required — must use defineStep()
 export default defineStep({
-  slug: 'org/step_name',
+  slug: 'IN1_01_count',
   execute: async (config, context) => { ... },
 });
 ```
 
-`getHandler()` calls `isStepDefinition()` and `getStepHandler()` from the worker's `@fob/lib-worker` (loaded at runtime via `getLibWorker()` — see [lib-worker Resolution](/docs/architecture/lib-worker-resolution.md)). If the step is a plain function, it throws with a clear error message.
-
-## Steps Registry Format
-
-The worker's `src/steps/index.js` maps slugs to step definitions:
-
-```javascript
-import fetchData from './verify_statement/fetch_data.js';
-import checkBalances from './verify_statement/check_balances.js';
-
-export const steps = {
-  'alex/fetch_data': fetchData,
-  'alex/check_balances': checkBalances,
-};
-```
-
-## File Path Mapping
-
-`loadStepsWithFiles()` additionally parses the index file source to extract slug → file path mappings. This is used by `fob steps list` to show which file each step comes from.
-
-The parser extracts `import name from './path'` statements and correlates them with `'slug': name` entries in the exports.
+`getHandler()` passes the definition to lib-worker's `createHandler()`, which validates it and wraps `execute` with config resolution and the step's schemas.
 
 ## Related Notes
 
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
-- [Running Steps Locally](/docs/usage/running-steps.md)
-- [Step Handler Pattern](fde-handbook/step-patterns/step-handler-pattern.md)
+- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)

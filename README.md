@@ -1,51 +1,80 @@
-# @finopsbricks/fob-worker (`fob-worker`)
+# fob-worker
 
-Local worker-plane CLI for FinOpsBricks — step execution, local run-state
-(`fob-worker steps`, `lines`, `workpieces`, `stations status`), and pm2 process
-management (`fob-worker procs`). Reachable via the `fob` dispatcher as
-`fob worker <resource> <action>`.
+Run and debug [FinOpsBricks Orchestrator](https://orchestrator.finopsbricks.com) worker steps on your own machine, and see what's sitting in each station's bins.
 
-Command pattern: `fob-worker <resource> <action> [target] [options]`
+```bash
+fob-worker steps run IN1_01_count --scenario two-invoices
+fob-worker lines status IN
+fob-worker workpieces show 2026-10-03-acme
+```
 
-> **Split note (2026-07-26):** this was `@fob/cli-fob` (binary `fob`). The
-> **orchestrator control plane** — canonical station definitions, work records,
-> tags, supporting docs (`stations list/show/edit/pull/push/run/…`, `work-records`,
-> `tags`, `supporting-docs`, `orchestrator status`) — moved to the sibling
-> **`fob-orc`** CLI / **`@finopsbricks/fob-orc`** client. What remains here is strictly local:
-> filesystem run-state + local step execution + pm2. The pm2 resource `workers`
-> was renamed **`procs`**.
+**Beta.** [Docs](https://orchestrator.finopsbricks.com/docs/workers) · [About](https://finopsbricks.com/cli/fob-worker) · [Changelog](CHANGELOG.md)
+
+## What you need
+
+fob-worker works inside a **worker repo**: a Node.js project that runs your steps for the Orchestrator.
+
+- **An Orchestrator account.** Orchestrator is available to FinOpsBricks customers; [request access](https://finopsbricks.com/cli/fob-worker#access).
+- **A worker repo** built on [`@fob/lib-worker`](https://github.com/finopsbricks/lib-worker). Start from [worker-template](https://github.com/finopsbricks/worker-template).
+- **Node.js 18 or later.**
+- [`fob-orc`](https://www.npmjs.com/package/@finopsbricks/fob-orc), to pull and push station definitions.
+- For `fob-worker procs` only: macOS or Linux, and [pm2](https://pm2.keymetrics.io/) installed globally.
 
 ## Install
 
 ```bash
 npm install -g @finopsbricks/fob-worker
+fob-worker --version
 ```
 
-Run it inside a worker repository built on [`@fob/lib-worker`](https://github.com/finopsbricks/lib-worker). To start one, use the [worker-template](https://github.com/finopsbricks/worker-template). Station definitions are pulled and pushed with `fob-orc`.
+## First run
 
-## Installation Docs
+From the root of a worker repo, after `npm install`:
 
-- [Installation](docs/usage/installation.md) — install, link, shell completion
-- [Configuration](docs/usage/configuration.md) — paths, environment variables
+```bash
+fob-worker steps list                 # the steps under src/steps/
+fob-worker steps run <slug> --empty   # run one with an empty config
+```
 
-## Usage Docs
+The output is printed and saved to `temp/<slug>.json`, where the next step you run picks it up as `step_outputs`. Without `--empty`, `--station` or `--scenario`, fob-worker asks which config to use: one from a station that includes the step, a saved scenario, or none.
 
-Guides for CLI users:
+See [Get started](https://orchestrator.finopsbricks.com/docs/workers/get-started) for the full walkthrough from the template.
 
-- [Command Reference](docs/usage/commands.md) — all commands grouped by resource
-- [Running Steps](docs/usage/running-steps.md) — local step debugging workflow
-- [Scenarios](docs/usage/scenarios.md) — reusable test configs for steps
+## Commands
 
+| Command | What it does |
+| --- | --- |
+| `steps list`, `steps run` | List the worker's steps; run one locally |
+| `lines list`, `lines show`, `lines status` | Lines and their stations from `.orchestrator/`; live bin counts from `temp/stations/` |
+| `stations status` | One station's bins and the workpieces in them |
+| `workpieces list`, `show`, `watch` | Where each workpiece is, its journey, a live tail |
+| `lines empty-bins`, `stations empty-bins` | Clear bins (asks first) |
+| `procs list`, `start`, `stop`, `restart`, `logs`, `monit` | Run the worker under pm2 on this machine |
+| `config show` | Paths and which environment variables are set |
 
-## Architecture Docs
+Add `--json` to list and status commands for machine-readable output. `fob-worker <resource> <action> --help` shows every option.
 
-Internal docs for CLI maintainers:
+fob-worker reads local files only. It never calls the Orchestrator; `fob-orc` does that.
 
-- [Module Structure](docs/architecture/module-structure.md)
-- [Config Resolution](docs/architecture/config-resolution.md)
-- [Steps Loading](docs/architecture/steps-loading.md)
-- [Task Construction](docs/architecture/task-construction.md)
-- [Template Resolution](docs/architecture/template-resolution.md)
-- [Station Files Layout](docs/architecture/station-files-layout.md)
-- [Auth](docs/architecture/auth.md)
-- [CLI Design Style Guide](docs/cli-design-style.md) — command structure and conventions
+## Use as a library
+
+```js
+import { loadConfig, loadSteps } from '@finopsbricks/fob-worker';
+
+const steps = await loadSteps(loadConfig().stepsDir); // slug → step definition
+```
+
+## Beta limits
+
+- `steps run` builds a local task with no item (`item_snapshot` is `null`), so steps that read the item need a scenario or station config that supplies what they need.
+- `steps run` output is for people, not scripts.
+- `lines` and `stations` show what `fob-orc` last pulled; there's no live view of the Orchestrator.
+- `procs` is macOS and Linux only and manages workers started with pm2.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues as described in [SECURITY.md](SECURITY.md).
+
+## License
+
+Apache-2.0

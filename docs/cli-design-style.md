@@ -38,16 +38,16 @@ Actions are verbs that operate on a resource. Standard actions:
 
 | Action | Purpose | Example |
 |--------|---------|---------|
-| `list` | List all instances | `fob stations list` |
-| `show` | Show one instance in detail (definitional) | `fob stations show <id>` |
-| `status` | Snapshot of live operational state | `fob lines status VM` |
-| `watch` | Live tail; append-style streaming | `fob workpieces watch <id>` |
+| `list` | List all instances | `fob-orc stations list` |
+| `show` | Show one instance in detail (definitional) | `fob-orc stations show <id>` |
+| `status` | Snapshot of live operational state | `fob-worker lines status VM` |
+| `watch` | Live tail; append-style streaming | `fob-worker workpieces watch <id>` |
 | `create` | Create a new instance | `fob tags create <name>` |
-| `edit` | Modify an existing instance | `fob stations edit <id> --add-tag x` |
+| `edit` | Modify an existing instance | `fob-orc stations edit <id> --add-tag x` |
 | `delete` | Remove an instance | `fob tags delete <id>` |
-| `pull` | Download from orchestrator to local | `fob stations pull <id>` |
-| `push` | Upload from local to orchestrator | `fob stations push <id>` |
-| `run` | Execute (locally or remote) | `fob steps run <slug>`, `fob stations run <id>` |
+| `pull` | Download from orchestrator to local | `fob-orc stations pull <id>` |
+| `push` | Upload from local to orchestrator | `fob-orc stations push <id>` |
+| `run` | Execute (locally or remote) | `fob-worker steps run <slug>`, `fob-orc stations run <id>` |
 
 Not every resource needs every action. Only add what's useful.
 
@@ -72,11 +72,11 @@ Always require the action. Never infer it from arguments.
 ```bash
 # Correct
 fob steps list
-fob steps run alex/fetch_data
+fob-worker steps run acme/fetch_data
 
 # Wrong — no default action
 fob steps                        # shows help, does NOT default to list
-fob steps alex/fetch_data        # error, does NOT infer "run"
+fob-worker steps acme/fetch_data        # error, does NOT infer "run"
 ```
 
 This eliminates ambiguity and makes scripts self-documenting.
@@ -131,7 +131,7 @@ fob tags delete <id>                             # Delete a tag
 fob stations edit <id> --add-tag high-priority   # Link tag to station
 ```
 
-These are separate because they do different things. `fob tags create` creates the tag definition. `fob stations edit --add-tag` creates the association.
+These are separate because they do different things. `fob tags create` creates the tag definition. `fob-orc stations edit --add-tag` creates the association.
 
 ## Options
 
@@ -293,4 +293,4 @@ fob
 ## Related
 
 - [Architecture](/docs/architecture/) — Internal design notes
-- [Usage](/docs/usage/) — How-to guides
+- [Workers docs](https://orchestrator.finopsbricks.com/docs/workers) — user guides

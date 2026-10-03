@@ -20,7 +20,7 @@ Step handlers receive a `task` argument from the orchestrator in production. To 
     item_snapshot: null,                   // always null locally
     step_outputs: step_outputs,            // loaded from temp/*.json
   },
-  org_id: process.env.WORKER_ORG || 'local',
+  org_id: process.env.WORKER_LOCATION || 'local',
 }
 ```
 
@@ -33,8 +33,8 @@ Step handlers receive a `task` argument from the orchestrator in production. To 
 All `*.json` files in `temp/` (excluding `*.config.json`) are loaded and keyed by slug:
 
 ```
-temp/alex__fetch_data.json  →  step_outputs['alex/fetch_data']
-temp/alex__check_balances.json  →  step_outputs['alex/check_balances']
+temp/acme__fetch_data.json  →  step_outputs['acme/fetch_data']
+temp/acme__check_balances.json  →  step_outputs['acme/check_balances']
 ```
 
 Running steps in sequence chains their outputs naturally — each step's output is available to the next.
@@ -53,4 +53,4 @@ Running steps in sequence chains their outputs naturally — each step's output 
 - [Steps Loading](/docs/architecture/steps-loading.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
 - [Station Files Layout](/docs/architecture/station-files-layout.md)
-- [Running Steps Locally](/docs/usage/running-steps.md)
+- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)
