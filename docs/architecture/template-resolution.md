@@ -52,4 +52,4 @@ They are resolved before the step handler receives the config.
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Config Resolution](/docs/architecture/config-resolution.md)
 - [Station Files Layout](/docs/architecture/station-files-layout.md)
-- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)
+- [Run steps locally](https://finopsbricks.com/docs/workers/run-steps)

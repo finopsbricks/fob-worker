@@ -53,4 +53,4 @@ Running steps in sequence chains their outputs naturally — each step's output 
 - [Steps Loading](/docs/architecture/steps-loading.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
 - [Station Files Layout](/docs/architecture/station-files-layout.md)
-- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)
+- [Run steps locally](https://finopsbricks.com/docs/workers/run-steps)

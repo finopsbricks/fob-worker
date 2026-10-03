@@ -8,7 +8,7 @@ fob-worker lines status IN
 fob-worker workpieces show 2026-10-03-acme
 ```
 
-**Beta.** [Docs](https://orchestrator.finopsbricks.com/docs/workers) · [About](https://finopsbricks.com/cli/fob-worker) · [Changelog](CHANGELOG.md)
+**Beta.** [Docs](https://finopsbricks.com/docs/workers) · [About](https://finopsbricks.com/cli/fob-worker) · [Changelog](CHANGELOG.md)
 
 ## What you need
 
@@ -38,7 +38,7 @@ fob-worker steps run <slug> --empty   # run one with an empty config
 
 The output is printed and saved to `temp/<slug>.json`, where the next step you run picks it up as `step_outputs`. Without `--empty`, `--station` or `--scenario`, fob-worker asks which config to use: one from a station that includes the step, a saved scenario, or none.
 
-See [Get started](https://orchestrator.finopsbricks.com/docs/workers/get-started) for the full walkthrough from the template.
+See [Get started](https://finopsbricks.com/docs/workers/get-started) for the full walkthrough from the template.
 
 ## Commands
 

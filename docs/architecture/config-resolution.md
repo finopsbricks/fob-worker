@@ -35,4 +35,4 @@ fob-worker config show    # Displays resolved paths and which env vars are set (
 ## Related Notes
 
 - [Module Structure](/docs/architecture/module-structure.md)
-- [Configuration](https://orchestrator.finopsbricks.com/docs/workers/configuration)
+- [Configuration](https://finopsbricks.com/docs/workers/configuration)

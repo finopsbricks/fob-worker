@@ -54,4 +54,4 @@ Full station definition JSON as returned by the orchestrator API, including `id`
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
 - [Template Resolution](/docs/architecture/template-resolution.md)
-- [Scenarios](https://orchestrator.finopsbricks.com/docs/workers/run-steps#scenarios)
+- [Scenarios](https://finopsbricks.com/docs/workers/run-steps#scenarios)

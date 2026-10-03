@@ -29,4 +29,4 @@ export default defineStep({
 
 - [Module Structure](/docs/architecture/module-structure.md)
 - [Task Construction](/docs/architecture/task-construction.md)
-- [Run steps locally](https://orchestrator.finopsbricks.com/docs/workers/run-steps)
+- [Run steps locally](https://finopsbricks.com/docs/workers/run-steps)

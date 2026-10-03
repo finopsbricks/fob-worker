@@ -293,4 +293,4 @@ fob
 ## Related
 
 - [Architecture](/docs/architecture/) — Internal design notes
-- [Workers docs](https://orchestrator.finopsbricks.com/docs/workers) — user guides
+- [Workers docs](https://finopsbricks.com/docs/workers) — user guides
