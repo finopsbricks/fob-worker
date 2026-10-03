@@ -5,6 +5,7 @@ import path from 'node:path';
 import { makeWorkpiece, writeStationDefs } from '../../fixtures/stations.js';
 import { captureOutput, ExitError } from '../helpers.js';
 import { showWorkpieceHandler } from '../../../src/cli/workpieces/show.js';
+import { formatDate } from '../../../src/utils/format.js';
 
 
 describe('showWorkpieceHandler()', () => {
@@ -73,5 +74,12 @@ describe('showWorkpieceHandler()', () => {
     expect(parsed.position).toMatchObject({ station: 'VM3', bin: 'failed' });
     expect(parsed.journey).toHaveLength(3);
     expect(parsed.folder).toMatch(/^file:\/\//);
+  });
+
+  it('should print journey times in local time, not raw UTC', async () => {
+    await showWorkpieceHandler({ id: 'stuck-xyz' });
+
+    expect(out.stdout).toContain(formatDate('2026-06-06T08:31:20.007Z'));
+    expect(out.stdout).not.toContain('2026-06-06T08:31:20.007Z');
   });
 });

@@ -9,7 +9,7 @@ import path from 'path';
 
 /**
  * Convert step slug to filename
- * alex/fetch_account_freshness -> alex__fetch_account_freshness.json
+ * acme/fetch_account_freshness -> acme__fetch_account_freshness.json
  * @param {string} slug
  * @returns {string}
  */
@@ -19,7 +19,7 @@ export function slugToFilename(slug) {
 
 /**
  * Convert step slug to config filename
- * alex/send_email -> alex__send_email.config.json
+ * acme/send_email -> acme__send_email.config.json
  * @param {string} slug
  * @returns {string}
  */
@@ -77,7 +77,7 @@ export function loadStepConfig(tempDir, slug) {
 
 /**
  * Convert filename back to step slug
- * alex__fetch_account_freshness.json -> alex/fetch_account_freshness
+ * acme__fetch_account_freshness.json -> acme/fetch_account_freshness
  * @param {string} filename
  * @returns {string}
  */
@@ -87,7 +87,7 @@ export function filenameToSlug(filename) {
 
 /**
  * Load all step outputs from temp directory as a map
- * Returns: { 'alex/fetch_data': {...}, 'alex/generate_email': {...} }
+ * Returns: { 'acme/fetch_data': {...}, 'acme/generate_email': {...} }
  * @param {string} tempDir - Temp directory path
  * @returns {Object<string, object>} Map of slug -> output
  */

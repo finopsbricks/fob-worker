@@ -6,6 +6,7 @@ import {
   workpieceLink,
   readWorkpieceLog,
 } from '../../utils/line-state.js';
+import { formatDate, localTzLabel } from '../../utils/format.js';
 import { listWorkpiecesHandler } from './list.js';
 
 /**
@@ -88,8 +89,9 @@ function positionLabel(pos) {
 }
 
 function renderJourney(events) {
-  console.log('Journey');
-  console.log('-------');
+  const heading = `Journey (${localTzLabel()})`;
+  console.log(heading);
+  console.log('-'.repeat(heading.length));
   if (events.length === 0) {
     console.log('  (no log.jsonl found at current position)');
     return;
@@ -107,7 +109,7 @@ function renderJourney(events) {
         delete started_at[e.station];
       }
     }
-    console.log(`${e.ts}  ${e.station.padEnd(3)}  ${e.event}${extra}`);
+    console.log(`${formatDate(e.ts)}  ${e.station.padEnd(3)}  ${e.event}${extra}`);
   }
 }
 

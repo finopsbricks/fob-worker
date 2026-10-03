@@ -1,4 +1,4 @@
-import { formatTable, formatSection } from '../../utils/format.js';
+import { formatTable, formatSection, formatTime, localTzLabel } from '../../utils/format.js';
 import {
   loadLineState,
   resolvePosition,
@@ -127,7 +127,7 @@ export async function listWorkpiecesHandler(argv) {
   console.log(`${header} — ${rows.length} workpiece${rows.length === 1 ? '' : 's'}`);
   console.log('');
   console.log(formatTable(
-    ['WORKPIECE', 'POSITION', 'LAST EVENT'],
+    ['WORKPIECE', 'POSITION', `LAST EVENT (${localTzLabel()})`],
     rows.map((r) => [r.id, r.position, r.last_event]),
   ));
 
@@ -154,7 +154,7 @@ function positionShort(pos) {
 function formatLastEventCompact(events) {
   if (events.length === 0) return '—';
   const e = events[events.length - 1];
-  const ts = e.ts.slice(11, 16); // HH:MM
+  const ts = formatTime(e.ts).slice(0, 5); // HH:MM, local
   let extra = '';
   if (e.event === 'station_complete' || e.event === 'station_failed') {
     for (let i = events.length - 2; i >= 0; i--) {

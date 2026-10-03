@@ -210,7 +210,7 @@ export function run(args) {
           (yargs) => {
             return localOptions(
               yargs.positional('slug', {
-                describe: 'Step slug (e.g., alex/fetch_account_freshness)',
+                describe: 'Step slug (e.g. IN1_01_count)',
                 type: 'string',
               })
             )

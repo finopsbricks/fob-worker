@@ -316,7 +316,7 @@ export function findStationsWithStep(stepSlug) {
 
 /**
  * Convert step slug to scenario directory name.
- * alex/send_email -> alex__send_email
+ * acme/send_email -> acme__send_email
  * @param {string} slug
  * @returns {string}
  */

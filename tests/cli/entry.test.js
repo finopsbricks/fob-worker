@@ -49,7 +49,7 @@ describe('fob-worker entry point', () => {
   it('should link the docs and landing page in --help', () => {
     const res = run('--help');
 
-    expect(res.stdout).toContain('https://orchestrator.finopsbricks.com/docs/workers');
+    expect(res.stdout).toContain('https://finopsbricks.com/docs/workers');
     expect(res.stdout).toContain('https://finopsbricks.com/cli/fob-worker');
   });
 

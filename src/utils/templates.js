@@ -32,7 +32,7 @@ export function resolveTemplates(config, tempDir) {
         return envValue;
       }
 
-      // Step output reference: {{alex/step_name.field}} or {{alex/step_name.nested.field}}
+      // Step output reference: {{acme/step_name.field}} or {{acme/step_name.nested.field}}
       // The slug contains '/', so we need to find where the slug ends and field begins
       const fullPath = templatePath.trim();
 

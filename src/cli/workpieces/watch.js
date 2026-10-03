@@ -76,7 +76,7 @@ export async function watchSingle(workpiece_id, { interval_secs = DEFAULT_INTERV
     const events = readWorkpieceLog(wp_dir);
     if (events.length > last_log_count) {
       for (const e of events.slice(last_log_count)) {
-        console.log(`${e.ts}  ${e.station.padEnd(3)}  ${e.event}`);
+        console.log(`${formatTime(e.ts)}  ${e.station.padEnd(3)}  ${e.event}`);
       }
       last_log_count = events.length;
     }
@@ -214,7 +214,7 @@ export async function watchMulti(ids, { interval_secs = DEFAULT_INTERVAL_SECS } 
         const events = readWorkpieceLog(wp_dir);
         if (events.length > prev.log_count) {
           for (const e of events.slice(prev.log_count)) {
-            console.log(`${e.ts}  ${id}  ${e.station}  ${e.event}`);
+            console.log(`${formatTime(e.ts)}  ${id}  ${e.station}  ${e.event}`);
           }
           prev.log_count = events.length;
         }

@@ -36,7 +36,7 @@ export async function loadStepsWithFiles(stepsDir) {
 /**
  * Get handler for a step slug.
  * @param {object} steps - Steps registry
- * @param {string} slug - Step slug (e.g., 'alex/fetch_account_freshness')
+ * @param {string} slug - Step slug (e.g., 'acme/fetch_account_freshness')
  * @returns {Function|null} Step handler function
  */
 export function getHandler(steps, slug) {
